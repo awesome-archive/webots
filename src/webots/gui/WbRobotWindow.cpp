@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ WbRobotWindow::WbRobotWindow(WbRobot *robot, QWidget *parent) :
 
   const QString &windowFileName = robot->windowFile("html");
   if (windowFileName.isEmpty()) {
-    robot->warn(tr("No dockable HTML robot window is set in the 'window' field."));
+    robot->parsingWarn(tr("No dockable HTML robot window is set in the 'window' field."));
     return;
   }
 
@@ -69,11 +69,8 @@ WbRobotWindow::WbRobotWindow(WbRobot *robot, QWidget *parent) :
 }
 
 WbRobotWindow::~WbRobotWindow() {
-#ifdef _WIN32
-  // With QWebEngine, deleting WebView is sufficient.
   if (mWebView)
     delete mWebView->page();
-#endif
   delete mWebView;
 }
 
@@ -100,7 +97,7 @@ void WbRobotWindow::setupPage() {
 
   const QString &windowFileName = mRobot->windowFile("html");
   if (windowFileName.isEmpty()) {
-    mRobot->warn(tr("No dockable HTML robot window is set in the 'window' field."));
+    mRobot->parsingWarn(tr("No dockable HTML robot window is set in the 'window' field."));
     return;
   }
   QFile htmlFile(windowFileName);
@@ -215,20 +212,28 @@ void WbRobotWindow::notifyAckReceived() {
 
 void WbRobotWindow::runJavaScript(const QString &message) {
   mTransportLayer->requestAck();
-  mWebView->page()->runJavaScript("webots.Window.receive('" + message + "', '" + robot()->name() + "')");
+  mWebView->page()->runJavaScript("webots.Window.receive('" + message + "', '" + escapeString(robot()->name()) + "')");
 }
 #endif
 
+QString WbRobotWindow::escapeString(const QString &text) {
+  QString escaped(text);
+  escaped.replace("\\", "\\\\\\\\");
+  escaped.replace("'", "\\'");
+  return escaped;
+}
+
 void WbRobotWindow::sendToJavascript(const QByteArray &string) {
+  const QString &message(escapeString(string));
 #ifdef _WIN32
-  mFrame->evaluateJavaScript("webots.Window.receive('" + string + "', '" + robot()->name() + "')");
+  mFrame->evaluateJavaScript("webots.Window.receive('" + message + "', '" + escapeString(robot()->name()) + "')");
 #else
   mRobot->setWaitingForWindow(true);
   if (mLoaded)
-    runJavaScript(string);
+    runJavaScript(message);
   else
     // message will be sent once the robot window loading is completed
-    mWaitingSentMessages << string;
+    mWaitingSentMessages << message;
 #endif
 }
 

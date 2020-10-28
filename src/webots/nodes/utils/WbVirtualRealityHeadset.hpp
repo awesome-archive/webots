@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -59,8 +59,8 @@ public:
   // public updates
   void applyAspectRatioToWren();
   void applyFieldOfViewToWren();
-  void setPosition(WbVector3 position);
-  void setOrientation(WbRotation orientation);
+  void setPosition(const WbVector3 &position);
+  void setOrientation(const WbRotation &orientation);
   void setNear(double nearValue);
   void setFar(double farValue);
   void setupLensFlare(WbLensFlare *lensFlare);

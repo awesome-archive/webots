@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,14 +16,13 @@
 
 #include "WbAffinePlane.hpp"
 #include "WbBoundingSphere.hpp"
-#include "WbColor.hpp"
 #include "WbField.hpp"
 #include "WbFieldChecker.hpp"
 #include "WbLog.hpp"
-#include "WbMFColor.hpp"
 #include "WbMFDouble.hpp"
 #include "WbMatter.hpp"
 #include "WbNodeUtilities.hpp"
+#include "WbOdeGeomData.hpp"
 #include "WbRay.hpp"
 #include "WbResizeManipulator.hpp"
 #include "WbRgb.hpp"
@@ -48,9 +47,7 @@ void WbElevationGrid::init() {
   mMinHeight = 0;
   mMaxHeight = 0;
 
-  mColor = findSFNode("color");
   mHeight = findMFDouble("height");
-  mColorPerVertex = findSFBool("colorPerVertex");
   mXDimension = findSFInt("xDimension");
   mXSpacing = findSFDouble("xSpacing");
   mZDimension = findSFInt("zDimension");
@@ -60,6 +57,11 @@ void WbElevationGrid::init() {
 
 WbElevationGrid::WbElevationGrid(WbTokenizer *tokenizer) : WbGeometry("ElevationGrid", tokenizer) {
   init();
+
+  if (tokenizer == NULL) {
+    mXDimension->setValueNoSignal(2);
+    mZDimension->setValueNoSignal(2);
+  }
 }
 
 WbElevationGrid::WbElevationGrid(const WbElevationGrid &other) : WbGeometry(other) {
@@ -81,14 +83,12 @@ WbElevationGrid::~WbElevationGrid() {
 
 void WbElevationGrid::preFinalize() {
   WbGeometry::preFinalize();
-  if (color())
-    color()->preFinalize();
 
   sanitizeFields();
 
   if (isInBoundingObject()) {
     if (WbNodeUtilities::findUpperMatter(this)->nodeType() == WB_NODE_FLUID) {
-      warn("The ElevationGrid geometry cannot be used as a Fluid boundingObject. Immersions will have not effect.\n");
+      parsingWarn("The ElevationGrid geometry cannot be used as a Fluid boundingObject. Immersions will have not effect.\n");
       // TODO: enable dHeightField for immersion detection in src/ode/ode/fluid_dynamics
     }
     isSuitableForInsertionInBoundingObject(true);  // boundingObject specific warnings
@@ -97,27 +97,16 @@ void WbElevationGrid::preFinalize() {
 
 void WbElevationGrid::postFinalize() {
   WbGeometry::postFinalize();
-  if (color())
-    color()->postFinalize();
-
   connect(mHeight, &WbMFDouble::changed, this, &WbElevationGrid::updateHeight);
   connect(mXDimension, &WbSFInt::changed, this, &WbElevationGrid::updateXDimension);
   connect(mXSpacing, &WbSFDouble::changed, this, &WbElevationGrid::updateXSpacing);
   connect(mZDimension, &WbSFInt::changed, this, &WbElevationGrid::updateZDimension);
   connect(mZSpacing, &WbSFDouble::changed, this, &WbElevationGrid::updateZSpacing);
   connect(mThickness, &WbSFDouble::changed, this, &WbElevationGrid::updateThickness);
-  connect(mColor, &WbSFNode::changed, this, &WbElevationGrid::updateColor);
-  connect(mColorPerVertex, &WbSFBool::changed, this, &WbElevationGrid::updateColorPerVertex);
-
-  if (!areWrenObjectsInitialized())
-    // connect to color node changes
-    updateColor();
 }
 
 void WbElevationGrid::createWrenObjects() {
   WbGeometry::createWrenObjects();
-  updateColor();
-
   buildWrenMesh();
 
   if (isInBoundingObject())
@@ -133,9 +122,6 @@ void WbElevationGrid::buildWrenMesh() {
 
   wr_static_mesh_delete(mWrenMesh);
   mWrenMesh = NULL;
-
-  if (!sanitizeFields())
-    return;
 
   if (xDimension() < 2 || zDimension() < 2)
     return;
@@ -201,19 +187,19 @@ void WbElevationGrid::rescale(const WbVector3 &scale) {
 }
 
 bool WbElevationGrid::sanitizeFields() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mThickness, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mThickness, 0.0))
     return false;
 
-  if (WbFieldChecker::checkIntIsNonNegative(this, mXDimension, 0))
+  if (WbFieldChecker::resetIntIfNegative(this, mXDimension, 0))
     return false;
 
-  if (WbFieldChecker::checkDoubleIsPositive(this, mXSpacing, 1.0))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mXSpacing, 1.0))
     return false;
 
-  if (WbFieldChecker::checkIntIsNonNegative(this, mZDimension, 0))
+  if (WbFieldChecker::resetIntIfNegative(this, mZDimension, 0))
     return false;
 
-  if (WbFieldChecker::checkDoubleIsPositive(this, mZSpacing, 1.0))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mZSpacing, 1.0))
     return false;
 
   checkHeight();
@@ -228,7 +214,7 @@ void WbElevationGrid::checkHeight() {
 
   const int extra = mHeight->size() - xdzd;
   if (extra > 0)
-    warn(tr("'height' contains %1 ignored extra value(s).").arg(extra));
+    parsingWarn(tr("'height' contains %1 ignored extra value(s).").arg(extra));
 
   // find min/max height
   mMinHeight = 0;
@@ -242,19 +228,6 @@ void WbElevationGrid::checkHeight() {
     if (mMaxHeight < 0.0)
       mMaxHeight = 0.0;
   }
-}
-
-void WbElevationGrid::updateColor() {
-  if (color())
-    connect(color(), &WbColor::changed, this, &WbElevationGrid::updateColor, Qt::UniqueConnection);
-
-  emit vertexColorChanged();
-  emit changed();
-}
-
-void WbElevationGrid::updateColorPerVertex() {
-  emit vertexColorChanged();
-  emit changed();
 }
 
 void WbElevationGrid::updateHeight() {
@@ -372,7 +345,7 @@ void WbElevationGrid::updateZSpacing() {
 }
 
 void WbElevationGrid::updateLineScale() {
-  if (!sanitizeFields() || !isAValidBoundingObject())
+  if (!isAValidBoundingObject())
     return;
 
   const float offset = wr_config_get_line_scale() / LINE_SCALE_FACTOR;
@@ -383,9 +356,6 @@ void WbElevationGrid::updateLineScale() {
 }
 
 void WbElevationGrid::updateScale() {
-  if (!sanitizeFields())
-    return;
-
   float scale[] = {static_cast<float>(xSpacing()), static_cast<float>(1.0f), static_cast<float>(zSpacing())};
   wr_transform_set_scale(wrenNode(), scale);
 }
@@ -413,18 +383,6 @@ bool WbElevationGrid::areSizeFieldsVisibleAndNotRegenerator() const {
   const WbField *const zSpacing = findField("zSpacing", true);
   return WbNodeUtilities::isVisible(xSpacing) && WbNodeUtilities::isVisible(zSpacing) &&
          !WbNodeUtilities::isTemplateRegeneratorField(xSpacing) && !WbNodeUtilities::isTemplateRegeneratorField(zSpacing);
-}
-
-void WbElevationGrid::reset() {
-  WbGeometry::reset();
-
-  WbNode *const c = mColor->value();
-  if (c)
-    c->reset();
-}
-
-bool WbElevationGrid::hasDefaultMaterial() {
-  return !isInBoundingObject() && colorSize() > 0;
 }
 
 /////////////////
@@ -477,6 +435,9 @@ void WbElevationGrid::applyToOdeData(bool correctSolidMass) {
   assert(dGeomGetClass(mOdeGeom) == dHeightfieldClass);
 
   dGeomHeightfieldSetHeightfieldData(mOdeGeom, mHeightfieldData);
+  WbOdeGeomData *const odeGeomData = static_cast<WbOdeGeomData *>(dGeomGetData(mOdeGeom));
+  assert(odeGeomData);
+  odeGeomData->setLastChangeTime(WbSimulationState::instance()->time());
   mLocalOdeGeomOffsetPosition = WbVector3(scaledWidth() / 2.0, 0.0, scaledDepth() / 2.0);
 }
 
@@ -495,16 +456,16 @@ bool WbElevationGrid::isSuitableForInsertionInBoundingObject(bool warning) const
 
   if (warning) {
     if (mXDimension->value() < 2)
-      warn(tr("Invalid 'xDimension' for use in boundingObject."));
+      parsingWarn(tr("Invalid 'xDimension' (should be greater than 1) for use in boundingObject."));
 
     if (mZDimension->value() < 2)
-      warn(tr("Invalid 'zDimension' for use in boundingObject."));
+      parsingWarn(tr("Invalid 'zDimension' (should be greater than 1) for use in boundingObject."));
 
     if (invalidSpacings)
-      warn(tr("'height' must be positive when used in a 'boundingObject'."));
+      parsingWarn(tr("'height' must be positive when used in a 'boundingObject'."));
 
     if (invalid)
-      warn(tr("Cannot create the associated physics object."));
+      parsingWarn(tr("Cannot create the associated physics object."));
   }
 
   return !invalid;
@@ -521,15 +482,15 @@ bool WbElevationGrid::isAValidBoundingObject(bool checkOde, bool warning) const 
 
 bool WbElevationGrid::pickUVCoordinate(WbVector2 &uv, const WbRay &ray, int textureCoordSet) const {
   WbVector3 localCollisionPoint;
-  double collisionDistance = computeLocalCollisionPoint(ray, localCollisionPoint);
+  const double collisionDistance = computeLocalCollisionPoint(ray, localCollisionPoint);
   if (collisionDistance < 0)
     return false;
 
-  double sizeX = scaledWidth();
-  double sizeZ = scaledDepth();
+  const double sizeX = scaledWidth();
+  const double sizeZ = scaledDepth();
 
-  double u = (double)localCollisionPoint.x() / sizeX;
-  double v = 1 - (double)localCollisionPoint.z() / sizeZ;
+  const double u = (double)localCollisionPoint.x() / sizeX;
+  const double v = (double)localCollisionPoint.z() / sizeZ;
 
   // result
   uv.setXy(u, v);
@@ -664,7 +625,6 @@ void WbElevationGrid::exportNodeFields(WbVrmlWriter &writer) const {
     return;
   }
 
-  findField("colorPerVertex", true)->write(writer);
   findField("xDimension", true)->write(writer);
   findField("zDimension", true)->write(writer);
   findField("xSpacing", true)->write(writer);
@@ -691,65 +651,12 @@ void WbElevationGrid::exportNodeFields(WbVrmlWriter &writer) const {
   }
 }
 
-void WbElevationGrid::exportNodeSubNodes(WbVrmlWriter &writer) const {
-  if (writer.isWebots()) {
-    WbGeometry::exportNodeSubNodes(writer);
-    return;
-  }
-
-  WbColor *c = color();
-  if (c == NULL)
-    return;
-  WbMFColor mfc = c->color();
-  int nc = mfc.size();
-  if (nc == 0)
-    return;
-
-  if (writer.isX3d())
-    writer << "<Color color=\'";
-  else {
-    writer.indent();
-    writer << "color Color {\n";
-    writer.increaseIndent();
-    writer.indent();
-    writer << "color [ ";
-  }
-
-  int co = 0;
-  int xd = mXDimension->value() - 1;
-  int zd = mZDimension->value() - 1;
-  for (int x = 0; x < xd; x++) {
-    for (int z = 0; z < zd; z++) {
-      WbRgb rgb;
-      if (nc == 2 && x % 2 == 0)
-        rgb = mfc.item((z + 1) % 2);
-      else
-        rgb = mfc.item(co);
-      co++;
-      if (co == nc)
-        co = 0;
-      if (x != 0 || z != 0)
-        writer << ", ";
-      writer << rgb.toString(WbPrecision::DOUBLE_MAX);
-    }
-  }
-
-  if (writer.isX3d())
-    writer << "\'></Color>";
-  else {
-    writer << " ]\n";
-    writer.decreaseIndent();
-    writer.indent();
-    writer << "}\n";
-  }
-}
-
 ////////////////////////
 // Friction Direction //
 ////////////////////////
 
 WbVector3 WbElevationGrid::computeFrictionDirection(const WbVector3 &normal) const {
-  warn(tr("A ElevationGrid is used in a Bounding object using an asymmetric friction. ElevationGrid does not support "
-          "asymmetric friction"));
+  parsingWarn(tr("A ElevationGrid is used in a Bounding object using an asymmetric friction. ElevationGrid does not support "
+                 "asymmetric friction"));
   return WbVector3(0, 0, 0);
 }

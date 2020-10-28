@@ -1,4 +1,4 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+# Copyright 1996-2020 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,8 @@ CAR_MODEL = [
     'ToyotaPriusSimple',
     'LincolnMKZSimple',
     'RangeRoverSportSVRSimple',
-    'TeslaModel3Simple'
+    'TeslaModel3Simple',
+    'MercedesBenzSprinterSimple'
 ]
 
 BUS_MODEL = ['BusSimple']
@@ -49,6 +50,7 @@ WHEEL_RADIUS = {
     'LincolnMKZSimple': 0.358,
     'RangeRoverSportSVRSimple': 0.358,
     'TeslaModel3Simple': 0.36,
+    'MercedesBenzSprinterSimple': 0.4,
     'BusSimple': 0.56,
     'TruckSimple': 0.5,
     'ScooterSimple': 0.23,
@@ -133,7 +135,7 @@ class Vehicle:
         elif self.type in MOTORCYCLE_MODEL:
             self.vehicleClass = 'motorcycle'
         else:
-            print ("Vehicle type not supported: " + self.type)
+            print("Vehicle type not supported: " + self.type)
         self.wheelsAngularVelocity = []
         if self.type in MOTORCYCLE_MODEL:
             self.wheelsAngularVelocity.append(self.node.getField("frontWheelAngularVelocity"))
@@ -144,12 +146,13 @@ class Vehicle:
             self.wheelsAngularVelocity.append(self.node.getField("rearRightWheelAngularVelocity"))
             self.wheelsAngularVelocity.append(self.node.getField("rearLeftWheelAngularVelocity"))
         if self.vehicleClass == 'trailer':
-            self.wheelsAngularVelocity.append(self.node.getField("trailer").getSFNode().getField("frontLeftWheelAngularVelocity"))
-            self.wheelsAngularVelocity.append(self.node.getField("trailer").getSFNode().getField("frontRightWheelAngularVelocity"))
-            self.wheelsAngularVelocity.append(self.node.getField("trailer").getSFNode().getField("centerLeftWheelAngularVelocity"))
-            self.wheelsAngularVelocity.append(self.node.getField("trailer").getSFNode().getField("centerRightWheelAngularVelocity"))
-            self.wheelsAngularVelocity.append(self.node.getField("trailer").getSFNode().getField("rearLeftWheelAngularVelocity"))
-            self.wheelsAngularVelocity.append(self.node.getField("trailer").getSFNode().getField("rearRightWheelAngularVelocity"))
+            trailerNode = self.node.getField("trailer").getSFNode()
+            self.wheelsAngularVelocity.append(trailerNode.getField("frontLeftWheelAngularVelocity"))
+            self.wheelsAngularVelocity.append(trailerNode.getField("frontRightWheelAngularVelocity"))
+            self.wheelsAngularVelocity.append(trailerNode.getField("centerLeftWheelAngularVelocity"))
+            self.wheelsAngularVelocity.append(trailerNode.getField("centerRightWheelAngularVelocity"))
+            self.wheelsAngularVelocity.append(trailerNode.getField("rearLeftWheelAngularVelocity"))
+            self.wheelsAngularVelocity.append(trailerNode.getField("rearRightWheelAngularVelocity"))
 
     @staticmethod
     def generate_vehicle_string(index, vehicleClass):
@@ -192,7 +195,8 @@ class Vehicle:
                 trailerModel = random.choice(TRAILER_MODEL)
                 vehicleString += "  trailer " + trailerModel + "{\n"
                 if trailerModel == 'TruckTrailerSimple':
-                    vehicleString += "    texture " + '"textures/' + random.choice(TRAILER_TEXTURES) + '"\n'
+                    vehicleString += "    appearance PBRAppearance { metalness 0 roughness 0.4 baseColorMap ImageTexture { "
+                    vehicleString += "url [ \"textures/" + random.choice(TRAILER_TEXTURES) + "\" ] } }"
                 else:
                     vehicleString += "    color " + random.choice(TRAILER_COLORS) + "\n"
                 vehicleString += "  }\n"

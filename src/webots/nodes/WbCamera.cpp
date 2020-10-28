@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbCamera.hpp"
+
 #include "WbAffinePlane.hpp"
 #include "WbBoundingSphere.hpp"
 #include "WbFieldChecker.hpp"
@@ -38,7 +39,7 @@
 #include "WbWrenTextureOverlay.hpp"
 #include "WbZoom.hpp"
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QtGlobal>
@@ -65,9 +66,9 @@ public:
   const QList<WbRgb> colors() const { return mColors; }
 
   void setModel(const QString &model) { mModel = model; }
-  void setRelativeOrientation(WbRotation relativeOrientation) { mRelativeOrientation = relativeOrientation; }
-  void setPositionOnImage(WbVector2 positionOnImage) { mPositionOnImage = positionOnImage; }
-  void setPixelSize(WbVector2 pixelSize) { mPixelSize = pixelSize; }
+  void setRelativeOrientation(const WbRotation &relativeOrientation) { mRelativeOrientation = relativeOrientation; }
+  void setPositionOnImage(const WbVector2 &positionOnImage) { mPositionOnImage = positionOnImage; }
+  void setPixelSize(const WbVector2 &pixelSize) { mPixelSize = pixelSize; }
   void addColor(WbRgb colors) { mColors.append(colors); }
 
 protected:
@@ -89,6 +90,8 @@ void WbCamera::init() {
   mRecognition = findSFNode("recognition");
   mNoiseMaskUrl = findSFString("noiseMaskUrl");
   mAntiAliasing = findSFBool("antiAliasing");
+  mAmbientOcclusionRadius = findSFDouble("ambientOcclusionRadius");
+  mBloomThreshold = findSFDouble("bloomThreshold");
   mLensFlare = findSFNode("lensFlare");
   mFar = findSFDouble("far");
   mExposure = findSFDouble("exposure");
@@ -96,11 +99,11 @@ void WbCamera::init() {
   // backward compatibility
   WbSFString *type = findSFString("type");
   if (type->value().startsWith('r', Qt::CaseInsensitive))
-    warn("Range finder type is not available for camera since Webots 8.4, please use a RangeFinder node instead.");
+    parsingWarn("Range finder type is not available for camera since Webots 8.4, please use a RangeFinder node instead.");
 
   WbSFDouble *colorNoise = findSFDouble("colorNoise");
   if (colorNoise->value() != 0.0) {  // Introduced in Webots 8.4.0
-    warn("Deprecated 'colorNoise' field, please use the 'noise' field instead.");
+    parsingWarn("Deprecated 'colorNoise' field, please use the 'noise' field instead.");
     if (mNoise->value() == 0.0)
       mNoise->setValue(colorNoise->value());
     colorNoise->setValue(0.0);
@@ -153,6 +156,8 @@ void WbCamera::preFinalize() {
   updateNear();
   updateFar();
   updateExposure();
+  updateBloomThreshold();
+  updateAmbientOcclusionRadius();
 }
 
 void WbCamera::postFinalize() {
@@ -174,7 +179,10 @@ void WbCamera::postFinalize() {
   connect(mNear, &WbSFDouble::changed, this, &WbCamera::updateNear);
   connect(mFar, &WbSFDouble::changed, this, &WbCamera::updateFar);
   connect(mExposure, &WbSFDouble::changed, this, &WbCamera::updateExposure);
+  connect(mAmbientOcclusionRadius, &WbSFDouble::changed, this, &WbCamera::updateAmbientOcclusionRadius);
+  connect(mBloomThreshold, &WbSFDouble::changed, this, &WbCamera::updateBloomThreshold);
   connect(mAntiAliasing, &WbSFBool::changed, this, &WbAbstractCamera::updateAntiAliasing);
+  connect(WbPreferences::instance(), &WbPreferences::changedByUser, this, &WbCamera::setup);
 
   if (lensFlare())
     lensFlare()->postFinalize();
@@ -207,17 +215,15 @@ void WbCamera::initializeSharedMemory() {
 }
 
 QString WbCamera::pixelInfo(int x, int y) const {
-  QString info;
   WbRgb color;
   if (hasBeenSetup())
     color = mWrenCamera->copyPixelColourValue(x, y);
 
-  int red = color.red() * 255;
-  int green = color.green() * 255;
-  int blue = color.blue() * 255;
-  info.sprintf("pixel(%d,%d)=#%02X%02X%02X", x, y, red, green, blue);
+  const int red = color.red() * 255;
+  const int green = color.green() * 255;
+  const int blue = color.blue() * 255;
 
-  return info;
+  return QString::asprintf("pixel(%d,%d)=#%02X%02X%02X", x, y, red, green, blue);
 }
 
 void WbCamera::updateRecognizedObjectsOverlay(double screenX, double screenY, double overlayX, double overlayY) {
@@ -348,6 +354,9 @@ void WbCamera::displayRecognizedObjectsInOverlay() {
       wr_texture_change_data(mRecognizedObjectsTexture, data, x1, y2 - frameThickness, x2 - x1, frameThickness);
     }
     WbWrenOpenGlContext::doneWren();
+
+    delete[] data;
+    delete[] clearData;
   }
 
   if (log)
@@ -408,7 +417,7 @@ void WbCamera::reset() {
 }
 
 void WbCamera::updateRaysSetupIfNeeded() {
-  updateTransformAfterPhysicsStep();
+  updateTransformForPhysicsStep();
 
   // compute the camera position and rotation
   const WbVector3 cameraPosition = matrix().translation();
@@ -419,7 +428,7 @@ void WbCamera::updateRaysSetupIfNeeded() {
   WbAffinePlane *frustumPlanes = WbObjectDetection::computeFrustumPlanes(cameraPosition, cameraRotation, verticalFieldOfView,
                                                                          horizontalFieldOfView, recognition()->maxRange());
   foreach (WbRecognizedObject *recognizedObject, mRecognizedObjects) {
-    recognizedObject->object()->updateTransformAfterPhysicsStep();
+    recognizedObject->object()->updateTransformForPhysicsStep();
     bool valid =
       recognizedObject->recomputeRayDirection(this, cameraPosition, cameraRotation, cameraInverseRotation, frustumPlanes);
     if (valid)
@@ -523,7 +532,7 @@ void WbCamera::writeAnswer(QDataStream &stream) {
 
 void WbCamera::handleMessage(QDataStream &stream) {
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   if (WbAbstractCamera::handleCommand(stream, command))
     return;
@@ -562,7 +571,7 @@ void WbCamera::handleMessage(QDataStream &stream) {
       break;
     }
     case C_CAMERA_SET_RECOGNITION_SAMPLING_PERIOD: {
-      stream >> (short &)mRecognitionRefreshRate;
+      stream >> mRecognitionRefreshRate;
       mRecognitionSensor->setRefreshRate(mRecognitionRefreshRate);
       break;
     }
@@ -607,7 +616,7 @@ void WbCamera::computeObjects(bool finalSetup, bool needCollisionDetection) {
   delete[] frustumPlanes;
 }
 
-WbVector2 WbCamera::projectOnImage(WbVector3 position) {
+WbVector2 WbCamera::projectOnImage(const WbVector3 &position) {
   const int w = width();
   const int h = height();
   const double fovX = fieldOfView();
@@ -739,6 +748,8 @@ void WbCamera::createWrenCamera() {
   applyFocalSettingsToWren();
   applyFarToWren();
   updateExposure();
+  updateBloomThreshold();
+  updateAmbientOcclusionRadius();
 
   updateLensFlare();
   connect(mWrenCamera, &WbWrenCamera::cameraInitialized, this, &WbCamera::updateLensFlare);
@@ -747,8 +758,12 @@ void WbCamera::createWrenCamera() {
 void WbCamera::createWrenOverlay() {
   WbAbstractCamera::createWrenOverlay();
 
-  if (recognition())
+  // mRecognizedObjectsTexture deleted when creating the WREN overlay
+  assert(recognition() || !mRecognizedObjectsTexture);
+  if (recognition()) {
     mRecognizedObjectsTexture = WR_TEXTURE(mOverlay->createForegroundTexture());
+    emit foregroundTextureIdUpdated(mOverlay->foregroundTextureGLId());
+  }
 }
 
 void WbCamera::setup() {
@@ -759,6 +774,8 @@ void WbCamera::setup() {
 
   updateNoiseMaskUrl();
   updateExposure();
+  updateAmbientOcclusionRadius();
+  updateBloomThreshold();
   connect(mNoiseMaskUrl, &WbSFString::changed, this, &WbCamera::updateNoiseMaskUrl);
 }
 
@@ -777,10 +794,12 @@ void WbCamera::updateFocus() {
 
 void WbCamera::updateRecognition() {
   if (hasBeenSetup()) {
-    if (recognition() && !mOverlay->foregroundTexture())
+    if (recognition() && !mOverlay->foregroundTexture()) {
       mRecognizedObjectsTexture = WR_TEXTURE(mOverlay->createForegroundTexture());
-    else if (mOverlay->foregroundTexture()) {
+      emit foregroundTextureIdUpdated(mOverlay->foregroundTextureGLId());
+    } else if (mOverlay->foregroundTexture()) {
       mOverlay->deleteForegroundTexture(true);
+      emit foregroundTextureIdUpdated(mOverlay->foregroundTextureGLId());
       mRecognizedObjectsTexture = NULL;
     }
     if (recognition()) {
@@ -794,7 +813,7 @@ void WbCamera::updateRecognition() {
 void WbCamera::updateLensFlare() {
   if (hasBeenSetup() && lensFlare()) {
     if (spherical()) {
-      warn(tr("Lens flare cannot be applied to spherical cameras."));
+      parsingWarn(tr("Lens flare cannot be applied to spherical cameras."));
       return;
     }
     WrViewport *viewport = mWrenCamera->getSubViewport(WbWrenCamera::CAMERA_ORIENTATION_FRONT);
@@ -803,14 +822,14 @@ void WbCamera::updateLensFlare() {
 }
 
 void WbCamera::updateNear() {
-  if (WbFieldChecker::checkDoubleIsPositive(this, mNear, 0.01))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mNear, 0.01))
     return;
 
   mNeedToConfigure = true;
 
   if (mFar->value() > 0.0 and mFar->value() < mNear->value()) {
     mNear->setValue(mFar->value());
-    warn(tr("'near' is greater than 'far'. Setting 'near' to %1.").arg(mNear->value()));
+    parsingWarn(tr("'near' is greater than 'far'. Setting 'near' to %1.").arg(mNear->value()));
   }
 
   if (hasBeenSetup())
@@ -824,12 +843,12 @@ void WbCamera::updateNear() {
 }
 
 void WbCamera::updateFar() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mFar, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mFar, 0.0))
     return;
 
   if (mFar->value() > 0.0 and mFar->value() < mNear->value()) {
     mFar->setValue(mNear->value() + 1.0);
-    warn(tr("'far' is less than 'near'. Setting 'far' to %1.").arg(mFar->value()));
+    parsingWarn(tr("'far' is less than 'near'. Setting 'far' to %1.").arg(mFar->value()));
     return;
   }
 
@@ -841,25 +860,39 @@ void WbCamera::updateFar() {
 }
 
 void WbCamera::updateExposure() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mExposure, 1.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mExposure, 1.0))
     return;
 
   if (mWrenCamera)
     mWrenCamera->setExposure(mExposure->value());
 }
 
+void WbCamera::updateAmbientOcclusionRadius() {
+  WbFieldChecker::resetDoubleIfNegative(this, mAmbientOcclusionRadius, 2.0);
+
+  if (mWrenCamera)
+    mWrenCamera->setAmbientOcclusionRadius(mAmbientOcclusionRadius->value());
+}
+
+void WbCamera::updateBloomThreshold() {
+  WbFieldChecker::resetDoubleIfNegativeAndNotDisabled(this, mBloomThreshold, 21.0, -1.0);
+
+  if (mWrenCamera)
+    mWrenCamera->setBloomThreshold(mBloomThreshold->value());
+}
+
 void WbCamera::updateNoiseMaskUrl() {
   if (!hasBeenSetup())
     return;
 
-  const QString noiseMaskUrl = mNoiseMaskUrl->value();
+  const QString &noiseMaskUrl = mNoiseMaskUrl->value();
   if (!noiseMaskUrl.isEmpty()) {
     // use custom noise mask
     const QString fileName(WbUrl::computePath(this, "noiseMaskUrl", noiseMaskUrl));
     if (!fileName.isEmpty()) {
       const QString error = mWrenCamera->setNoiseMask(fileName.toUtf8().constData());
       if (!error.isEmpty())
-        warn(error);
+        parsingWarn(error);
     }
   }
 }

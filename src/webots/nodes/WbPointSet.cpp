@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -79,9 +79,7 @@ void WbPointSet::createWrenObjects() {
   WbGeometry::createWrenObjects();
   wr_config_enable_point_size(true);
   updateCoord();
-
   buildWrenMesh();
-
   emit wrenObjectsCreated();
 }
 
@@ -98,17 +96,17 @@ void WbPointSet::setWrenMaterial(WrMaterial *material, bool castShadows) {
 
 bool WbPointSet::sanitizeFields() {
   if (!coord() || coord()->point().isEmpty()) {
-    warn(tr("A non-empty 'Coordinate' node should be present in the 'coord' field."));
+    parsingWarn(tr("A non-empty 'Coordinate' node should be present in the 'coord' field."));
     return false;
   }
 
   if (color() && color()->color().size() != coord()->pointSize()) {
-    warn(tr("If a 'Color' node is present in the 'color' field, it should have the same number of component as the "
-            "'Coordinate' node in the 'coord' field."));
+    parsingWarn(tr("If a 'Color' node is present in the 'color' field, it should have the same number of component as the "
+                   "'Coordinate' node in the 'coord' field."));
     if (color()->color().isEmpty())
       return false;
     else
-      warn(tr("Only the %1 first points will be drawn.").arg(qMin(color()->color().size(), coord()->point().size())));
+      parsingWarn(tr("Only the %1 first points will be drawn.").arg(qMin(color()->color().size(), coord()->point().size())));
   }
 
   return true;
@@ -120,10 +118,10 @@ void WbPointSet::buildWrenMesh() {
   wr_static_mesh_delete(mWrenMesh);
   mWrenMesh = NULL;
 
-  WbGeometry::computeWrenRenderable();
-
-  if (!sanitizeFields())
+  if (!coord() || coord()->pointSize() == 0)
     return;
+
+  WbGeometry::computeWrenRenderable();
 
   float *coordsData = new float[coord()->pointSize() * 3];
   float *colorData = NULL;
@@ -174,6 +172,9 @@ int WbPointSet::computeCoordsAndColorData(float *coordsData, float *colorData) {
 }
 
 void WbPointSet::updateCoord() {
+  if (!sanitizeFields())
+    return;
+
   if (coord())
     connect(coord(), &WbCoordinate::fieldChanged, this, &WbPointSet::updateCoord, Qt::UniqueConnection);
 
@@ -187,6 +188,9 @@ void WbPointSet::updateCoord() {
 }
 
 void WbPointSet::updateColor() {
+  if (!sanitizeFields())
+    return;
+
   if (color())
     connect(color(), &WbCoordinate::fieldChanged, this, &WbPointSet::updateColor, Qt::UniqueConnection);
 
@@ -216,7 +220,7 @@ void WbPointSet::recomputeBoundingSphere() const {
     maxDistance = 0.0;
     p1 = p2;
     while (it.hasNext()) {
-      const WbVector3 point = it.next();
+      const WbVector3 &point = it.next();
       const double d = p1.distance2(point);
       if (d > maxDistance) {
         maxDistance = d;

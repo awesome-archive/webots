@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class WbWrenFullScreenOverlay : public QObject {
   Q_OBJECT
 
 public:
-  WbWrenFullScreenOverlay(QString text, int fontSize, bool onTop);
+  WbWrenFullScreenOverlay(const QString &text, int fontSize, bool onTop);
   virtual ~WbWrenFullScreenOverlay();
 
   void adjustSize();

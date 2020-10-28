@@ -24,7 +24,7 @@ MainApplication::MainApplication() {
 
   // add the qt plugins library before instantiating QApplication.
   // this is required for loading libqcocoa.dylib, libqxcb.so and qwindows.dll
-  QApplication::addLibraryPath(StandardPaths::getWebotsHomePath() + "lib/qt/plugins");
+  QApplication::addLibraryPath(StandardPaths::getWebotsHomePath() + "lib/webots/qt/plugins");
 
   // set icon paths
   QDir::addSearchPath("icons", StandardPaths::getCurrentLibraryPath() + "icons");
@@ -125,11 +125,11 @@ void MainApplicationPrivate::updateGui() {
 #ifdef _WIN32
   DWORD bytesAvailable = 0;
   QAbstractEventDispatcher *disp = QAbstractEventDispatcher::instance();
-  while (bytesAvailable <= 0) {
+  while (bytesAvailable == 0) {
     if (disp->hasPendingEvents())
       processEvents();
     PeekNamedPipe((HANDLE)mPipeInHandler, NULL, 0, NULL, &bytesAvailable, NULL);
-    if (bytesAvailable <= 0)
+    if (bytesAvailable == 0)
       Sleep(1);
   }
 #else

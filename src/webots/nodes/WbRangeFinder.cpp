@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #include "WbWrenRenderingContext.hpp"
 #include "WbWrenTextureOverlay.hpp"
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 #include <QtCore/QDataStream>
 
@@ -78,13 +78,10 @@ void WbRangeFinder::initializeSharedMemory() {
 }
 
 QString WbRangeFinder::pixelInfo(int x, int y) const {
-  QString info;
   WbRgb color;
   if (hasBeenSetup())
     color = mWrenCamera->copyPixelColourValue(x, y);
-
-  info.sprintf("depth(%d,%d)=%f", x, y, color.red());
-  return info;
+  return QString::asprintf("depth(%d,%d)=%f", x, y, color.red());
 }
 
 void WbRangeFinder::addConfigureToStream(QDataStream &stream, bool reconfigure) {
@@ -94,7 +91,7 @@ void WbRangeFinder::addConfigureToStream(QDataStream &stream, bool reconfigure) 
 
 void WbRangeFinder::handleMessage(QDataStream &stream) {
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   if (WbAbstractCamera::handleCommand(stream, command))
     return;
@@ -117,14 +114,12 @@ void WbRangeFinder::createWrenCamera() {
 /////////////////////
 
 void WbRangeFinder::updateNear() {
-  if (WbFieldChecker::checkDoubleIsPositive(this, mNear, 0.01))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mNear, 0.01))
     return;
 
   if (mNear->value() > mMinRange->value()) {
-    warn(tr("'near' is greater than to 'minRange'. Setting 'near' to %1.").arg(mMinRange->value()));
-    mNear->blockSignals(true);
-    mNear->setValue(mMinRange->value());
-    mNear->blockSignals(false);
+    parsingWarn(tr("'near' is greater than to 'minRange'. Setting 'near' to %1.").arg(mMinRange->value()));
+    mNear->setValueNoSignal(mMinRange->value());
     return;
   }
 
@@ -133,30 +128,24 @@ void WbRangeFinder::updateNear() {
 }
 
 void WbRangeFinder::updateMinRange() {
-  if (WbFieldChecker::checkDoubleIsPositive(this, mMinRange, 0.01))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mMinRange, 0.01))
     return;
 
   if (mMinRange->value() < mNear->value()) {
-    warn(tr("'minRange' is less than 'near'. Setting 'minRange' to %1.").arg(mNear->value()));
-    mMinRange->blockSignals(true);
-    mMinRange->setValue(mNear->value());
-    mMinRange->blockSignals(false);
+    parsingWarn(tr("'minRange' is less than 'near'. Setting 'minRange' to %1.").arg(mNear->value()));
+    mMinRange->setValueNoSignal(mNear->value());
   }
   if (mMaxRange->value() <= mMinRange->value()) {
     if (mMaxRange->value() == 0.0) {
       double newMaxRange = mMinRange->value() + 1.0;
-      warn(tr("'minRange' is greater or equal to 'maxRange'. Setting 'maxRange' to %1.").arg(newMaxRange));
-      mMaxRange->blockSignals(true);
-      mMaxRange->setValue(newMaxRange);
-      mMaxRange->blockSignals(false);
+      parsingWarn(tr("'minRange' is greater or equal to 'maxRange'. Setting 'maxRange' to %1.").arg(newMaxRange));
+      mMaxRange->setValueNoSignal(newMaxRange);
     } else {
       double newMinRange = mMaxRange->value() - 1.0;
       if (newMinRange < 0.0)
         newMinRange = 0.0;
-      warn(tr("'minRange' is greater or equal to 'maxRange'. Setting 'minRange' to %1.").arg(newMinRange));
-      mMinRange->blockSignals(true);
-      mMinRange->setValue(newMinRange);
-      mMinRange->blockSignals(false);
+      parsingWarn(tr("'minRange' is greater or equal to 'maxRange'. Setting 'minRange' to %1.").arg(newMinRange));
+      mMinRange->setValueNoSignal(newMinRange);
     }
   }
 
@@ -175,10 +164,8 @@ void WbRangeFinder::updateMinRange() {
 void WbRangeFinder::updateMaxRange() {
   if (mMaxRange->value() <= mMinRange->value()) {
     double newMaxRange = mMinRange->value() + 1.0;
-    warn(tr("'maxRange' is less or equal to 'minRange'. Setting 'maxRange' to %1.").arg(newMaxRange));
-    mMaxRange->blockSignals(true);
-    mMaxRange->setValue(newMaxRange);
-    mMaxRange->blockSignals(false);
+    parsingWarn(tr("'maxRange' is less or equal to 'minRange'. Setting 'maxRange' to %1.").arg(newMaxRange));
+    mMaxRange->setValueNoSignal(newMaxRange);
   }
 
   mNeedToConfigure = true;
@@ -191,7 +178,7 @@ void WbRangeFinder::updateMaxRange() {
 }
 
 void WbRangeFinder::updateResolution() {
-  if (WbFieldChecker::checkDoubleIsPositiveOrDisabled(this, mResolution, -1.0, -1.0))
+  if (WbFieldChecker::resetDoubleIfNonPositiveAndNotDisabled(this, mResolution, -1.0, -1.0))
     return;
 
   if (hasBeenSetup())

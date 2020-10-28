@@ -1,4 +1,4 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 # license: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 # license url: https://cyberbotics.com/webots_assets_license
 # tags: static
@@ -11,7 +11,8 @@ PROTO Tractor [
   field     SFColor    color             0.24 0.53 0.79
   field     SFString   name              "vehicle"
   field     SFString   controller        "void"
-  field     SFString   controllerArgs    ""
+  field     MFString   controllerArgs    [ ]
+  field     SFBool     supervisor        FALSE
   field     SFBool     synchronization   TRUE
   field     MFNode     sensorSlot        [ ]
 ]
@@ -23,6 +24,7 @@ Car {
   model "tractor"
   controller IS controller
   controllerArgs IS controllerArgs
+  supervisor IS supervisor
   synchronization IS synchronization
   trackFront 1.4
   trackRear 1.4
@@ -214,7 +216,7 @@ Car {
           }
         }
         DEF MUDGUARD Shape {
-          appearance DEF BLUE_MATERIAL MatteCarPaint {
+          appearance DEF BLUE_MATERIAL MattePaint {
             baseColor IS color
           }
           geometry IndexedFaceSet {

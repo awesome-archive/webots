@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
 #define WB_BACKGROUND_HPP
 
 #include "WbBaseNode.hpp"
+#include "WbSFDouble.hpp"
 
 class WbRgb;
-class WbCubemap;
 
+struct WrTextureCubeMap;
 struct WrShaderProgram;
 struct WrRenderable;
 struct WrMaterial;
@@ -46,10 +47,13 @@ public:
 
   // accessor
   WbRgb skyColor() const;
-  WbCubemap *cubemap() const;
+  double luminosity() const { return mLuminosity->value(); }
+
+  WrTextureCubeMap *irradianceCubeTexture() { return mIrradianceCubeTexture; };
 
 signals:
   void cubemapChanged();
+  void luminosityChanged();
 
 protected:
   void exportNodeFields(WbVrmlWriter &writer) const override;
@@ -73,7 +77,9 @@ private:
 
   // user accessible fields
   WbMFColor *mSkyColor;
-  WbSFNode *mCubemap;
+  WbMFString *mUrlFields[6];
+  WbMFString *mIrradianceUrlFields[6];
+  WbSFDouble *mLuminosity;
 
   // skybox related fields
   WrShaderProgram *mSkyboxShaderProgram;
@@ -89,9 +95,13 @@ private:
   WrTransform *mHdrClearTransform;
   WrStaticMesh *mHdrClearMesh;
 
+  WrTextureCubeMap *mCubeMapTexture;
+  WrTextureCubeMap *mIrradianceCubeTexture;
+
 private slots:
   void updateColor();
   void updateCubemap();
+  void updateLuminosity();
 };
 
 #endif

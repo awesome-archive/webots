@@ -1,6 +1,6 @@
 ## A4's PICAXE Portal
 
-%robot portal images/robots/portal/model.png
+%robot portal images/robots/portal/model.thumbnail.png
 
 The [A4 Portal](http://www.a4.fr/automatisme-et-robotique/maquettes-automatisees/portail-coulissant-automatise.html) is a sliding portal designed for teaching automatized systems.
 It uses the PICAXE programming kit.
@@ -19,7 +19,7 @@ Portal {
   SFRotation rotation        0 1 0 0
   SFString   name            "Portal"
   SFString   controller      "void"
-  SFString   controllerArgs  ""
+  MFString   controllerArgs  []
   SFString   customData      ""
   SFBool     supervisor      FALSE
   SFBool     synchronization TRUE
@@ -39,4 +39,4 @@ You will find the following sample in this folder: "WEBOTS\_HOME/projects/robots
 
 #### portal\_pe.wbt
 
-![portal_pe.wbt.png](images/robots/portal/portal_pe.wbt.png) This simulation shows the portal model.
+![portal_pe.wbt.png](images/robots/portal/portal_pe.wbt.thumbnail.jpg) This simulation shows the portal model.

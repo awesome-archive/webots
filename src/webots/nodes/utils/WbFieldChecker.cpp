@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,97 +39,87 @@ Hence:
 - "x is non-positive" means "x <= 0"
 */
 
-bool WbFieldChecker::checkDoubleIsNonNegative(const WbBaseNode *node, WbSFDouble *value, double defaultValue) {
+bool WbFieldChecker::resetDoubleIfNegative(const WbBaseNode *node, WbSFDouble *value, double defaultValue) {
   if (value->value() < 0) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be non-negative.").arg(field->name()).arg(defaultValue));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be non-negative.").arg(field->name()).arg(defaultValue));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkDoubleIsNonPositive(const WbBaseNode *node, WbSFDouble *value, double defaultValue) {
-  if (value->value() > 0) {
-    const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be non-positive.").arg(field->name()).arg(defaultValue));
-    value->setValue(defaultValue);
-    return true;
-  }
-  return false;
-}
-
-bool WbFieldChecker::checkDoubleIsPositive(const WbBaseNode *node, WbSFDouble *value, double defaultValue) {
+bool WbFieldChecker::resetDoubleIfNonPositive(const WbBaseNode *node, WbSFDouble *value, double defaultValue) {
   if (value->value() <= 0) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be positive.").arg(field->name()).arg(defaultValue));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be positive.").arg(field->name()).arg(defaultValue));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkDoubleIsNonNegativeOrDisabled(const WbBaseNode *node, WbSFDouble *value, double defaultValue,
-                                                        double disableValue) {
+bool WbFieldChecker::resetDoubleIfNegativeAndNotDisabled(const WbBaseNode *node, WbSFDouble *value, double defaultValue,
+                                                         double disableValue) {
   if (value->value() < 0 && (value->value() != disableValue)) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be either %3 or non-negative.")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(disableValue));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be either %3 or non-negative.")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(disableValue));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkDoubleIsPositiveOrDisabled(const WbBaseNode *node, WbSFDouble *value, double defaultValue,
-                                                     double disableValue) {
+bool WbFieldChecker::resetDoubleIfNonPositiveAndNotDisabled(const WbBaseNode *node, WbSFDouble *value, double defaultValue,
+                                                            double disableValue) {
   if (value->value() <= 0 && (value->value() != disableValue)) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be either %3 or positive.")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(disableValue));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be either %3 or positive.")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(disableValue));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkDoubleIsInRangeWithIncludedBoundsOrDisabled(const WbBaseNode *node, WbSFDouble *value, double min,
-                                                                      double max, double disableValue, double defaultValue) {
+bool WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBoundsAndNotDisabled(const WbBaseNode *node, WbSFDouble *value,
+                                                                             double min, double max, double disableValue,
+                                                                             double defaultValue) {
   if (value->value() != disableValue && (value->value() < min || value->value() > max)) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be in either %3 or in range [%4, %5].")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(disableValue)
-                 .arg(min)
-                 .arg(max));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be in either %3 or in range [%4, %5].")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(disableValue)
+                        .arg(min)
+                        .arg(max));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkDoubleInRangeWithIncludedBounds(const WbBaseNode *node, WbSFDouble *value, double min, double max,
-                                                          double defaultValue) {
+bool WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(const WbBaseNode *node, WbSFDouble *value, double min,
+                                                               double max, double defaultValue) {
   if (value->value() < min || value->value() > max) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be in range [%3, %4].")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(min)
-                 .arg(max));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be in range [%3, %4].")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(min)
+                        .arg(max));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkAndClampDoubleInRangeWithIncludedBounds(const WbBaseNode *node, WbSFDouble *value, double min,
-                                                                  double max) {
+bool WbFieldChecker::clampDoubleToRangeWithIncludedBounds(const WbBaseNode *node, WbSFDouble *value, double min, double max) {
   double defaultValue = value->value();
   if (value->value() < min)
     defaultValue = min;
@@ -138,37 +128,36 @@ bool WbFieldChecker::checkAndClampDoubleInRangeWithIncludedBounds(const WbBaseNo
 
   if (defaultValue != value->value()) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be in range [%3, %4].")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(min)
-                 .arg(max));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be in range [%3, %4].")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(min)
+                        .arg(max));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkDoubleInRangeWithExcludedBounds(const WbBaseNode *node, WbSFDouble *value, double min, double max,
-                                                          double defaultValue) {
+bool WbFieldChecker::resetDoubleIfNotInRangeWithExcludedBounds(const WbBaseNode *node, WbSFDouble *value, double min,
+                                                               double max, double defaultValue) {
   if (value->value() <= min || value->value() >= max) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be in range ]%3, %4[.")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(min)
-                 .arg(max));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be in range ]%3, %4[.")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(min)
+                        .arg(max));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkDoubleIsGreaterOrEqual(const WbBaseNode *node, WbSFDouble *value, double threshold,
-                                                 double defaultValue) {
+bool WbFieldChecker::resetDoubleIfLess(const WbBaseNode *node, WbSFDouble *value, double threshold, double defaultValue) {
   if (value->value() < threshold) {
     const WbField *field = findField(node, value);
-    node->warn(
+    node->parsingWarn(
       tr("Invalid '%1' changed to %2. The value should be %3 or greater.").arg(field->name()).arg(defaultValue).arg(threshold));
     value->setValue(defaultValue);
     return true;
@@ -176,24 +165,10 @@ bool WbFieldChecker::checkDoubleIsGreaterOrEqual(const WbBaseNode *node, WbSFDou
   return false;
 }
 
-bool WbFieldChecker::checkDoubleIsGreater(const WbBaseNode *node, WbSFDouble *value, double threshold, double defaultValue) {
-  if (value->value() <= threshold) {
-    const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be greater than %3.")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(threshold));
-    value->setValue(defaultValue);
-    return true;
-  }
-  return false;
-}
-
-bool WbFieldChecker::checkDoubleIsLessOrEqual(const WbBaseNode *node, WbSFDouble *value, double threshold,
-                                              double defaultValue) {
+bool WbFieldChecker::resetDoubleIfGreater(const WbBaseNode *node, WbSFDouble *value, double threshold, double defaultValue) {
   if (value->value() > threshold) {
     const WbField *field = findField(node, value);
-    node->warn(
+    node->parsingWarn(
       tr("Invalid '%1' changed to %2. The value should be %3 or less.").arg(field->name()).arg(defaultValue).arg(threshold));
     value->setValue(defaultValue);
     return true;
@@ -201,41 +176,30 @@ bool WbFieldChecker::checkDoubleIsLessOrEqual(const WbBaseNode *node, WbSFDouble
   return false;
 }
 
-bool WbFieldChecker::checkDoubleIsLess(const WbBaseNode *node, WbSFDouble *value, double threshold, double defaultValue) {
-  if (value->value() >= threshold) {
-    const WbField *field = findField(node, value);
-    node->warn(
-      tr("Invalid '%1' changed to %2. The value should be less than %3.").arg(field->name()).arg(defaultValue).arg(threshold));
-    value->setValue(defaultValue);
-    return true;
-  }
-  return false;
-}
-
-bool WbFieldChecker::checkIntIsNonNegative(const WbBaseNode *node, WbSFInt *value, int defaultValue) {
+bool WbFieldChecker::resetIntIfNegative(const WbBaseNode *node, WbSFInt *value, int defaultValue) {
   if (value->value() < 0) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be non-negative.").arg(field->name()).arg(defaultValue));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be non-negative.").arg(field->name()).arg(defaultValue));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkIntIsPositive(const WbBaseNode *node, WbSFInt *value, int defaultValue) {
+bool WbFieldChecker::resetIntIfNonPositive(const WbBaseNode *node, WbSFInt *value, int defaultValue) {
   if (value->value() <= 0) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be positive.").arg(field->name()).arg(defaultValue));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be positive.").arg(field->name()).arg(defaultValue));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkIntIsGreaterOrEqual(const WbBaseNode *node, WbSFInt *value, int threshold, int defaultValue) {
+bool WbFieldChecker::resetIntIfLess(const WbBaseNode *node, WbSFInt *value, int threshold, int defaultValue) {
   if (value->value() < threshold) {
     const WbField *field = findField(node, value);
-    node->warn(
+    node->parsingWarn(
       tr("Invalid '%1' changed to %2. The value should be %3 or greater.").arg(field->name()).arg(defaultValue).arg(threshold));
     value->setValue(defaultValue);
     return true;
@@ -243,103 +207,104 @@ bool WbFieldChecker::checkIntIsGreaterOrEqual(const WbBaseNode *node, WbSFInt *v
   return false;
 }
 
-bool WbFieldChecker::checkIntInRangeWithIncludedBounds(const WbBaseNode *node, WbSFInt *value, int min, int max,
-                                                       int defaultValue) {
+bool WbFieldChecker::resetIntIfNotInRangeWithIncludedBounds(const WbBaseNode *node, WbSFInt *value, int min, int max,
+                                                            int defaultValue) {
   if (value->value() < min || value->value() > max) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be in range [%3, %4].")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(min)
-                 .arg(max));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be in range [%3, %4].")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(min)
+                        .arg(max));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkIntIsPositiveOrDisabled(const WbBaseNode *node, WbSFInt *value, int defaultValue, int disableValue) {
+bool WbFieldChecker::resetIntIfNonPositiveAndNotDisabled(const WbBaseNode *node, WbSFInt *value, int defaultValue,
+                                                         int disableValue) {
   if (value->value() <= 0 && value->value() != disableValue) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be either %3 or positive.")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(disableValue));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be either %3 or positive.")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(disableValue));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkIntIsNonNegativeOrDisabled(const WbBaseNode *node, WbSFInt *value, int defaultValue,
-                                                     int disableValue) {
+bool WbFieldChecker::resetIntIfNegativeAndNotDisabled(const WbBaseNode *node, WbSFInt *value, int defaultValue,
+                                                      int disableValue) {
   if (value->value() < 0 && value->value() != disableValue) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be either %3 or non-negative.")
-                 .arg(field->name())
-                 .arg(defaultValue)
-                 .arg(disableValue));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be either %3 or non-negative.")
+                        .arg(field->name())
+                        .arg(defaultValue)
+                        .arg(disableValue));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkVector2IsPositive(const WbBaseNode *node, WbSFVector2 *value, const WbVector2 &defaultValue) {
+bool WbFieldChecker::resetVector2IfNonPositive(const WbBaseNode *node, WbSFVector2 *value, const WbVector2 &defaultValue) {
   if (value->x() <= 0 || value->y() <= 0) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be positive.")
-                 .arg(field->name())
-                 .arg(defaultValue.toString(WbPrecision::GUI_MEDIUM)));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be positive.")
+                        .arg(field->name())
+                        .arg(defaultValue.toString(WbPrecision::GUI_MEDIUM)));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkVector3IsNonNegative(const WbBaseNode *node, WbSFVector3 *value, const WbVector3 &defaultValue) {
+bool WbFieldChecker::resetVector3IfNegative(const WbBaseNode *node, WbSFVector3 *value, const WbVector3 &defaultValue) {
   if (value->x() < 0 || value->y() < 0 || value->z() < 0) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be non-negative.")
-                 .arg(field->name())
-                 .arg(defaultValue.toString(WbPrecision::GUI_MEDIUM)));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be non-negative.")
+                        .arg(field->name())
+                        .arg(defaultValue.toString(WbPrecision::GUI_MEDIUM)));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkVector3IsPositive(const WbBaseNode *node, WbSFVector3 *value, const WbVector3 &defaultValue) {
+bool WbFieldChecker::resetVector3IfNonPositive(const WbBaseNode *node, WbSFVector3 *value, const WbVector3 &defaultValue) {
   if (value->x() <= 0 || value->y() <= 0 || value->z() <= 0) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2. The value should be positive.")
-                 .arg(field->name())
-                 .arg(defaultValue.toString(WbPrecision::GUI_MEDIUM)));
+    node->parsingWarn(tr("Invalid '%1' changed to %2. The value should be positive.")
+                        .arg(field->name())
+                        .arg(defaultValue.toString(WbPrecision::GUI_MEDIUM)));
     value->setValue(defaultValue);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkColorIsValid(const WbBaseNode *node, WbSFColor *value) {
+bool WbFieldChecker::resetColorIfInvalid(const WbBaseNode *node, WbSFColor *value) {
   WbRgb rgb = value->value();
-  if (checkRgbIsValid(rgb)) {
+  if (clampRgb(rgb)) {
     const WbField *field = findField(node, value);
-    node->warn(tr("Invalid '%1' changed to %2.").arg(field->name()).arg(rgb.toString(WbPrecision::GUI_MEDIUM)));
+    node->parsingWarn(tr("Invalid '%1' changed to %2.").arg(field->name()).arg(rgb.toString(WbPrecision::GUI_MEDIUM)));
     value->setValue(rgb);
     return true;
   }
   return false;
 }
 
-bool WbFieldChecker::checkMultipleColorIsValid(const WbBaseNode *node, WbMFColor *value) {
+bool WbFieldChecker::resetMultipleColorIfInvalid(const WbBaseNode *node, WbMFColor *value) {
   bool changed = false;
   int size = value->size();
   const WbField *field = findField(node, value);
   for (int i = 0; i < size; i++) {
     WbRgb rgb = value->item(i);
-    if (checkRgbIsValid(rgb)) {
-      node->warn(
+    if (clampRgb(rgb)) {
+      node->parsingWarn(
         tr("Invalid item %1 of '%2' changed to %3.").arg(i).arg(field->name()).arg(rgb.toString(WbPrecision::GUI_MEDIUM)));
       value->setItem(i, rgb);
       changed = true;
@@ -355,7 +320,7 @@ const WbField *WbFieldChecker::findField(const WbBaseNode *node, WbValue *value)
   return NULL;
 }
 
-bool WbFieldChecker::checkRgbIsValid(WbRgb &rgb) {
+bool WbFieldChecker::clampRgb(WbRgb &rgb) {
   bool changed = false;
 
   if (rgb.red() < 0.0) {

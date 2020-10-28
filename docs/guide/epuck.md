@@ -5,7 +5,7 @@
 E-puck is a miniature mobile robot originally developed at EPFL for teaching purposes by the designers of the successful Khepera robot.
 The hardware and software of e-puck is fully open source, providing low level access to every electronic device and offering unlimited extension possibilities.
 
-The model includes support for the differential wheel motors (encoders are also simulated, as position sensors), the infra-red sensors for proximity and light measurements, the [Accelerometer](../reference/accelerometer.md), the [Camera](../reference/camera.md), the 8 surrounding [LEDs](../reference/led.md), the body and front [LEDs](../reference/led.md), bluetooth communication (modeled using [Emitter](../reference/emitter.md) / [Receiver](../reference/receiver.md) devices) and ground sensors extension.
+The model includes support for the differential wheel motors (encoders are also simulated, as position sensors), the infra-red sensors for proximity and light measurements, the [Accelerometer](../reference/accelerometer.md), the [Gyro](../reference/gyro.md), the [Camera](../reference/camera.md), the 8 surrounding [LEDs](../reference/led.md), the body and front [LEDs](../reference/led.md), bluetooth communication (modeled using [Emitter](../reference/emitter.md) / [Receiver](../reference/receiver.md) devices) and ground sensors extension.
 The other e-puck devices are not yet simulated in the current model.
 
 The official [e-puck website](http://www.e-puck.org) provides the most up-to-date information about this robot.
@@ -15,7 +15,7 @@ E-puck is also available for [purchase](https://www.cyberbotics.com/buy) from Cy
 
 %figure "The e-puck robot at work"
 
-![real_robot.png](images/robots/epuck/real_robot.png)
+![real_robot.png](images/robots/epuck/real_robot.thumbnail.jpg)
 
 %end
 
@@ -43,7 +43,8 @@ E-puck is equipped with a large number of devices, as summarized in [this table]
 | IR sensors     | 8 infra-red sensors measuring ambient light and proximity of obstacles in a 4 cm range                                           |
 | Camera         | color camera with a maximum resolution of 640x480 (typical use: 52x39 or 640x1)                                                  |
 | Microphones    | 3 omni-directional microphones for sound localization                                                                            |
-| Accelerometer  | 3D accelerometer along the X, Y and Z axis                                                                                       |
+| Accelerometer  | 3D accelerometer along the X, Y and Z axes                                                                                       |
+| Gyroscope      | 3D gyroscope along the X, Y and Z axes                                                                                           |
 | LEDs           | 8 red LEDs on the ring and one green LED on the body                                                                             |
 | Speaker        | on-board speaker capable of playing WAV or tone sounds                                                                           |
 | Switch         | 16 position rotating switch                                                                                                      |
@@ -51,7 +52,7 @@ E-puck is equipped with a large number of devices, as summarized in [this table]
 | Remote Control | infra-red LED for receiving standard remote control commands                                                                     |
 | Expansion bus  | expansion bus to add new possibilities to your robot                                                                             |
 | Programming    | C programming with the GNU GCC compiler system                                                                                   |
-| Simulation     | Webots facilitates the programming of e-puck with a powerful simulation, remote control and cross-compilation system  |
+| Simulation     | Webots facilitates the programming of e-puck with a powerful simulation, remote control and cross-compilation system             |
 
 %end
 
@@ -78,16 +79,18 @@ The names of the simulated devices which are to be used as an argument of the `w
 
 %figure "Devices names"
 
-| Device                     | Name                                                     				|
+| Device                     | Name                                                             |
 | -------------------------- | ---------------------------------------------------------------- |
-| Motors                     | 'left wheel motor' and 'right wheel motor'               				|
-| Position sensors           | 'left wheel sensor' and 'right wheel sensor'             				|
-| Proximity sensors          | 'ps0' to 'ps7'                                              			|
-| Light sensors              | 'ls0' to 'ls7'                                               		|
+| Motors                     | 'left wheel motor' and 'right wheel motor'                       |
+| Position sensors           | 'left wheel sensor' and 'right wheel sensor'                     |
+| Proximity sensors          | 'ps0' to 'ps7'                                                   |
+| Light sensors              | 'ls0' to 'ls7'                                                   |
 | LEDs                       | 'led0' to 'led7' (e-puck ring), 'led8' (body) and 'led9' (front) |
-| Camera                     | 'camera'                                                   			|
-| Accelerometer              | 'accelerometer'                                            			|
-| Ground sensors (extension) | 'gs0', 'gs1' and 'gs2'                                         	|
+| Camera                     | 'camera'                                                         |
+| Accelerometer              | 'accelerometer'                                                  |
+| Gyro                       | 'gyro'                                                           |
+| Ground sensors (extension) | 'gs0', 'gs1' and 'gs2'                                           |
+| Speaker                    | 'speaker'                                                        |
 
 %end
 
@@ -109,11 +112,13 @@ The `wb_motor_set_velocity` and `wb_position_sensor_get_value` functions allow y
 
 %end
 
-The forward direction of the e-puck is given by the negative *z*-axis of the world coordinates.
-This is also the direction in which the camera eye is looking; the direction vector of the camera is pointing in the opposite direction, namely the direction of the positive *z*-axis.
-The axle's direction is given by the positive *x*-axis.
-Proximity sensors, light sensors and [LEDs](../reference/led.md) are numbered clockwise; their location and orientation are shown in [this figure](#sensors-leds-and-camera).
-The last column of the latter lists the angles between the negative *x*-axis and the direction of the devices, the plane *zOx* being oriented counter-clockwise.
+The forward direction of the e-puck is given by the negative z-axis of the world coordinates.
+This is also the direction in which the camera eye is looking.
+The direction vector of the camera is pointing in the opposite direction, namely the direction of the positive z-axis.
+The axle's direction is given by the positive x-axis.
+Proximity sensors, light sensors and [LEDs](../reference/led.md) are numbered clockwise.
+Their location and orientation are shown in [this figure](#sensors-leds-and-camera).
+The last column of the latter lists the angles between the negative x-axis and the direction of the devices, the plane *zOx* being oriented counter-clockwise.
 Note that the proximity sensors and the light sensors are actually the same devices of the real robot used in a different mode, so their direction coincides.
 Proximity sensor responses are simulated in accordance to the lookup table in [this figure](#proximity-sensor-response-against-distance); this table is the outcome of calibrations performed on the real robot.
 
@@ -139,7 +144,7 @@ The resolution of the camera was limited to 52x39 pixels, as this is the maximum
 
 %figure "e-puck2 model"
 
-![epuck2.png](images/robots/epuck/epuck2.png)
+![epuck2.png](images/robots/epuck/epuck2.thumbnail.png)
 
 %end
 
@@ -151,9 +156,11 @@ The `version` field of the `E-puck` PROTO node selects the version of the e-puck
 When set to "2", the e-puck model switches to the e-puck2, with the following differences:
 
 - The graphical shape is changing: in particular, the top turret is removed and different chipset texture is set for the plate.
+- The time-of-flight (ToF) long range distance sensor is added to the model (including support for Wi-Fi remote-control).
 - The overall mass differs: 130 [grams] instead of 150 [grams].
 - The max speed differs: 1200 [steps / second] instead of 1000 [steps / second].
 - The e-puck2 robot windows offers Wi-Fi remote control instead of Bluetooth.
+- The LEDs of the e-puck2 are slightly different from the ones of the e-puck (some are RGB LEDs).
 
 > **Note**: Controller cross-compilation is currently not available for the e-puck2 robot. However, remote-controlling a real e-puck2 robot with Bluetooth is possible by using an e-puck 1 model in Webots (e.g., setting the `version` field of the `E-puck` PROTO to "1").
 
@@ -163,28 +170,30 @@ Derived from [Robot](../reference/robot.md).
 
 ```
 E-puck {
-  SFVec3f    translation         0 0 0
-  SFRotation rotation            0 1 0 0
-  SFString   name                "e-puck"
-  SFString   controller          "e-puck_avoid_obstacles"
-  SFString   controllerArgs      ""
-  SFString   customData          ""
-  SFBool     supervisor          FALSE
-  SFBool     synchronization     TRUE
-  SFString   version             "1"
-  SFFloat    camera_fieldOfView  0.84
-  SFInt32    camera_width        52
-  SFInt32    camera_height       39
-  SFBool     camera_antiAliasing FALSE
-  SFRotation camera_rotation     1 0 0 0
-  SFFloat    camera_noise        0.0
-  SFInt32    emitter_channel     1
-  SFInt32    receiver_channel    1
-  MFFloat    battery             []
-  SFString   window              "e-puck"
-  MFNode     turretSlot          []
-  MFNode     groundSensorsSlot   []
-  SFBool     kinematic           FALSE
+  SFVec3f    translation                  0 0 0
+  SFRotation rotation                     0 1 0 0
+  SFString   name                         "e-puck"
+  SFString   controller                   "e-puck_avoid_obstacles"
+  MFString   controllerArgs               []
+  SFString   customData                   ""
+  SFBool     supervisor                   FALSE
+  SFBool     synchronization              TRUE
+  SFString   version                      "1"
+  SFFloat    camera_fieldOfView           0.84
+  SFInt32    camera_width                 52
+  SFInt32    camera_height                39
+  SFBool     camera_antiAliasing          FALSE
+  SFRotation camera_rotation              1 0 0 0
+  SFFloat    camera_noise                 0.0
+  SFFloat    camera_motionBlur            0.0
+  SFInt32    distance_sensor_numberOfRays 1
+  SFInt32    emitter_channel              1
+  SFInt32    receiver_channel             1
+  MFFloat    battery                      []
+  SFString   window                       "e-puck"
+  MFNode     turretSlot                   []
+  MFNode     groundSensorsSlot            []
+  SFBool     kinematic                    FALSE
 }
 ```
 
@@ -205,6 +214,10 @@ E-puck {
 - `camera_rotation`: Defines the `rotation` field of the [Camera](../reference/camera.md).
 
 - `camera_noise`: Defines the `noise` field of the [Camera](../reference/camera.md).
+
+- `camera_motionBlur`: Defines the `motionBlur` field of the [Camera](../reference/camera.md).
+
+- `distance_sensor_numberOfRays`: Defines the `numberOfRays` field of the [DistanceSensor](../reference/distancesensor.md).
 
 - `emitter_channel`: Defines the `channel` field of the [Emitter](../reference/emitter.md).
 
@@ -233,7 +246,7 @@ It includes the visualization of the sensors of the robot.
 The proximity measurements are displayed in black, outside the body of the robot.
 The light measurements are displayed in blue, below the proximity measurements.
 The motor speeds are displayed in red, and the motor positions are displayed in green.
-The camera image is displayed at the top of the window and the XYZ accelerometer values are displayed on the robot.
+The camera image is displayed at the top of the window and the XYZ accelerometer and gyroscope values are displayed on the robot.
 If the e-puck robot is equipped with the ground sensors extension modeled in `E-puckGroundSensors`, then the ground sensors measurements are represented by the three grayscale boxes.
 
 In addition to displaying the sensor information, the e-puck robot window also has a number of buttons.
@@ -250,7 +263,7 @@ Changing this `window` to an empty string will disable this control window.
 
 %figure "BotStudio window"
 
-![botstudio.png](images/robots/epuck/botstudio.png)
+![botstudio.png](images/robots/epuck/botstudio.thumbnail.jpg)
 
 %end
 
@@ -380,16 +393,30 @@ Several simulation examples are located in the "WEBOTS\_HOME/projects/robots/gct
 
 #### e-puck.wbt
 
-![e-puck.wbt.png](images/robots/epuck/e-puck.wbt.png) The "e-puck.wbt" is a simple example of collision avoidance behavior using a Braitenberg based controller.
+![e-puck.wbt.png](images/robots/epuck/e-puck.wbt.thumbnail.jpg) The "e-puck.wbt" is a simple example of collision avoidance behavior using a Braitenberg based controller.
 This is done using the distance sensors of the e-puck.
 
 #### e-puck2.wbt
 
-![e-puck2.wbt.png](images/robots/epuck/e-puck2.wbt.png) This is the same simulation as the above one, except that it uses an "e-puck2" model.
+![e-puck2.wbt.png](images/robots/epuck/e-puck2.wbt.thumbnail.jpg) This is the same simulation as the above one, except that it uses an "e-puck2" model.
+
+#### e-puck2\_pi-puck.wbt
+
+![e-puck2_pi-puck.wbt.png](images/robots/epuck/e-puck2_pi-puck.wbt.thumbnail.jpg) This is again the same simulation with the "e-puck2" model, but the robot is equipped with the `Pi-Puck` extension which gives it more sensors, [LEDs](../reference/led.md) and computation power.
+
+>**Note**: The model of the pi-puck extension was sponsored by the [ROSin european project](https://www.rosin-project.eu/ftp/ros2-for-the-e-puck2-robot).
+
+#### e-puck2\_server.wbt
+
+![e-puck2.wbt.png](images/robots/epuck/e-puck2.wbt.thumbnail.jpg) This is a simulation of an e-puck2 robot running a controller that implements a TCP/IP server emulating the e-puck2 Wi-Fi protocol.
+The e-puck2 Wi-Fi protocol is available on the real e-puck2 when running the Wi-Fi enabled firmware.
+As a consequence, it is possible to connect the Wi-Fi version of the GCTronic `EPuckMonitor` program to this controller (running on port 1000).
+This allows users to test the behavior of the simulated e-puck2 robot with the TCP/IP Advance Sercom protocol commands.
+The controller folder also contains an `e-puck2.vi` LabVIEW Virtual Instrument that controls the motors of the real or simulated e-puck2 using the Advanced Sercom protocol.
 
 #### e-puck\_line.wbt
 
-![e-puck_line.wbt.png](images/robots/epuck/e-puck_line.wbt.png) The "e-puck\_line.wbt" world especially examplifies the use of ground sensors.
+![e-puck_line.wbt.png](images/robots/epuck/e-puck_line.wbt.thumbnail.jpg) The "e-puck\_line.wbt" world especially examplifies the use of ground sensors.
 Ground sensors can be added to a real e-puck robot by inserting a special extension card with three sensors just below the camera of the robot.
 These sensors are actually simple infra-red sensors which allow the e-puck robot to see the color level of the ground at three locations in a line across its front.
 The `groundSensorSlot` field of the standard E-puck PROTO is expressly provided to equip the simulated e-puck robot with the ground sensors extension modeled in the `E-puckGroundSensors` PROTO.
@@ -397,24 +424,24 @@ This is particularly useful for implementing line following behaviors.
 
 #### e-puck\_line\_demo.wbt
 
-![e-puck_line_demo.wbt.png](images/robots/epuck/e-puck_line_demo.wbt.png) The "e-puck\_line" controller program contains the source code for a simple line following system which, as an exercise, can be improved to obtain the behavior demonstrated in the "e-puck\_line\_demo.wbt" demo, in which the e-puck robot is able to follow the line drawn on the floor, but also to avoid obstacles and return to the line following behavior afterwards.
+![e-puck_line_demo.wbt.png](images/robots/epuck/e-puck_line_demo.wbt.thumbnail.jpg) The "e-puck\_line" controller program contains the source code for a simple line following system which, as an exercise, can be improved to obtain the behavior demonstrated in the "e-puck\_line\_demo.wbt" demo, in which the e-puck robot is able to follow the line drawn on the floor, but also to avoid obstacles and return to the line following behavior afterwards.
 This model was contributed by Jean-Christophe Zufferey from the EPFL, who sets up a series of exercises with Webots and extended e-puck robots.
 
 #### e-puck\_botstudio.wbt
 
-![e-puck_botstudio.wbt.png](images/robots/epuck/e-puck_botstudio.wbt.png) The "e-puck\_botstudio\_example.wbt" is an example of a controller using the BotStudio visual programming language.
+![e-puck_botstudio.wbt.png](images/robots/epuck/e-puck_botstudio.wbt.thumbnail.jpg) The "e-puck\_botstudio\_example.wbt" is an example of a controller using the BotStudio visual programming language.
 The BotStudio windows appears upon double clicking on the e-puck allowing the user to see which command is executed.
 
 #### e-puck\_botstudio\_with\_floor\_sensors.wbt
 
-![e-puck_botstudio.wbt.png](images/robots/epuck/e-puck_botstudio.wbt.png) The "e-puck\_botstudio\_with\_floor\_sensors.wbt" is an example world similar to that of "e-puck\_botstudio\_example.wbt" but where the e-puck has a line following behavior based on its floor sensors.
+![e-puck_botstudio.wbt.png](images/robots/epuck/e-puck_botstudio.wbt.thumbnail.jpg) The "e-puck\_botstudio\_with\_floor\_sensors.wbt" is an example world similar to that of "e-puck\_botstudio\_example.wbt" but where the e-puck has a line following behavior based on its floor sensors.
 
 #### e-puck\_cross-compilation.wbt
 
-![e-puck_cross-compilation.wbt.png](images/robots/epuck/e-puck_cross-compilation.wbt.png) The "e-puck\_cross-compilation.wbt" is an example using a cross-compilation controller.
+![e-puck_cross-compilation.wbt.png](images/robots/epuck/e-puck_cross-compilation.wbt.thumbnail.jpg) The "e-puck\_cross-compilation.wbt" is an example using a cross-compilation controller.
 
 #### e-puck\_kinematic.wbt
 
-![e-puck_kinematic.wbt.png](images/robots/epuck/e-puck_kinematic.wbt.png) The "e-puck\_kinematic.wbt" is an example world similar to "e-puck.wbt" but where the kinematic field of the E-puck PROTO node is true.
+![e-puck_kinematic.wbt.png](images/robots/epuck/e-puck_kinematic.wbt.thumbnail.jpg) The "e-puck\_kinematic.wbt" is an example world similar to "e-puck.wbt" but where the kinematic field of the E-puck PROTO node is true.
 This allows the robot's motion to be calculated according to 2D kinematics algorithms and the collision detection to be calculated with 3D algorithms.
 More information on the kinematic mode in Webots can be found [here](../reference/differentialwheels.md).

@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbReceiver.hpp"
+
 #include "WbDataPacket.hpp"
 #include "WbEmitter.hpp"
 #include "WbFieldChecker.hpp"
@@ -23,7 +24,7 @@
 #include "WbWorld.hpp"
 
 #include <webots/receiver.h>  // for WB_CHANNEL_BROADCAST
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 #include <QtCore/QDataStream>
 #include <cassert>
@@ -70,7 +71,7 @@ public:
   void recomputeRayDirection(const WbVector3 &receiverTranslation) {
     // compute ray direction and length
     WbEmitter *e = mPacket->emitter();
-    e->updateTransformAfterPhysicsStep();
+    e->updateTransformForPhysicsStep();
     const WbVector3 &te = e->matrix().translation();
     WbVector3 dir = receiverTranslation - te;
     dGeomRaySetLength(mGeom, dir.length());
@@ -162,23 +163,23 @@ void WbReceiver::postFinalize() {
 void WbReceiver::updateTransmissionSetup() {
   mMediumType = WbDataPacket::decodeMediumType(mType->value());
   if (mMediumType == WbDataPacket::UNKNOWN) {
-    warn(tr("Unknown 'type': \"%1\".").arg(mType->value()));
+    parsingWarn(tr("Unknown 'type': \"%1\".").arg(mType->value()));
     mMediumType = WbDataPacket::RADIO;
   }
 
-  WbFieldChecker::checkDoubleIsInRangeWithIncludedBoundsOrDisabled(this, mAperture, 0, 2 * M_PI, -1, -1);
-  WbFieldChecker::checkDoubleIsNonNegative(this, mSignalStrengthNoise, 0);
-  WbFieldChecker::checkDoubleIsNonNegative(this, mDirectionNoise, 0);
-  WbFieldChecker::checkIntIsPositiveOrDisabled(this, mBufferSize, -1, -1);
-  WbFieldChecker::checkIntIsPositiveOrDisabled(this, mBaudRate, -1, -1);
-  WbFieldChecker::checkIntIsGreaterOrEqual(this, mByteSize, 8, 8);
+  WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBoundsAndNotDisabled(this, mAperture, 0, 2 * M_PI, -1, -1);
+  WbFieldChecker::resetDoubleIfNegative(this, mSignalStrengthNoise, 0);
+  WbFieldChecker::resetDoubleIfNegative(this, mDirectionNoise, 0);
+  WbFieldChecker::resetIntIfNonPositiveAndNotDisabled(this, mBufferSize, -1, -1);
+  WbFieldChecker::resetIntIfNonPositiveAndNotDisabled(this, mBaudRate, -1, -1);
+  WbFieldChecker::resetIntIfLess(this, mByteSize, 8, 8);
 
   mNeedToConfigure = true;
 }
 
 void WbReceiver::writeConfigure(QDataStream &stream) {
   // TODO disable in remote or not ?
-  // mSensor->connectToRobotSignal(robot());
+  mSensor->connectToRobotSignal(robot(), false);
 
   stream << tag();
   stream << (unsigned char)C_CONFIGURE;
@@ -213,18 +214,18 @@ void WbReceiver::writeAnswer(QDataStream &stream) {
 
 void WbReceiver::handleMessage(QDataStream &stream) {
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SET_SAMPLING_PERIOD: {
       short rate;
-      stream >> (short &)rate;
+      stream >> rate;
       mSensor->setRefreshRate(rate);
       return;
     }
     case C_RECEIVER_SET_CHANNEL: {
       int channel;
-      stream >> (int &)channel;
+      stream >> channel;
       mChannel->setValue(channel);
       return;
     }
@@ -241,7 +242,7 @@ void WbReceiver::prePhysicsStep(double ms) {
 }
 
 void WbReceiver::updateRaysSetupIfNeeded() {
-  updateTransformAfterPhysicsStep();
+  updateTransformForPhysicsStep();
   const WbVector3 position = matrix().translation();
   // update receiver position in pending packets
   foreach (Transmission *t, mTransmissionList)

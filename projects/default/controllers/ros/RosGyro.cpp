@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,14 @@
 
 RosGyro::RosGyro(Gyro *gyroscope, Ros *ros) : RosSensor(gyroscope->getName(), gyroscope, ros) {
   mGyro = gyroscope;
+
+  mLookupTableServer = RosDevice::rosAdvertiseService(
+    (ros->name()) + '/' + RosDevice::fixedDeviceName() + '/' + "get_lookup_table", &RosGyro::getLookupTable);
+}
+
+RosGyro::~RosGyro() {
+  mLookupTableServer.shutdown();
+  cleanup();
 }
 
 // creates a publisher for Gyro values with a sensor_msgs/Imu as message type
@@ -36,9 +44,9 @@ void RosGyro::publishValue(ros::Publisher publisher) {
   value.orientation.z = 0.0;
   value.orientation.w = 0.0;
   value.orientation_covariance[0] = -1.0;  // means no orientation information
-  value.angular_velocity.x = mGyro->getValues()[1];
-  value.angular_velocity.y = mGyro->getValues()[2];
-  value.angular_velocity.z = mGyro->getValues()[3];
+  value.angular_velocity.x = mGyro->getValues()[0];
+  value.angular_velocity.y = mGyro->getValues()[1];
+  value.angular_velocity.z = mGyro->getValues()[2];
   for (int i = 0; i < 9; ++i)  // means "covariance unknown"
     value.angular_velocity_covariance[i] = 0;
   value.linear_acceleration.x = 0.0;
@@ -46,4 +54,11 @@ void RosGyro::publishValue(ros::Publisher publisher) {
   value.linear_acceleration.z = 0.0;
   value.linear_acceleration_covariance[0] = -1.0;  // means no linear_acceleration information
   publisher.publish(value);
+}
+
+bool RosGyro::getLookupTable(webots_ros::get_float_array::Request &req, webots_ros::get_float_array::Response &res) {
+  assert(mGyro);
+  const double *values = mGyro->getLookupTable();
+  res.value.assign(values, values + mGyro->getLookupTableSize() * 3);
+  return true;
 }

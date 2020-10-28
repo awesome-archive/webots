@@ -10,7 +10,7 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec4 fragNormal;
 
 uniform sampler2D inputTextures[13];
-uniform samplerCube cubeTextures[2];
+uniform samplerCube cubeTextures[1];
 
 // Material parameters for this renderable
 layout(std140) uniform PbrMaterial {
@@ -47,6 +47,9 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
   vec2 duv1 = dFdx(uv);
   vec2 duv2 = dFdy(uv);
 
+  if (duv1 == vec2(0.0) && duv2 == vec2(0.0))
+    return mat3(vec3(0.0), vec3(0.0), N);
+
   // solve the linear system
   vec3 dp2perp = cross(dp2, N);
   vec3 dp1perp = cross(N, dp1);
@@ -54,7 +57,10 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
   vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
 
   // construct a scale-invariant frame
-  float invmax = inversesqrt(max(dot(T, T), dot(B, B)));
+  float scale = max(dot(T, T), dot(B, B));
+  if (scale <= 0.0)  // inversesqrt result is undefined for value <= 0
+    return mat3(T, B, N);
+  float invmax = inversesqrt(scale);
   return mat3(T * invmax, B * invmax, N);
 }
 
@@ -69,12 +75,14 @@ vec3 getIBLContribution(IBLInfo iblInputs, vec3 n, vec3 reflection) {
   vec3 diffuseLight = vec3(0.0);
   vec3 specularLight = vec3(0.0);
   vec2 brdf = texture(inputTextures[5], vec2(iblInputs.NdotV, iblInputs.perceptualRoughness)).rg;
-  if (material.cubeTextureFlags.x > 0.0 && material.cubeTextureFlags.y > 0.0) {
+  if (material.cubeTextureFlags.x > 0.0) {
     float mipCount = 7.0;
     float lod = (iblInputs.perceptualRoughness * mipCount);
+    // A single irradiance map is used for the diffuse and specular reflections:
+    // Thanks to the following fact: the diffuse map is close to the specular map at the 6th LOD.
     // invert z components of sample vectors due to VRML default camera orientation looking towards -z
-    diffuseLight = texture(cubeTextures[0], vec3(n.xy, -n.z)).rgb;
-    specularLight = textureLod(cubeTextures[1], vec3(reflection.xy, -reflection.z), lod).rgb;
+    diffuseLight = textureLod(cubeTextures[0], vec3(n.xy, -n.z), 6).rgb;
+    specularLight = textureLod(cubeTextures[0], vec3(reflection.xy, -reflection.z), lod).rgb;
   } else {
     diffuseLight = material.backgroundColorAndIblStrength.rgb;
     specularLight = material.backgroundColorAndIblStrength.rgb;

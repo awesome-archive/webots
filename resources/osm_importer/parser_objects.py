@@ -1,4 +1,5 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+#!/usr/bin/env python3
+# Copyright 1996-2020 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,7 +55,8 @@ class Parser(object):
             self.parse_relation(relation)
         self.process_relations(disableMultipolygonBuildings)
 
-        # Define the most likely country, based on the occurencies of the "addr:country" tags (which can occur at different locations).
+        # Define the most likely country, based on the occurencies of the "addr:country" tags
+        # (which can occur at different locations).
         self.country = None
         try:
             countryTags = tree.xpath("//tag[@k='addr:country']")
@@ -62,7 +64,7 @@ class Parser(object):
         except:
             pass
         if self.country is None:
-            print ('Warning: Failed to determine the country.')
+            print('Warning: Failed to determine the country.')
 
     def get_tags(self, element):
         """Return a dictionnary of tags belonging to this element."""

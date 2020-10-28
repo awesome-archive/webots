@@ -2,11 +2,30 @@
 
 ### Interface
 
-The PROTO definition defines exactly what the PROTO does in terms of the built-in nodes or of the instances of other PROTO nodes.
-Here is the syntax for a PROTO definition:
+A PROTO node is defined in a PROTO file which is a text file ending with a `.proto` extension.
+
+#### Header
+
+The PROTO file starts with the following header line:
 
 ```
-PROTO protoName [ protoInterface ] { protoBody }
+#VRML_SIM {{ webots.version.major }} utf8
+```
+
+Possibly followed by comments, such as:
+
+```
+# license: Apache License 2.0
+# license url: http://www.apache.org/licenses/LICENSE-2.0
+# This is the description of the sample PROTO node.
+```
+
+#### Structure
+
+The PROTO definition lists the fields of the PROTO and defines how these fields impact the underlying object which is defined using base nodes and/or PROTO nodes.
+
+```
+PROTO protoName [ protoFields ] { protoBody }
 ```
 
 The interface is a sequence of field declarations which specify the types, names and default values for the PROTO's fields.
@@ -16,12 +35,18 @@ A field declaration has the following syntax:
 field fieldType fieldName defaultValue
 ```
 
-`field` is a reserved keyword, `fieldType` is one of: `SFNode, SFColor, SFFloat, SFInt32, SFString, SFVec2f, SFVec3f, SFRotation, SFBool, MFNode, MFColor, MFFloat, MFInt32, MFString, MFVec2f` and `MFVec3f`.
-`fieldName` is a freely chosen name for this field and `defaultValue` is a literal default value that depends on `fieldType`.
+- `field` is a reserved keyword.
+- `fieldType` is one of: `SFNode, SFColor, SFFloat, SFInt32, SFString, SFVec2f, SFVec3f, SFRotation, SFBool, MFNode, MFColor, MFFloat, MFInt32, MFString, MFVec2f, MFVec3f, MFRotation` and `MFBool`.
+- `fieldName` is a freely chosen name for this field.
+- `defaultValue` is a literal default value that depends on `fieldType`.
 
-Here is an example of PROTO definition:
+#### Summary
+
+Here is how a PROTO file looks like:
 
 ```
+#VRML_SIM {{ webots.version.major }} utf8
+
 PROTO MyProto [
   field SFVec3f    translation   0 0 0
   field SFRotation rotation      0 1 0 0
@@ -97,7 +122,7 @@ This warning can be suppressed when declaring an interface field by using the `u
 This is useful when the value of an interface field is used to 'store' relevant data that a `Supervisor` controller may wish to access, such as the speed limit for a stretch of road, or an object's radioactivity.
 
 It is an error for an IS statement to refer to a non-existent interface field.
-It is an error if the type of the field being associated does not match the type declared in the PROTO's interface.
+It is also an error if the type of the field being associated does not match the type declared in the PROTO's interface.
 For example, it is illegal to associate an `SFColor` with an `SFVec3f`.
 It is also illegal to associate a `SFColor` with a `MFColor` or vice versa.
 Results are undefined if a field of a node in the PROTO body is associated with more than one field in the PROTO's interface.

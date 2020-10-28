@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ public:
                    HANDLES_RESIZE = 0x7FFFFFFC;
 
   static void setPickable(WrRenderable *renderable, int uniqueId, bool pickable);
-  static void setScreenRatio(float screenRatio) { cScreenRatio = screenRatio; }
 
   WbWrenPicker();
   ~WbWrenPicker();
@@ -52,8 +51,6 @@ public:
   int pickedResizeHandle() const { return mPickedResize; }
 
 private:
-  static float cScreenRatio;
-
   void setup();
   void cleanup();
   bool hasSizeChanged();

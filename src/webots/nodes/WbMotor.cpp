@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@
 #include <cassert>
 #include <cmath>
 
-#include "../../lib/Controller/api/messages.h"  // contains the definitions for the macros C_SET_SAMPLING_PERIOD, C_MOTOR_SET_POSITION, C_MOTOR_SET_VELOCITY ...
+#include "../../Controller/api/messages.h"  // contains the definitions for the macros C_SET_SAMPLING_PERIOD, C_MOTOR_SET_POSITION, C_MOTOR_SET_VELOCITY ...
 
 QList<const WbMotor *> WbMotor::cMotors;
 
@@ -123,6 +123,8 @@ void WbMotor::postFinalize() {
   connect(mControlPID, &WbSFVector3::changed, this, &WbMotor::updateControlPID);
   connect(mMinPosition, &WbSFDouble::changed, this, &WbMotor::updateMinAndMaxPosition);
   connect(mMaxPosition, &WbSFDouble::changed, this, &WbMotor::updateMinAndMaxPosition);
+  connect(mMinPosition, &WbSFDouble::changed, this, &WbMotor::minPositionChanged);
+  connect(mMaxPosition, &WbSFDouble::changed, this, &WbMotor::maxPositionChanged);
   connect(mSound, &WbSFString::changed, this, &WbMotor::updateSound);
   connect(mMuscles, &WbSFNode::changed, this, &WbMotor::updateMuscles);
   connect(mMaxForceOrTorque, &WbSFDouble::changed, this, &WbMotor::updateMaxForceOrTorque);
@@ -153,6 +155,9 @@ void WbMotor::setupJointFeedback() {
 }
 
 double WbMotor::energyConsumption() const {
+  if (dynamic_cast<WbTrack *>(parentNode()))
+    return 0.0;
+
   return fabs(computeFeedback()) * mConsumptionFactor->value();
 }
 
@@ -165,25 +170,25 @@ void WbMotor::updateMinAndMaxPosition() {
     // no limits
     return;
 
-  WbJoint *parentJoint = dynamic_cast<WbJoint *>(parent());
+  WbJoint *parentJoint = dynamic_cast<WbJoint *>(parentNode());
   double p = 0.0;
   if (parentJoint && parentJoint->parameters())
     p = parentJoint->parameters()->position();
 
   // current joint position should lie between min and max position
-  WbFieldChecker::checkDoubleIsGreaterOrEqual(this, mMaxPosition, p, p);
-  WbFieldChecker::checkDoubleIsLessOrEqual(this, mMinPosition, p, p);
+  WbFieldChecker::resetDoubleIfLess(this, mMaxPosition, p, p);
+  WbFieldChecker::resetDoubleIfGreater(this, mMinPosition, p, p);
 
   mNeedToConfigure = true;
 }
 
 void WbMotor::updateMaxForceOrTorque() {
-  WbFieldChecker::checkDoubleIsNonNegative(this, mMaxForceOrTorque, 10.0);
+  WbFieldChecker::resetDoubleIfNegative(this, mMaxForceOrTorque, 10.0);
   mNeedToConfigure = true;
 }
 
 void WbMotor::updateMaxVelocity() {
-  WbFieldChecker::checkDoubleIsNonNegative(this, mMaxVelocity, -mMaxVelocity->value());
+  WbFieldChecker::resetDoubleIfNegative(this, mMaxVelocity, -mMaxVelocity->value());
   mNeedToConfigure = true;
 }
 
@@ -191,15 +196,15 @@ void WbMotor::updateControlPID() {
   const WbVector3 &pid = mControlPID->value();
   const double p = pid.x();
   if (p <= 0.0)
-    warn(tr("'controlP' (currently %1) must be positive.").arg(p));
+    parsingWarn(tr("'controlP' (currently %1) must be positive.").arg(p));
 
   const double i = pid.y();
   if (i < 0.0)
-    warn(tr("'controlI' (currently %1) must be non-negative.").arg(i));
+    parsingWarn(tr("'controlI' (currently %1) must be non-negative.").arg(i));
 
   const double d = pid.z();
   if (d < 0.0)
-    warn(tr("'controlD' (currently %1) must be non-negative.").arg(d));
+    parsingWarn(tr("'controlD' (currently %1) must be non-negative.").arg(d));
 
   mErrorIntegral = 0.0;
   mPreviousError = 0.0;
@@ -217,18 +222,11 @@ void WbMotor::updateSound() {
 }
 
 void WbMotor::updateMuscles() {
-  WbMFIterator<WbMFNode, WbNode *> it(mMuscles);
-  while (it.hasNext()) {
-    WbMuscle *muscle = dynamic_cast<WbMuscle *>(it.next());
-    assert(muscle);
-    connect(mMinPosition, &WbSFDouble::changed, muscle, &WbMuscle::updateRadius, Qt::UniqueConnection);
-    connect(mMaxPosition, &WbSFDouble::changed, muscle, &WbMuscle::updateRadius, Qt::UniqueConnection);
-  }
   setupJointFeedback();
 }
 
 void WbMotor::updateMaxAcceleration() {
-  WbFieldChecker::checkDoubleIsNonNegativeOrDisabled(this, mAcceleration, -1, -1);
+  WbFieldChecker::resetDoubleIfNegativeAndNotDisabled(this, mAcceleration, -1, -1);
   mNeedToConfigure = true;
 }
 
@@ -340,6 +338,10 @@ void WbMotor::powerOn(bool e) {  // called when running out of energy with e=fal
     mMotorForceOrTorque = mMaxForceOrTorque->value();
 }
 
+bool WbMotor::isConfigureDone() const {
+  return robot()->isConfigureDone();
+}
+
 /////////////
 // Control //
 /////////////
@@ -356,6 +358,7 @@ void WbMotor::addConfigureToStream(QDataStream &stream) {
   stream << (double)mControlPID->value().x();
   stream << (double)mControlPID->value().y();
   stream << (double)mControlPID->value().z();
+  stream << (double)mTargetPosition;
   mNeedToConfigure = false;
 }
 
@@ -421,17 +424,17 @@ void WbMotor::enableMotorFeedback(int rate) {
 
 void WbMotor::handleMessage(QDataStream &stream) {
   short command;
-  stream >> (short &)command;
+  stream >> command;
 
   switch (command) {
     case C_MOTOR_SET_POSITION: {
       double position;
-      stream >> (double &)position;
+      stream >> position;
       setTargetPosition(position);
       break;
     }
     case C_MOTOR_SET_VELOCITY: {
-      stream >> (double &)mTargetVelocity;
+      stream >> mTargetVelocity;
       const double m = mMaxVelocity->value();
       const bool isNegative = mTargetVelocity < 0.0;
       if ((isNegative ? -mTargetVelocity : mTargetVelocity) > m) {
@@ -443,7 +446,7 @@ void WbMotor::handleMessage(QDataStream &stream) {
     }
     case C_MOTOR_SET_ACCELERATION: {
       double acceleration;
-      stream >> (double &)acceleration;
+      stream >> acceleration;
       setMaxAcceleration(acceleration);
       break;
     }
@@ -451,7 +454,7 @@ void WbMotor::handleMessage(QDataStream &stream) {
       if (!mUserControl)  // we were previously using motor force
         turnOffMotor();
       mUserControl = true;
-      stream >> (double &)mRawInput;
+      stream >> mRawInput;
       if (fabs(mRawInput) > mMotorForceOrTorque) {
         if (nodeType() == WB_NODE_ROTATIONAL_MOTOR)
           warn(tr("The requested motor torque %1 exceeds 'maxTorque' = %2").arg(mRawInput).arg(mMotorForceOrTorque));
@@ -463,7 +466,7 @@ void WbMotor::handleMessage(QDataStream &stream) {
       break;
     }
     case C_MOTOR_SET_AVAILABLE_FORCE: {
-      stream >> (double &)mMotorForceOrTorque;
+      stream >> mMotorForceOrTorque;
       const double m = mMaxForceOrTorque->value();
       if (mMotorForceOrTorque > m) {
         if (nodeType() == WB_NODE_ROTATIONAL_MOTOR)
@@ -478,9 +481,9 @@ void WbMotor::handleMessage(QDataStream &stream) {
     }
     case C_MOTOR_SET_CONTROL_PID: {
       double controlP, controlI, controlD;
-      stream >> (double &)controlP;
-      stream >> (double &)controlI;
-      stream >> (double &)controlD;
+      stream >> controlP;
+      stream >> controlI;
+      stream >> controlD;
       mControlPID->setValue(controlP, controlI, controlD);
       awake();
       break;
@@ -558,7 +561,7 @@ void WbMotor::awake() const {
   }
 
   const WbPropeller *const p = propeller();
-  const WbTrack *const t = dynamic_cast<WbTrack *>(parent());
+  const WbTrack *const t = dynamic_cast<WbTrack *>(parentNode());
   if (p || t) {
     WbSolid *const s = upperSolid();
     assert(s);

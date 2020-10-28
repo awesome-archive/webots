@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,11 @@
 #include "WbPbrAppearance.hpp"
 
 #include "WbBackground.hpp"
-#include "WbCubemap.hpp"
 #include "WbField.hpp"
 #include "WbFieldChecker.hpp"
 #include "WbImageTexture.hpp"
 #include "WbMaterial.hpp"
+#include "WbPreferences.hpp"
 #include "WbRgb.hpp"
 #include "WbSFColor.hpp"
 #include "WbSFNode.hpp"
@@ -46,7 +46,6 @@ void WbPbrAppearance::init() {
   mRoughnessMap = findSFNode("roughnessMap");
   mMetalness = findSFDouble("metalness");
   mMetalnessMap = findSFNode("metalnessMap");
-  mEnvironmentMap = findSFNode("environmentMap");
   mIblStrength = findSFDouble("IBLStrength");
   mNormalMap = findSFNode("normalMap");
   mNormalMapFactor = findSFDouble("normalMapFactor");
@@ -80,7 +79,7 @@ WbPbrAppearance::~WbPbrAppearance() {
 }
 
 void WbPbrAppearance::preFinalize() {
-  WbBaseNode::preFinalize();
+  WbAbstractAppearance::preFinalize();
 
   if (baseColorMap())
     baseColorMap()->preFinalize();
@@ -90,9 +89,6 @@ void WbPbrAppearance::preFinalize() {
 
   if (metalnessMap())
     metalnessMap()->preFinalize();
-
-  if (environmentMap())
-    environmentMap()->preFinalize();
 
   if (normalMap())
     normalMap()->preFinalize();
@@ -106,14 +102,15 @@ void WbPbrAppearance::preFinalize() {
   updateBaseColorMap();
   updateRoughnessMap();
   updateMetalnessMap();
-  updateEnvironmentMap();
   updateNormalMap();
   updateOcclusionMap();
   updateEmissiveColorMap();
 
   if (cInstanceCounter == 0) {
     WbWrenOpenGlContext::makeWrenCurrent();
-    cBrdfTexture = wr_texture_cubemap_bake_brdf(WbWrenShaders::iblBrdfBakingShader());
+    const int quality = WbPreferences::instance()->value("OpenGL/textureQuality", 2).toInt();
+    const int resolution = pow(2, 6 + quality);  // 0: 64, 1: 128, 2: 256
+    cBrdfTexture = wr_texture_cubemap_bake_brdf(WbWrenShaders::iblBrdfBakingShader(), resolution);
     WbWrenOpenGlContext::doneWren();
   }
   ++cInstanceCounter;
@@ -133,9 +130,6 @@ void WbPbrAppearance::postFinalize() {
   if (metalnessMap())
     metalnessMap()->postFinalize();
 
-  if (environmentMap())
-    environmentMap()->postFinalize();
-
   if (normalMap())
     normalMap()->postFinalize();
 
@@ -152,7 +146,6 @@ void WbPbrAppearance::postFinalize() {
   connect(mRoughnessMap, &WbSFNode::changed, this, &WbPbrAppearance::updateRoughnessMap);
   connect(mMetalness, &WbSFDouble::changed, this, &WbPbrAppearance::updateMetalness);
   connect(mMetalnessMap, &WbSFNode::changed, this, &WbPbrAppearance::updateMetalnessMap);
-  connect(mEnvironmentMap, &WbSFNode::changed, this, &WbPbrAppearance::updateEnvironmentMap);
   connect(mIblStrength, &WbSFDouble::changed, this, &WbPbrAppearance::updateIblStrength);
   connect(mNormalMap, &WbSFNode::changed, this, &WbPbrAppearance::updateNormalMap);
   connect(mNormalMapFactor, &WbSFDouble::changed, this, &WbPbrAppearance::updateNormalMapFactor);
@@ -173,7 +166,7 @@ void WbPbrAppearance::postFinalize() {
 }
 
 void WbPbrAppearance::reset() {
-  WbBaseNode::reset();
+  WbAbstractAppearance::reset();
 
   if (baseColorMap())
     baseColorMap()->reset();
@@ -183,9 +176,6 @@ void WbPbrAppearance::reset() {
 
   if (metalnessMap())
     metalnessMap()->reset();
-
-  if (environmentMap())
-    environmentMap()->reset();
 
   if (normalMap())
     normalMap()->reset();
@@ -213,9 +203,6 @@ void WbPbrAppearance::createWrenObjects() {
   if (metalnessMap())
     metalnessMap()->createWrenObjects();
 
-  if (environmentMap())
-    environmentMap()->createWrenObjects();
-
   if (normalMap())
     normalMap()->createWrenObjects();
 
@@ -224,11 +211,6 @@ void WbPbrAppearance::createWrenObjects() {
 
   if (emissiveColorMap())
     emissiveColorMap()->createWrenObjects();
-}
-
-void WbPbrAppearance::clearCubemap(WrMaterial *wrenMaterial) {
-  wr_material_set_texture_cubemap(wrenMaterial, NULL, 0);
-  wr_material_set_texture_cubemap(wrenMaterial, NULL, 1);
 }
 
 WrMaterial *WbPbrAppearance::modifyWrenMaterial(WrMaterial *wrenMaterial) {
@@ -253,25 +235,27 @@ WrMaterial *WbPbrAppearance::modifyWrenMaterial(WrMaterial *wrenMaterial) {
     metalnessMap()->modifyWrenMaterial(wrenMaterial, 2, 7);
 
   WbBackground *background = WbBackground::firstInstance();
-  if (environmentMap()) {
-    environmentMap()->loadWrenTexture();
-    environmentMap()->modifyWrenMaterial(wrenMaterial);
-  } else if (background) {
-    WbCubemap *backgroundCubemap = background->cubemap();
-    if (backgroundCubemap) {
-      if (backgroundCubemap->isValid()) {
-        backgroundCubemap->modifyWrenMaterial(wrenMaterial);
-        connect(backgroundCubemap, &WbCubemap::cubeTexturesDestroyed, this, &WbPbrAppearance::updateCubeMap,
-                Qt::UniqueConnection);
-      } else
-        connect(backgroundCubemap, &WbCubemap::bakeCompleted, this, &WbPbrAppearance::updateCubeMap, Qt::UniqueConnection);
-    } else {
-      clearCubemap(wrenMaterial);
-      connect(background, &WbBackground::cubemapChanged, this, &WbPbrAppearance::updateCubeMap, Qt::UniqueConnection);
-    }
-  } else {
-    clearCubemap(wrenMaterial);
-  }
+  float backgroundLuminosity = 1.0;
+  if (background) {
+    backgroundLuminosity = background->luminosity();
+    connect(background, &WbBackground::luminosityChanged, this, &WbPbrAppearance::updateCubeMap, Qt::UniqueConnection);
+
+    // irradiance map
+    WrTextureCubeMap *irradianceCubeTexture = background->irradianceCubeTexture();
+    if (irradianceCubeTexture) {
+      wr_material_set_texture_cubemap(wrenMaterial, irradianceCubeTexture, 0);
+      wr_material_set_texture_cubemap_wrap_r(wrenMaterial, WR_TEXTURE_WRAP_MODE_CLAMP_TO_EDGE, 0);
+      wr_material_set_texture_cubemap_wrap_s(wrenMaterial, WR_TEXTURE_WRAP_MODE_CLAMP_TO_EDGE, 0);
+      wr_material_set_texture_cubemap_wrap_t(wrenMaterial, WR_TEXTURE_WRAP_MODE_CLAMP_TO_EDGE, 0);
+      wr_material_set_texture_cubemap_anisotropy(wrenMaterial, 8, 0);
+      wr_material_set_texture_cubemap_enable_interpolation(wrenMaterial, true, 0);
+      wr_material_set_texture_cubemap_enable_mip_maps(wrenMaterial, true, 0);
+    } else
+      wr_material_set_texture_cubemap(wrenMaterial, NULL, 0);
+
+    connect(background, &WbBackground::cubemapChanged, this, &WbPbrAppearance::updateCubeMap, Qt::UniqueConnection);
+  } else
+    wr_material_set_texture_cubemap(wrenMaterial, NULL, 0);
 
   if (normalMap())
     normalMap()->modifyWrenMaterial(wrenMaterial, 4, 7);
@@ -308,8 +292,9 @@ WrMaterial *WbPbrAppearance::modifyWrenMaterial(WrMaterial *wrenMaterial) {
 
   // set material properties
   wr_pbr_material_set_all_parameters(wrenMaterial, backgroundColor, baseColor, mTransparency->value(), mRoughness->value(),
-                                     mMetalness->value(), mIblStrength->value(), mNormalMapFactor->value(),
-                                     mOcclusionMapStrength->value(), emissiveColor, mEmissiveIntensity->value());
+                                     mMetalness->value(), backgroundLuminosity * mIblStrength->value(),
+                                     mNormalMapFactor->value(), mOcclusionMapStrength->value(), emissiveColor,
+                                     mEmissiveIntensity->value());
 
   return wrenMaterial;
 }
@@ -324,10 +309,6 @@ WbImageTexture *WbPbrAppearance::roughnessMap() const {
 
 WbImageTexture *WbPbrAppearance::metalnessMap() const {
   return dynamic_cast<WbImageTexture *>(mMetalnessMap->value());
-}
-
-WbCubemap *WbPbrAppearance::environmentMap() const {
-  return dynamic_cast<WbCubemap *>(mEnvironmentMap->value());
 }
 
 WbImageTexture *WbPbrAppearance::normalMap() const {
@@ -346,12 +327,24 @@ bool WbPbrAppearance::isBaseColorTextureLoaded() const {
   return (baseColorMap() && baseColorMap()->wrenTexture());
 }
 
+bool WbPbrAppearance::isRoughnessTextureLoaded() const {
+  return (roughnessMap() && roughnessMap()->wrenTexture());
+}
+
+bool WbPbrAppearance::isOcclusionTextureLoaded() const {
+  return (occlusionMap() && occlusionMap()->wrenTexture());
+}
+
 WbRgb WbPbrAppearance::baseColor() const {
   return mBaseColor->value();
 }
 
 double WbPbrAppearance::transparency() const {
   return mTransparency->value();
+}
+
+double WbPbrAppearance::roughness() const {
+  return mRoughness->value();
 }
 
 void WbPbrAppearance::pickColorInBaseColorTexture(WbRgb &pickedColor, const WbVector2 &uv) const {
@@ -361,6 +354,24 @@ void WbPbrAppearance::pickColorInBaseColorTexture(WbRgb &pickedColor, const WbVe
     tex->pickColor(pickedColor, uvTransformed);
   } else
     pickedColor.setValue(1.0, 1.0, 1.0);  // default value
+}
+
+void WbPbrAppearance::pickRoughnessInTexture(double *roughness, const WbVector2 &uv) const {
+  *roughness = getRedValueInTexture(roughnessMap(), uv);
+}
+
+void WbPbrAppearance::pickOcclusionInTexture(double *occlusion, const WbVector2 &uv) const {
+  *occlusion = getRedValueInTexture(occlusionMap(), uv);
+}
+
+double WbPbrAppearance::getRedValueInTexture(WbImageTexture *texture, const WbVector2 &uv) const {
+  if (texture) {
+    WbRgb pickedColor;
+    WbVector2 uvTransformed = transformUVCoordinate(uv);
+    texture->pickColor(pickedColor, uvTransformed);
+    return pickedColor.red();
+  }
+  return 0.0;  // default value
 }
 
 void WbPbrAppearance::updateCubeMap() {
@@ -387,14 +398,14 @@ void WbPbrAppearance::updateBaseColorMap() {
 }
 
 void WbPbrAppearance::updateTransparency() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mTransparency, 0.0, 1.0, 0.0))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mTransparency, 0.0, 1.0, 0.0))
     return;
   if (isPostFinalizedCalled())
     emit changed();
 }
 
 void WbPbrAppearance::updateRoughness() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mRoughness, 0.0, 1.0, 0.0))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mRoughness, 0.0, 1.0, 0.0))
     return;
   if (isPostFinalizedCalled())
     emit changed();
@@ -409,7 +420,7 @@ void WbPbrAppearance::updateRoughnessMap() {
 }
 
 void WbPbrAppearance::updateMetalness() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mMetalness, 0.0, 1.0, 0.0))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mMetalness, 0.0, 1.0, 0.0))
     return;
   if (isPostFinalizedCalled())
     emit changed();
@@ -423,17 +434,8 @@ void WbPbrAppearance::updateMetalnessMap() {
     emit changed();
 }
 
-void WbPbrAppearance::updateEnvironmentMap() {
-  if (environmentMap()) {
-    connect(environmentMap(), &WbCubemap::changed, this, &WbPbrAppearance::updateEnvironmentMap, Qt::UniqueConnection);
-  }
-
-  if (isPostFinalizedCalled())
-    emit changed();
-}
-
 void WbPbrAppearance::updateIblStrength() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mIblStrength, 1.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mIblStrength, 1.0))
     return;
   if (isPostFinalizedCalled())
     emit changed();
@@ -448,7 +450,7 @@ void WbPbrAppearance::updateNormalMap() {
 }
 
 void WbPbrAppearance::updateNormalMapFactor() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mNormalMapFactor, 1.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mNormalMapFactor, 1.0))
     return;
   if (isPostFinalizedCalled())
     emit changed();
@@ -462,7 +464,7 @@ void WbPbrAppearance::updateOcclusionMap() {
 }
 
 void WbPbrAppearance::updateOcclusionMapStrength() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mOcclusionMapStrength, 1.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mOcclusionMapStrength, 1.0))
     return;
   if (isPostFinalizedCalled())
     emit changed();
@@ -487,7 +489,7 @@ void WbPbrAppearance::updateEmissiveIntensity() {
 
 void WbPbrAppearance::exportNodeSubNodes(WbVrmlWriter &writer) const {
   if (writer.isWebots()) {
-    WbBaseNode::exportNodeSubNodes(writer);
+    WbAbstractAppearance::exportNodeSubNodes(writer);
     return;
   }
 
@@ -524,10 +526,74 @@ void WbPbrAppearance::exportNodeSubNodes(WbVrmlWriter &writer) const {
       mBaseColorMap->write(writer);
       writer << "\n";
     }
-    if (findField("textureTransform")->value()) {
+    if (mTextureTransform->value()) {
       writer.indent();
-      findField("textureTransform")->write(writer);
+      writer << "textureTransform ";
+      mTextureTransform->write(writer);
       writer << "\n";
     }
   }
+}
+
+void WbPbrAppearance::exportNodeFooter(WbVrmlWriter &writer) const {
+  WbAbstractAppearance::exportNodeFooter(writer);
+
+  if (!writer.isX3d())
+    return;
+
+  writer << "<PBRAppearance id=\'n" << QString::number(uniqueId()) << "\'";
+
+  if (isUseNode() && defNode()) {
+    writer << " USE=\'" + QString::number(defNode()->uniqueId()) + "\'></PBRAppearance>";
+    return;
+  }
+
+  foreach (WbField *field, fields())
+    if (field->singleType() != WB_SF_NODE)
+      field->write(writer);
+
+  writer << ">";
+
+  if (baseColorMap()) {
+    baseColorMap()->setRole("baseColor");
+    baseColorMap()->write(writer);
+  }
+  if (roughnessMap()) {
+    roughnessMap()->setRole("roughness");
+    roughnessMap()->write(writer);
+  }
+  if (metalnessMap()) {
+    metalnessMap()->setRole("metalness");
+    metalnessMap()->write(writer);
+  }
+  if (normalMap()) {
+    normalMap()->setRole("normal");
+    normalMap()->write(writer);
+  }
+  if (occlusionMap()) {
+    occlusionMap()->setRole("occlusion");
+    occlusionMap()->write(writer);
+  }
+  if (emissiveColorMap()) {
+    emissiveColorMap()->setRole("emissiveColor");
+    emissiveColorMap()->write(writer);
+  }
+
+  if (textureTransform())
+    textureTransform()->write(writer);
+
+  writer << "</PBRAppearance>";
+}
+
+QStringList WbPbrAppearance::fieldsToSynchronizeWithX3D() const {
+  QStringList fields;
+  fields << "baseColor"
+         << "emissiveColor";
+  return fields;
+}
+
+bool WbPbrAppearance::exportNodeHeader(WbVrmlWriter &writer) const {
+  if (writer.isUrdf())
+    return true;
+  return WbAbstractAppearance::exportNodeHeader(writer);
 }

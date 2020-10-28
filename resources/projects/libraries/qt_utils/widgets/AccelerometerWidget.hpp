@@ -12,15 +12,15 @@ namespace webotsQtUtils {
     Q_OBJECT
 
   public:
-    AccelerometerWidget(Device *device, QWidget *parent = NULL);
+    explicit AccelerometerWidget(Device *device, QWidget *parent = NULL);
     virtual ~AccelerometerWidget() {}
 
   protected slots:
-    virtual void enable(bool enable);
+    void enable(bool enable) override;
 
   protected:
-    virtual bool isEnabled() const;
-    virtual const double *values();
+    bool isEnabled() const override;
+    const double *values() override;
   };
 }  // namespace webotsQtUtils
 

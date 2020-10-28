@@ -6,7 +6,7 @@ Virtual walls are an accessory of the IRobot Create allowing to inform the robot
 
 %figure
 
-![CreateWall](images/objects/create_wall/CreateWall/model.png)
+![CreateWall](images/objects/create_wall/CreateWall/model.thumbnail.png)
 
 %end
 
@@ -19,13 +19,13 @@ CreateWall {
   SFFloat    range          2.4384
   SFFloat    aperture       0.157
   SFString   controller     "create_wall_emit_signal"
-  SFString   controllerArgs ""
+  MFString   controllerArgs []
   SFBool     supervisor     FALSE
   SFString   name           "iRobot wall"
 }
 ```
 
-> **File location**: "WEBOTS\_HOME/projects/objects/create_wall/protos/CreateWall.proto"
+> **File location**: "[WEBOTS\_HOME/projects/objects/create\_wall/protos/CreateWall.proto](https://github.com/cyberbotics/webots/tree/master/projects/objects/create_wall/protos/CreateWall.proto)"
 
 > **License**: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 [More information.](https://cyberbotics.com/webots_assets_license)

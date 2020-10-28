@@ -14,9 +14,11 @@ Display {
 The [Display](#display) node allows to handle a 2D pixel array using simple API functions, and render it into a 2D overlay on the 3D view, into a 2D texture of any [Shape](shape.md) node, or both.
 It can model an embedded screen or it can display any graphical information such as graphs, text, robot trajectory, filtered camera images and so on.
 
-If the first child of the [Display](#display) node is or contains (recursive search if the first node is a [Group](group.md)) a [Shape](shape.md) node having a [ImageTexture](imagetexture.md), then the internal texture of the(se) [ImageTexture](imagetexture.md) node(s) is replaced by the texture of the [Display](#display).
-In this case, the `Shape.appearance` field should contain an [Appearance](appearance.md) node (rather than a [PBRAppearance](pbrappearance.md) node).
-It is necessary to set the `filtering` field of the(se) [ImageTexture](imagetexture.md) node(s) to 0 in order to prevent issues when distancing oneself from the display.
+To model an embedded screen, the first child of the [Display](#display) node should be or contain (recursive search if the first node is a [Group](group.md)) a [Shape](shape.md) node having an appearance and an [ImageTexture](imagetexture.md) node, then the internal texture of the [ImageTexture](imagetexture.md) node is replaced by the texture of the [Display](#display).
+Both [Appearance](appearance.md) and [PBRAppearance](pbrappearance.md) nodes are supported.
+In case of [PBRAppearance](pbrappearance.md) node, at least `PBRAppearance.baseColorMap` or `PBRAppearance.emissiveColorMap` [ImageTexture](imagetexture.md) node should be defined. If both are defined, then both textures will be internally replaced by the [Display](#display) texture.
+Using the [Appearance](appearance.md) node and setting the [Material](material.md).emissiveColor field to `1 1 1` helps preserving the original colors of the loaded [Display](#display) texture.
+Additionally, it is necessary to set the `filtering` field of the [ImageTexture](imagetexture.md) nodes to 0 in order to prevent issues when distancing oneself from the display.
 
 ### Field Summary
 
@@ -64,7 +66,7 @@ Then, after closing the window, the overlay will be automatically restored.
 #### `wb_display_get_width`
 #### `wb_display_get_height`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -122,7 +124,7 @@ public class Display extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 width = wb_display_get_width(tag)
 height = wb_display_get_height(tag)
 ```
@@ -152,7 +154,7 @@ These functions return respectively the values of the `width` and `height` field
 #### `wb_display_set_opacity`
 #### `wb_display_set_font`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -218,7 +220,7 @@ public class Display extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_display_set_color(tag, [r g b])
 wb_display_set_alpha(tag, alpha)
 wb_display_set_opacity(tag, opacity)
@@ -260,7 +262,7 @@ Before the first call to the `wb_display_set_alpha` function, the default value 
 
 The `wb_display_set_opacity` function defines with which opacity the new pixels will replace the old ones for the following drawing instructions.
 It is expressed as a floating point value between 0.0 and 1.0; while 0 means that the new pixel has no effect over the old one and 1 means that the new pixel replaces entirely the old one.
-Only the color channel is affected by the `opacity` according to the [blending](#blending-formula-used-to-compute-the-new-the-color-channels-cn-of-a-pixel-from-the-old-color-channels-co-of-the-background-pixel-and-from-the-opacity) formula.
+Only the color channel is affected by the `opacity` according to the [blending](#blending-formula-used-to-compute-the-new-the-color-channels-of-a-pixel-from-the-old-color-channels-of-the-background-pixel-and-from-the-opacity) formula.
 
 %figure "Blending formula used to compute the new the color channels (Cn) of a pixel from the old color channels (Co) of the background pixel and from the opacity."
 
@@ -297,7 +299,7 @@ For example the vector `[1 0 1]` represents the magenta color.
 #### `wb_display_attach_camera`
 #### `wb_display_detach_camera`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -355,7 +357,7 @@ public class Display extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_display_attach_camera(tag, camera_tag)
 wb_display_detach_camera(tag)
 ```
@@ -395,7 +397,7 @@ After detaching a camera, the pixels that have not been manually drawn will be t
 #### `wb_display_fill_oval`
 #### `wb_display_fill_polygon`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -481,7 +483,7 @@ public class Display extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_display_draw_pixel(tag, x, y)
 wb_display_draw_line(tag, x1, y1, x2, y2)
 wb_display_draw_rectangle(tag, x, y, width, height)
@@ -563,7 +565,7 @@ The `wb_display_fill_polygon` function draws a polygon having the same propertie
 #### `wb_display_image_save`
 #### `wb_display_image_delete`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -574,6 +576,7 @@ The `wb_display_fill_polygon` function draws a polygon having the same propertie
 #define WB_IMAGE_RGBA 4
 #define WB_IMAGE_ARGB 5
 #define WB_IMAGE_BGRA 6
+#define WB_IMAGE_ABGR 7
 
 typedef struct WbImageStructPrivate *WbImageRef;
 
@@ -599,7 +602,7 @@ namespace webots {
   };
 
   class Display : public Device
-    enum {RGB, RGBA, ARGB, BGRA};
+    enum {RGB, RGBA, ARGB, BGRA, ABGR};
 
     ImageRef *imageNew(int width, int height, const void *data, int format) const;
     ImageRef *imageLoad(const std::string &filename) const;
@@ -623,7 +626,7 @@ class ImageRef:
     # ...
 
 class Display (Device):
-    RGB, RGBA, ARGB, BGRA
+    RGB, RGBA, ARGB, BGRA, ABGR
 
     def imageNew(self, data, format, width=None, height=None):
     def imageLoad(self, filename):
@@ -647,7 +650,7 @@ public class ImageRef {
 }
 
 public class Display extends Device {
-  public final static int RGB, RGBA, ARGB, BGRA;
+  public final static int RGB, RGBA, ARGB, BGRA, ABGR;
 
   public ImageRef imageNew(int width, int height, int[] data, int format);
   public ImageRef imageLoad(String filename);
@@ -663,8 +666,8 @@ public class Display extends Device {
 
 %tab "MATLAB"
 
-```matlab
-RGB, RGBA, ARGB, BGRA
+```MATLAB
+RGB, RGBA, ARGB, BGRA, ABGR
 
 image = wb_display_image_new(tag, data, format)
 image = wb_display_image_load(tag, 'filename')
@@ -703,8 +706,7 @@ They should be deleted with the `wb_display_image_delete` function when they are
 Finally, note that both the main display image and the clipboard images have an alpha channel.
 
 The `wb_display_image_new` function creates a new clipboard image, with the specified `with` and `height`, and loads the image `data` into it with respect to the defined image `format`.
-Three images format are supported: `WB_IMAGE_RGBA` which is similar to the image format returned by a `Camera` device and `WB_IMAGE_RGB` or `WB_IMAGE_ARGB`.
-`WB_IMAGE_RGBA` and `WB_IMAGE_ARGB` are including an alpha channel respectively after and before the color components.
+Five images format are supported: `WB_IMAGE_BGRA` which is the recommended one and the image format returned by a `Camera` device, `WB_IMAGE_RGB`, `WB_IMAGE_RGBA`, `WB_IMAGE_ARGB`,  and `WB_IMAGE_ABGR`.
 
 The `wb_display_image_load` function creates a new clipboard image, loads an image file into it and returns a reference to the new clipboard image.
 The image file is specified with the `filename` parameter (relatively to the controller directory).
@@ -717,7 +719,7 @@ The copied sub-image is defined by its top left coordinate (`x`,`y`) and its dim
 
 The `wb_display_image_paste` function pastes a clipboard image referred to by the `ir` parameter to the main display image.
 The (`x`,`y`) coordinates define the top left point of the pasted image.
-If the `blend` parameter is true, the resulting pixels displayed in the main display image are computed using a blending operation (similar to the one defined in the [blending](#blending-formula-used-to-compute-the-new-the-color-channels-cn-of-a-pixel-from-the-old-color-channels-co-of-the-background-pixel-and-from-the-opacity) formula but involving the alpha channels of the old and new pixels instead of the opacity).
+If the `blend` parameter is true, the resulting pixels displayed in the main display image are computed using a blending operation (similar to the one defined in the [blending](#blending-formula-used-to-compute-the-new-the-color-channels-of-a-pixel-from-the-old-color-channels-of-the-background-pixel-and-from-the-opacity) formula but involving the alpha channels of the old and new pixels instead of the opacity).
 In the `blend` parameter is set to false, the resulting pixels are simply copied from the clipboard image.
 The paste operation is much faster if `blend` is set to false.
 

@@ -18,19 +18,19 @@ namespace webotsQtUtils {
     Q_OBJECT
 
   public:
-    DifferentialWheelsWidget(Device *device, QWidget *parent = NULL);
+    explicit DifferentialWheelsWidget(Device *device, QWidget *parent = NULL);
     virtual ~DifferentialWheelsWidget();
 
-    virtual void readSensors();
-    virtual void writeActuators();
+    void readSensors() override;
+    void writeActuators() override;
 
   protected slots:
-    virtual void enable(bool enable);
+    void enable(bool enable) override;
     void sendCommand();
     void sendStopCommand();
 
   protected:
-    bool isEnabled() const;
+    bool isEnabled() const override;
     bool isAButtonDown();
 
     Graph2D *mGraph2D;

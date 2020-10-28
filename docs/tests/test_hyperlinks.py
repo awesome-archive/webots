@@ -2,6 +2,8 @@
 
 import unittest
 import re
+import os
+import sys
 
 from books import Books
 
@@ -15,9 +17,15 @@ class TestHyperlinks(unittest.TestCase):
 
         books = Books()
         for book in books.books:
+
+            # we don't want to maintain links posted on Discord
+            if book.name == 'discord':
+                continue
+
             for md_path in book.md_paths:
                 # Extract MD content.
-                with open(md_path) as f:
+                args = {} if sys.version_info[0] < 3 else {'encoding': 'utf-8'}
+                with open(md_path, **args) as f:
                     content = f.read()
                 # Remove code statements
                 content = re.sub(r'```.+?(?=```)```', '', content, flags=re.S)
@@ -62,4 +70,15 @@ class TestHyperlinks(unittest.TestCase):
                 self.assertTrue(
                     '.md' in h['url'],
                     msg='Hyperlink "%s" is wrongly detected as a tag in "%s".' % (h['md'], h['file'])
+                )
+
+    def test_github_file_exists(self):
+        """Test that the github file pointed by the link exists."""
+        for h in self.hyperlinks:
+            if h['url'].startswith('https://github.com/cyberbotics/webots/tree/master'):
+                path = h['url'].replace('https://github.com/cyberbotics/webots/tree/master', os.environ['WEBOTS_HOME'])
+                self.assertTrue(
+                    os.path.isfile(path) or os.path.isdir(path),
+                    msg='Hyperlink "%s" is pointing to a non-existing file or directory "%s" (in file "%s").' %
+                        (h['md'], path, h['file'])
                 )

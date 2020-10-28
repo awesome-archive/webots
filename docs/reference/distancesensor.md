@@ -115,7 +115,7 @@ The resulting range of measured values is shown in [this figure](#sensor-respons
 
 %figure "Sensor response versus obstacle distance with opposite response-noise increase"
 
-![khepera_sonar_lut.png](images/khepera_sonar_lut.png)
+![khepera_sonar_lut.png](images/khepera_sonar_lut.thumbnail.png)
 
 %end
 
@@ -140,9 +140,11 @@ Two different methods are used for calculating the distance from an object.
 
 ### Infra-Red Sensors
 
-In the case of an "infra-red" sensor, the value returned by the lookup table is modified by a reflection factor depending on the color properties of the object hit by the sensor ray.
-The reflection factor is computed as follows: *f = 0.2 + 0.8 * red\_level* where *red\_level* is the level of red color of the object hit by the sensor ray.
-This level is evaluated combining the `diffuseColor` and `transparency` values of the object, the pixel value of the image texture and the paint color applied on the object with the [Pen](pen.md) device.
+In the case of an "infra-red" sensor, the value returned by the lookup table is modified by a reflection factor depending on the color, roughness and occlusion properties of the object hit by the sensor ray.
+The reflection factor is computed as follows: *f = 0.2 + 0.8 * red\_level * (1 - 0.5 * roughness) * (1 - 0.5 * occlusion)* where *red\_level* is the level of red color of the object hit by the sensor ray.
+This level is evaluated combining the `diffuseColor` (in case of [Appearance](appearance.md)), `baseColor` (in case of [PBRAppearance](pbrappearance.md)) and `transparency` values of the object, the pixel value of the image texture and the paint color applied on the object with the [Pen](pen.md) device.
+The *roughness* is evaluated (only in case of [PBRAppearance](pbrappearance.md), otherwise roughness is 0) using the `roughness` value and the pixel value of the `roughnessMap` image texture.
+The *occlusion* is evaluated (only in case of [PBRAppearance](pbrappearance.md), otherwise occlusion is 0) using the pixel value of the `occlusionMap` image texture.
 Then, the distance value computed by the simulator is divided by the reflection factor before the lookup table is used to compute the output value.
 
 > **Note**: Unlike other distance sensor rays, "infra-red" rays can detect solid parts of the robot itself.
@@ -173,7 +175,7 @@ The ground texture must be placed in a [Plane](plane.md).
 #### `wb_distance_sensor_get_sampling_period`
 #### `wb_distance_sensor_get_value`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -191,7 +193,7 @@ double wb_distance_sensor_get_value(WbDeviceTag tag);
 %tab "C++"
 
 ```cpp
-#include "<webots/DistanceSensor.hpp>"
+#include <webots/DistanceSensor.hpp>
 
 namespace webots {
   class DistanceSensor : public Device {
@@ -239,7 +241,7 @@ public class DistanceSensor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_distance_sensor_enable(tag, sampling_period)
 wb_distance_sensor_disable(tag)
 period = wb_distance_sensor_get_sampling_period(tag)
@@ -281,8 +283,10 @@ Hence, the range of the return value is defined by this lookup table.
 #### `wb_distance_sensor_get_max_value`
 #### `wb_distance_sensor_get_min_value`
 #### `wb_distance_sensor_get_aperture`
+#### `wb_distance_sensor_get_lookup_table_size`
+#### `wb_distance_sensor_get_lookup_table`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -292,6 +296,8 @@ Hence, the range of the return value is defined by this lookup table.
 double wb_distance_sensor_get_max_value(WbDeviceTag tag);
 double wb_distance_sensor_get_min_value(WbDeviceTag tag);
 double wb_distance_sensor_get_aperture(WbDeviceTag tag);
+int wb_distance_sensor_get_lookup_table_size(WbDeviceTag tag);
+const double *wb_distance_sensor_get_lookup_table(WbDeviceTag tag);
 ```
 
 %tab-end
@@ -299,13 +305,15 @@ double wb_distance_sensor_get_aperture(WbDeviceTag tag);
 %tab "C++"
 
 ```cpp
-#include "<webots/DistanceSensor.hpp>"
+#include <webots/DistanceSensor.hpp>
 
 namespace webots {
   class DistanceSensor : public Device {
     double getMaxValue() const;
     double getMinValue() const;
     double getAperture() const;
+    int getLookupTableSize() const;
+    const double *getLookupTable() const;
     // ...
   }
 }
@@ -322,6 +330,7 @@ class DistanceSensor (Device):
     def getMaxValue(self):
     def getMinValue(self):
     def getAperture(self):
+    def getLookupTable(self):
     # ...
 ```
 
@@ -336,6 +345,7 @@ public class DistanceSensor extends Device {
   public double getMaxValue();
   public double getMinValue();
   public double getAperture();
+  public double[] getLookupTable();
   // ...
 }
 ```
@@ -344,10 +354,11 @@ public class DistanceSensor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 max_value = wb_distance_sensor_get_max_value(tag)
 min_value = wb_distance_sensor_get_min_value(tag)
 aperture = wb_distance_sensor_get_aperture(tag)
+lookup_table_array = wb_distance_sensor_get_lookup_table(tag)
 ```
 
 %tab-end
@@ -359,6 +370,7 @@ aperture = wb_distance_sensor_get_aperture(tag)
 | `/<device_name>/get_max_value` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
 | `/<device_name>/get_min_value` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
 | `/<device_name>/get_aperture` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
+| `/<device_name>/get_lookup_table` | `service` | [`webots_ros::get_float_array`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -376,11 +388,16 @@ This value is the minimum of the second column of the `DistanceSensor.lookupTabl
 
 The `wb_distance_sensor_get_aperture` function returns the aperture of the distance sensor in radians.
 
+The `wb_distance_sensor_get_lookup_table_size` function returns the number of rows in the [lookup table](#lookup-table).
+
+The `wb_distance_sensor_get_lookup_table` function returns lookup table fields of the [lookup table](#lookup-table).
+This function returns a matrix containing exactly N * 3 values (N represents the number of mapped values optained with the `wb_distance_sensor_get_lookup_table_size` function) that shall be interpreted as a N x 3 table.
+
 ---
 
 #### `wb_distance_sensor_get_type`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -402,7 +419,7 @@ WbDistanceSensorType wb_distance_sensor_get_type(WbDeviceTag tag);
 %tab "C++"
 
 ```cpp
-#include "<webots/DistanceSensor.hpp>"
+#include <webots/DistanceSensor.hpp>
 
 namespace webots {
   class DistanceSensor : public Device {
@@ -446,7 +463,7 @@ public class DistanceSensor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_DISTANCE_SENSOR_GENERIC, WB_DISTANCE_SENSOR_INFRA_RED, WB_DISTANCE_SENSOR_SONAR, WB_DISTANCE_SENSOR_LASER
 
 type = wb_distance_sensor_get_type(tag)

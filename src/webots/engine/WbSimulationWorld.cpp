@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -54,13 +54,11 @@ WbSimulationWorld::WbSimulationWorld(WbProtoList *protos, WbTokenizer *tokenizer
   mSimulationHasRunAfterSave(false) {
   if (mWorldLoadingCanceled)
     return;
-  mSleepRealTime = (int)basicTimeStep();
+  mSleepRealTime = basicTimeStep();
 
   WbSimulationState::instance()->resetTime();
   // Reset random seed to ensure reproducible simulations.
   updateRandomSeed();
-  setThreadingPolicy();
-  connect(WbPreferences::instance(), &WbPreferences::changedByUser, this, &WbSimulationWorld::setThreadingPolicy);
   updateNumberOfThreads();
   connect(WbPreferences::instance(), &WbPreferences::changedByUser, this, &WbSimulationWorld::updateNumberOfThreads);
 
@@ -157,7 +155,7 @@ void WbSimulationWorld::step() {
   const double timeStep = basicTimeStep();
 
   if (WbSimulationState::instance()->isRealTime()) {
-    const int elapsed = mLastRealTime.restart();
+    const int elapsed = mRealTimeTimer.restart();
 
     // computing the mean of an history of several elapsedTime
     // improves significantly the stability of the algorithm
@@ -177,9 +175,11 @@ void WbSimulationWorld::step() {
     //              (if the real-time mode is enabled, of course)
     // mean *= 0.90;
 
-    if (mean > timeStep && mSleepRealTime > 0.0)
+    if (mean > timeStep && mSleepRealTime > 0.0) {
       mSleepRealTime -= 0.03 * timeStep;
-    else if (mean < timeStep)
+      if (mSleepRealTime < 0)
+        mSleepRealTime = 0.0;
+    } else if (mean < timeStep)
       mSleepRealTime += 0.03 * timeStep;
 
     mTimer->start(mSleepRealTime);
@@ -229,11 +229,11 @@ void WbSimulationWorld::step() {
   if (mPhysicsPlugin)
     mPhysicsPlugin->stepEnd();
 
-  emit physicsStepEnded();
-
   // call postPhysicsStep on all Solids to assign new coordinates
   foreach (WbSolid *const solid, l)
     solid->postPhysicsStep();
+
+  emit physicsStepEnded();
 
   WbSimulationState::instance()->increaseTime(timeStep);
   viewpoint()->updateFollowUp();
@@ -242,7 +242,12 @@ void WbSimulationWorld::step() {
     log->stopMeasure(WbPerformanceLog::POST_PHYSICS_STEP);
 
   // update camera textures before main rendering
-  emit cameraRenderingStarted();
+  const QList<WbRobot *> robotList = robots();
+  for (int i = 0; i < robots().size(); ++i) {
+    WbRobot *robot = robotList[i];
+    if (robot->isControllerStarted())
+      robot->renderCameras();
+  }
 
   if (!mSimulationHasRunAfterSave) {
     mSimulationHasRunAfterSave = true;
@@ -250,8 +255,19 @@ void WbSimulationWorld::step() {
   }
 }
 
+void WbSimulationWorld::pauseStepTimer() {
+  mTimer->stop();
+}
+
+void WbSimulationWorld::restartStepTimer() {
+  const WbSimulationState::Mode mode = WbSimulationState::instance()->mode();
+  if (!mTimer->isActive() &&
+      (mode == WbSimulationState::REALTIME || mode == WbSimulationState::RUN || mode == WbSimulationState::FAST))
+    mTimer->start();
+}
+
 void WbSimulationWorld::modeChanged() {
-  WbSimulationState::Mode mode = WbSimulationState::instance()->mode();
+  const WbSimulationState::Mode mode = WbSimulationState::instance()->mode();
   switch (mode) {
     case WbSimulationState::PAUSE:
       mTimer->stop();
@@ -262,7 +278,7 @@ void WbSimulationWorld::modeChanged() {
       WbSoundEngine::setMute(WbPreferences::instance()->value("Sound/mute").toBool());
       break;
     case WbSimulationState::REALTIME:
-      mLastRealTime.start();
+      mRealTimeTimer.start();
       WbSoundEngine::setPause(false);
       WbSoundEngine::setMute(WbPreferences::instance()->value("Sound/mute").toBool());
       mTimer->start(mSleepRealTime);
@@ -320,14 +336,6 @@ void WbSimulationWorld::updateRandomSeed() {
   dRandSetSeed(seed);       // ODE random seed
 }
 
-void WbSimulationWorld::setThreadingPolicy() {
-  int policy = WbPreferences::instance()->value("General/threadingPolicy", 0).toInt();
-  if (policy == 1)
-    qputenv("OMP_WAIT_POLICY", QString("ACTIVE").toUtf8());
-  else
-    qputenv("OMP_WAIT_POLICY", QString("PASSIVE").toUtf8());
-}
-
 void WbSimulationWorld::storeLastSaveTime() {
   mSimulationHasRunAfterSave = false;
 }
@@ -336,7 +344,7 @@ bool WbSimulationWorld::simulationHasRunAfterSave() {
   return mSimulationHasRunAfterSave;
 }
 
-void WbSimulationWorld::reset() {
+void WbSimulationWorld::reset(bool restartControllers) {
   WbSimulationState::instance()->pauseSimulation();
   WbSimulationState::instance()->resetTime();
   WbTemplateManager::instance()->blockRegeneration(true);
@@ -353,9 +361,11 @@ void WbSimulationWorld::reset() {
   mCluster->handleInitialCollisions();
   dImmersionLinkGroupEmpty(mCluster->immersionLinkGroup());
   WbSoundEngine::stopAllSources();
-  foreach (WbRobot *const robot, robots()) {
-    if (robot->isControllerStarted())
-      robot->restartController();
+  if (restartControllers) {
+    foreach (WbRobot *const robot, robots()) {
+      if (robot->isControllerStarted())
+        robot->restartController();
+    }
   }
   updateRandomSeed();
   WbSimulationState::instance()->resumeSimulation();

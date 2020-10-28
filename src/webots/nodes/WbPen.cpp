@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbPen.hpp"
+
 #include "WbFieldChecker.hpp"
 #include "WbMatrix3.hpp"
 #include "WbNodeUtilities.hpp"
@@ -32,7 +33,7 @@
 #include <wren/static_mesh.h>
 #include <wren/transform.h>
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 #include <QtCore/QDataStream>
 #include <cassert>
@@ -79,12 +80,12 @@ WbPen::~WbPen() {
 void WbPen::preFinalize() {
   WbSolidDevice::preFinalize();
 
-  WbFieldChecker::checkAndClampDoubleInRangeWithIncludedBounds(this, mInkDensity, 0.0, 1.0);
+  WbFieldChecker::clampDoubleToRangeWithIncludedBounds(this, mInkDensity, 0.0, 1.0);
 }
 
 void WbPen::handleMessage(QDataStream &stream) {
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_PEN_WRITE:
@@ -95,13 +96,13 @@ void WbPen::handleMessage(QDataStream &stream) {
       return;
     case C_PEN_SET_INK_COLOR: {
       unsigned char r, g, b;
-      stream >> (unsigned char &)r >> (unsigned char &)g >> (unsigned char &)b;
+      stream >> r >> g >> b;
       mInkColor->setValue(r / 255.0f, g / 255.0f, b / 255.0f);
 
-      unsigned char density;
-      stream >> (unsigned char &)density;
+      unsigned char density = 0;
+      stream >> density;
       mInkDensity->setValue((double)density / 255.0);
-      WbFieldChecker::checkAndClampDoubleInRangeWithIncludedBounds(this, mInkDensity, 0.0, 1.0);
+      WbFieldChecker::clampDoubleToRangeWithIncludedBounds(this, mInkDensity, 0.0, 1.0);
       return;
     }
     default:

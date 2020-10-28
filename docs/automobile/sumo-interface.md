@@ -16,7 +16,7 @@ This folder should contain the usual files defining a network in SUMO (.edg.xml,
 The configuration files called `sumo.netccfg` and `sumo.sumocfg` will be loaded by default.
 If those configuration files do not exist, the interface will look for a configuration file with any other name (it is not recommended to have several configuration files for SUMO or NETCONVERT in the same folder as you don't know which one is going to be used).
 
-> **Note**: Currently version 0.30 of SUMO is distributed with Webots.
+> **Note**: Currently version 0.30 of SUMO is distributed with Webots, but if the `SUMO_HOME` environment variable is defined, Webots will use the version of SUMO specified in this variable.
 
 The interface will automatically start SUMO and run it in synchronization with Webots time.
 Each time a new vehicle enters the SUMO simulation, it will be created in Webots too and its position and orientation will be continually updated.
@@ -58,7 +58,7 @@ A simple way to get the traffic light Ids and indexes is to open the network fil
 In the traffic lights mode you can simply select a traffic light and right click on one of the connections to get all the required information.
 
 %figure "Netedit in traffic lights mode. Here the 'trafficLightID' is equal to '-1320' and the trafficLightIndex is equal to '2'"
-![sumo_traffic_light.png](images/sumo_traffic_light.png)
+![sumo_traffic_light.png](images/sumo_traffic_light.thumbnail.jpg)
 %end
 
 ### The SumoInterface PROTO

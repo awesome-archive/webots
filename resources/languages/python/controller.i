@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,21 @@
 
 %begin %{
 #define SWIG_PYTHON_2_UNICODE
+%}
+
+%pythonbegin %{
+import sys
+import os
+if os.name == 'nt' and sys.version_info >= (3, 8):  # we need to explicitly list the folders containing the DLLs
+    webots_home = os.environ['WEBOTS_HOME']
+    os.add_dll_directory(os.path.join(webots_home, 'lib', 'controller'))
+    # MSYS2_HOME should be set by Webots or ~/.bash_profile
+    # if not set, we are in the case of an extern controller and a regularly installed version of Webots
+    msys64_root = os.environ['MSYS2_HOME'] if 'MSYS2_HOME' in os.environ else os.path.join(webots_home, 'msys64')
+    cpp_folder = os.path.join(msys64_root, 'mingw64', 'bin', 'cpp')
+    if not os.path.isdir(cpp_folder):  # development environment
+        cpp_folder = os.path.join(msys64_root, 'mingw64', 'bin')
+    os.add_dll_directory(cpp_folder)
 %}
 
 %{
@@ -47,7 +62,6 @@
 #include <webots/LightSensor.hpp>
 #include <webots/Motor.hpp>
 #include <webots/Mouse.hpp>
-#include <webots/utils/Motion.hpp>
 #include <webots/Node.hpp>
 #include <webots/Pen.hpp>
 #include <webots/PositionSensor.hpp>
@@ -60,6 +74,7 @@
 #include <webots/Speaker.hpp>
 #include <webots/Supervisor.hpp>
 #include <webots/TouchSensor.hpp>
+#include <webots/utils/Motion.hpp>
 
 using namespace std;
 %}
@@ -70,6 +85,8 @@ using namespace std;
 
 //handling std::string
 %include "std_string.i"
+
+%rename ("__internalGetLookupTableSize") getLookupTableSize;
 
 // manage double arrays
 %typemap(out) const double * {
@@ -87,6 +104,12 @@ using namespace std;
   for (int i = 0; i < len; ++i)
     PyList_SetItem($result, i, PyFloat_FromDouble($1[i]));
 }
+%typemap(out) const double *getLookupTable {
+  int len = arg1->getLookupTableSize()*3;
+  $result = PyList_New(len);
+  for (int i = 0; i < len; ++i)
+    PyList_SetItem($result, i, PyFloat_FromDouble($1[i]));
+}
 %typemap(in) const double [ANY] {
   if (!PyList_Check($input)) {
     PyErr_SetString(PyExc_TypeError, "in method '$name', expected 'PyList'\n");
@@ -96,6 +119,9 @@ using namespace std;
   $1 = (double*)malloc(len * sizeof(double));
   for (int i = 0; i < len; ++i)
     $1[i] = PyFloat_AsDouble(PyList_GetItem($input, i));
+}
+%typemap(freearg) const double [ANY] {
+  free($1);
 }
 %typemap(in) const int * {
   if (!PyList_Check($input)) {
@@ -107,6 +133,40 @@ using namespace std;
   for (int i = 0; i < len; ++i)
     $1[i] = PyInt_AsLong(PyList_GetItem($input, i));
 }
+%typemap(freearg) const int * {
+  free($1);
+}
+//----------------------------------------------------------------------------------------------
+//  ANSI Support
+//----------------------------------------------------------------------------------------------
+
+%pythoncode %{
+class AnsiCodes(object):
+    RESET = u'\u001b[0m'
+
+    BOLD = u'\u001b[1m'
+    UNDERLINE = u'\u001b[4m'
+
+    BLACK_BACKGROUND = u'\u001b[40m'
+    RED_BACKGROUND = u'\u001b[41m'
+    GREEN_BACKGROUND = u'\u001b[42m'
+    YELLOW_BACKGROUND = u'\u001b[43m'
+    BLUE_BACKGROUND = u'\u001b[44m'
+    MAGENTA_BACKGROUND = u'\u001b[45m'
+    CYAN_BACKGROUND = u'\u001b[46m'
+    WHITE_BACKGROUND = u'\u001b[47m'
+
+    BLACK_FOREGROUND = u'\u001b[30m'
+    RED_FOREGROUND = u'\u001b[31m'
+    GREEN_FOREGROUND = u'\u001b[32m'
+    YELLOW_FOREGROUND = u'\u001b[33m'
+    BLUE_FOREGROUND = u'\u001b[34m'
+    MAGENTA_FOREGROUND = u'\u001b[35m'
+    CYAN_FOREGROUND = u'\u001b[36m'
+    WHITE_FOREGROUND = u'\u001b[37m'
+
+    CLEAR_SCREEN = u'\u001b[2J'
+%}
 
 //----------------------------------------------------------------------------------------------
 //  Device
@@ -215,7 +275,11 @@ using namespace std;
 %typemap(out) unsigned char * {
   int width = arg1->getWidth();
   int height = arg1->getHeight();
-  $result = PyBytes_FromStringAndSize((const char*)$1, 4 * width * height);
+  if ($1)
+    $result = PyBytes_FromStringAndSize((const char*)$1, 4 * width * height);
+  else
+    $result = Py_None;
+
 }
 
 %extend webots::Camera {
@@ -223,15 +287,18 @@ using namespace std;
     const unsigned char *im = $self->getImage();
     int width = $self->getWidth();
     int height = $self->getHeight();
-    PyObject *ret = PyList_New(width);
-    for (int x = 0; x < width; ++x) {
-      PyObject *dim2 = PyList_New(height);
-      PyList_SetItem(ret, x, dim2);
-      for (int y = 0; y < height; ++y) {
-        PyObject *dim3 = PyList_New(3);
-        PyList_SetItem(dim2, y, dim3);
-        for (int ch = 0; ch < 3; ++ch)
-          PyList_SetItem(dim3, ch, PyInt_FromLong((unsigned int)(im[4 * (x + y * width) + 2 - ch])));
+    PyObject *ret = Py_None;
+    if (im) {
+      ret = PyList_New(width);
+      for (int x = 0; x < width; ++x) {
+        PyObject *dim2 = PyList_New(height);
+        PyList_SetItem(ret, x, dim2);
+        for (int y = 0; y < height; ++y) {
+          PyObject *dim3 = PyList_New(3);
+          PyList_SetItem(dim2, y, dim3);
+          for (int ch = 0; ch < 3; ++ch)
+            PyList_SetItem(dim3, ch, PyInt_FromLong((unsigned int)(im[4 * (x + y * width) + 2 - ch])));
+        }
       }
     }
     return ret;
@@ -339,9 +406,13 @@ using namespace std;
     for (int i = 0; i < len1; ++i)
       for (int j = 0; j < len2; ++j)
         for (int k = 0; k < len3; ++k)
-          ((unsigned char *)$1)[(i * len2 * len3) + (j * len3) + k] = (unsigned char) PyInt_AsLong(PyList_GetItem(PyList_GetItem(PyList_GetItem($input, i), j), k));
+          ((unsigned char *)$1)[(j * len1 * len3) + (i * len3) + k] = (unsigned char) PyInt_AsLong(PyList_GetItem(PyList_GetItem(PyList_GetItem($input, i), j), k));
   } else // PyString case
     $1 = PyString_AsString($input);
+}
+
+%typemap(freearg) const void * {
+  free($1);
 }
 
 %rename (__internalImageNew) imageNew(int width, int height, const void *data, int format) const;
@@ -443,9 +514,12 @@ using namespace std;
   int width = arg1->getHorizontalResolution();
   int height = arg1->getNumberOfLayers();
   int len = width * height;
-  $result = PyList_New(len);
-  for (int x = 0; x < len; ++x)
-    PyList_SetItem($result, x, PyFloat_FromDouble($1[x]));
+  if ($1) {
+    $result = PyList_New(len);
+    for (int x = 0; x < len; ++x)
+      PyList_SetItem($result, x, PyFloat_FromDouble($1[x]));
+  } else
+    $result = Py_None;
 }
 
 %ignore webots::Lidar::getPointCloud();
@@ -481,13 +555,16 @@ using namespace std;
     const float *im = $self->getRangeImage();
     int width = $self->getHorizontalResolution();
     int height = $self->getNumberOfLayers();
-    PyObject *ret = PyList_New(width);
-    for (int x = 0; x < width; ++x) {
-      PyObject *dim2 = PyList_New(height);
-      PyList_SetItem(ret, x, dim2);
-      for (int y = 0; y < height; ++y) {
-        PyObject *v = PyFloat_FromDouble(im[x + y * width]);
-        PyList_SetItem(dim2, y, v);
+    PyObject *ret = Py_None;
+    if (im) {
+      ret = PyList_New(width);
+      for (int x = 0; x < width; ++x) {
+        PyObject *dim2 = PyList_New(height);
+        PyList_SetItem(ret, x, dim2);
+        for (int y = 0; y < height; ++y) {
+          PyObject *v = PyFloat_FromDouble(im[x + y * width]);
+          PyList_SetItem(dim2, y, v);
+        }
       }
     }
     return ret;
@@ -632,9 +709,12 @@ using namespace std;
   int width = arg1->getWidth();
   int height = arg1->getHeight();
   int len = width * height;
-  $result = PyList_New(len);
-  for (int x = 0; x < len; ++x)
-    PyList_SetItem($result, x, PyFloat_FromDouble($1[x]));
+  if ($1) {
+    $result = PyList_New(len);
+    for (int x = 0; x < len; ++x)
+      PyList_SetItem($result, x, PyFloat_FromDouble($1[x]));
+  } else
+    $result = Py_None;
 }
 
 %extend webots::RangeFinder {
@@ -643,13 +723,16 @@ using namespace std;
     const float *im = $self->getRangeImage();
     int width = $self->getWidth();
     int height = $self->getHeight();
-    PyObject *ret = PyList_New(width);
-    for (int x = 0; x < width; ++x) {
-      PyObject *dim2 = PyList_New(height);
-      PyList_SetItem(ret, x, dim2);
-      for (int y = 0; y < height; ++y) {
-        PyObject *v = PyFloat_FromDouble(im[x + y * width]);
-        PyList_SetItem(dim2, y, v);
+    PyObject *ret = Py_None;
+    if (im) {
+      ret = PyList_New(width);
+      for (int x = 0; x < width; ++x) {
+        PyObject *dim2 = PyList_New(height);
+        PyList_SetItem(ret, x, dim2);
+        for (int y = 0; y < height; ++y) {
+          PyObject *v = PyFloat_FromDouble(im[x + y * width]);
+          PyList_SetItem(dim2, y, v);
+        }
       }
     }
     return ret;
@@ -657,28 +740,34 @@ using namespace std;
 
   static PyObject *rangeImageGetValue(PyObject *im, double minRange, double maxRange, int width, int x, int y) {
     if (!PyList_Check(im)) {
-      PyErr_SetString(PyExc_TypeError, "in method 'Camera_rangeImageGetValue', argument 2 of type 'PyList'\n");
+      PyErr_SetString(PyExc_TypeError, "in method 'RangeFinder_rangeImageGetValue', argument 2 of type 'PyList'\n");
       return NULL;
     }
     PyObject *value = PyList_GetItem(im, y * width + x);
     if (!PyFloat_Check(value)) {
-      PyErr_SetString(PyExc_TypeError, "in method 'Camera_rangeImageGetValue', argument 2 of type 'PyList' of 'PyFloat'\n");
+      PyErr_SetString(PyExc_TypeError, "in method 'RangeFinder_rangeImageGetValue', argument 2 of type 'PyList' of 'PyFloat'\n");
       return NULL;
     }
-    fprintf(stderr, "Warning: Camera.rangeImageGetValue is deprecated, please use Camera.rangeImageGetDepth instead\n");
+    fprintf(stderr, "Warning: RangeFinder.rangeImageGetValue is deprecated, please use RangeFinder.rangeImageGetDepth instead\n");
+    // inform Python runtime that the object is used somewhere else
+    // this prevents crashes when updating the range image internal list
+    Py_INCREF(value);
     return value;
   }
 
   static PyObject *rangeImageGetDepth(PyObject *im, int width, int x, int y) {
     if (!PyList_Check(im)) {
-      PyErr_SetString(PyExc_TypeError, "in method 'Camera_rangeImageGetValue', argument 2 of type 'PyList'\n");
+      PyErr_SetString(PyExc_TypeError, "in method 'RangeFinder_rangeImageGetDepth', argument 2 of type 'PyList'\n");
       return NULL;
     }
     PyObject *value = PyList_GetItem(im, y * width + x);
     if (!PyFloat_Check(value)) {
-      PyErr_SetString(PyExc_TypeError, "in method 'Camera_rangeImageGetValue', argument 2 of type 'PyList' of 'PyFloat'\n");
+      PyErr_SetString(PyExc_TypeError, "in method 'RangeFinder_rangeImageGetDepth', argument 2 of type 'PyList' of 'PyFloat'\n");
       return NULL;
     }
+    // inform Python runtime that the object is used somewhere else
+    // this prevents crashes when updating the range image internal list
+    Py_INCREF(value);
     return value;
   }
 };
@@ -764,6 +853,9 @@ using namespace std;
     joystick = Joystick()
     keyboard = Keyboard()
     mouse = Mouse()
+    import sys
+    if sys.version_info[0] < 3:
+      sys.stderr.write("DEPRECATION: Python 2.7 will reach the end of its life on January 1st, 2020. Please upgrade your Python as Python 2.7 won't be maintained after that date. A future version of Webots will drop support for Python 2.7.\n")
     def createAccelerometer(self, name):
       return Accelerometer(name)
     def getAccelerometer(self, name):

@@ -6,7 +6,7 @@ A rock (10 cm).
 
 %figure
 
-![Rock10cm](images/objects/rocks/Rock10cm/model.png)
+![Rock10cm](images/objects/rocks/Rock10cm/model.thumbnail.png)
 
 %end
 
@@ -18,12 +18,13 @@ Rock10cm {
   SFRotation rotation         0 1 0 0
   SFString   name             "rock 10 cm"
   MFString   texture          "textures/rock.jpg"
+  SFColor    color            1 1 1
   SFNode     physics          NULL
   SFBool     locked           FALSE
 }
 ```
 
-> **File location**: "WEBOTS\_HOME/projects/objects/rocks/protos/Rock10cm.proto"
+> **File location**: "[WEBOTS\_HOME/projects/objects/rocks/protos/Rock10cm.proto](https://github.com/cyberbotics/webots/tree/master/projects/objects/rocks/protos/Rock10cm.proto)"
 
 > **License**: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 [More information.](https://cyberbotics.com/webots_assets_license)
@@ -32,13 +33,15 @@ Rock10cm {
 
 - `texture`: Defines the texture used for the rock.
 
+- `color`: Defines the base color of the rock.
+
 ## Rock17cm
 
 A rock (17 cm).
 
 %figure
 
-![Rock17cm](images/objects/rocks/Rock17cm/model.png)
+![Rock17cm](images/objects/rocks/Rock17cm/model.thumbnail.png)
 
 %end
 
@@ -50,12 +53,13 @@ Rock17cm {
   SFRotation rotation          0 1 0 0
   SFString   name             "rock 17 cm"
   MFString   texture          "textures/rock.jpg"
+  SFColor    color            1 1 1
   SFNode     physics          NULL
   SFBool     locked           FALSE
 }
 ```
 
-> **File location**: "WEBOTS\_HOME/projects/objects/rocks/protos/Rock17cm.proto"
+> **File location**: "[WEBOTS\_HOME/projects/objects/rocks/protos/Rock17cm.proto](https://github.com/cyberbotics/webots/tree/master/projects/objects/rocks/protos/Rock17cm.proto)"
 
 > **License**: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 [More information.](https://cyberbotics.com/webots_assets_license)
@@ -63,4 +67,6 @@ Rock17cm {
 ### Rock17cm Field Summary
 
 - `texture`: Defines the texture used for the rock.
+
+- `color`: Defines the base color of the rock.
 

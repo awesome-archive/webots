@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "WbFieldChecker.hpp"
 #include "WbMatter.hpp"
 #include "WbNodeUtilities.hpp"
+#include "WbOdeGeomData.hpp"
 #include "WbRay.hpp"
 #include "WbResizeManipulator.hpp"
 #include "WbSimulationState.hpp"
@@ -70,6 +71,8 @@ const WbVector3 &WbBox::size() const {
 void WbBox::createWrenObjects() {
   WbGeometry::createWrenObjects();
   WbGeometry::computeWrenRenderable();
+
+  sanitizeFields();
 
   const bool createOutlineMesh = isInBoundingObject();
   mWrenMesh = wr_static_mesh_unit_box_new(createOutlineMesh);
@@ -133,7 +136,7 @@ void WbBox::rescale(const WbVector3 &scale) {
 }
 
 bool WbBox::sanitizeFields() {
-  if (WbFieldChecker::checkVector3IsPositive(this, mSize, WbVector3(1.0, 1.0, 1.0)))
+  if (WbFieldChecker::resetVector3IfNonPositive(this, mSize, WbVector3(1.0, 1.0, 1.0)))
     return false;
 
   return true;
@@ -161,21 +164,18 @@ void WbBox::updateSize() {
 }
 
 void WbBox::updateLineScale() {
-  if (!sanitizeFields() || !isAValidBoundingObject())
+  if (!isAValidBoundingObject())
     return;
 
-  float offset = wr_config_get_line_scale() / LINE_SCALE_FACTOR;
-
-  float scale[] = {static_cast<float>(mSize->value().x()) * (1.0f + offset),
-                   static_cast<float>(mSize->value().y()) * (1.0f + offset),
-                   static_cast<float>(mSize->value().z()) * (1.0f + offset)};
+  const float x = static_cast<float>(mSize->value().x());
+  const float y = static_cast<float>(mSize->value().y());
+  const float z = static_cast<float>(mSize->value().z());
+  const float offset = std::min({x, y, z}) * wr_config_get_line_scale() / LINE_SCALE_FACTOR;
+  const float scale[] = {x + offset, y + offset, z + offset};
   wr_transform_set_scale(wrenNode(), scale);
 }
 
 void WbBox::updateScale() {
-  if (!sanitizeFields())
-    return;
-
   float scale[] = {static_cast<float>(mSize->value().x()), static_cast<float>(mSize->value().y()),
                    static_cast<float>(mSize->value().z())};
   wr_transform_set_scale(wrenNode(), scale);
@@ -188,21 +188,22 @@ void WbBox::updateScale() {
 void WbBox::checkFluidBoundingObjectOrientation() {
   const WbMatrix3 &m = upperTransform()->rotationMatrix();
   const WbVector3 &yAxis = m.column(1);
-  const WbVector3 &g = WbWorld::instance()->worldInfo()->gravity();
+  const WbVector3 &g = WbWorld::instance()->worldInfo()->gravityVector();
   const double alpha = yAxis.angle(-g);
 
   static const double BOX_THRESHOLD = M_PI_2;
 
   if (fabs(alpha) >= BOX_THRESHOLD)
-    warn("The normal to the immersion plane defined by this Box has a large defect angle with the gravity vector."
-         "This may yield unexpected behaviors when immersing solids. (Please consult the Reference Manual for the definition "
-         "of immersion planes.)");
+    parsingWarn(
+      "The normal to the immersion plane defined by this Box has a large defect angle with the gravity vector."
+      "This may yield unexpected behaviors when immersing solids. (Please consult the Reference Manual for the definition "
+      "of immersion planes.)");
 }
 
 dGeomID WbBox::createOdeGeom(dSpaceID space) {
   const WbVector3 &size = mSize->value();
   if (size.x() <= 0.0 || size.y() <= 0.0 || size.z() <= 0.0) {
-    warn(tr("'size' must be positive: construction of the Box in 'boundingObject' failed."));
+    parsingWarn(tr("'size' must be positive: construction of the Box in 'boundingObject' failed."));
     return NULL;
   }
 
@@ -219,6 +220,10 @@ void WbBox::applyToOdeData(bool correctSolidMass) {
   assert(dGeomGetClass(mOdeGeom) == dBoxClass);
   dGeomBoxSetLengths(mOdeGeom, size.x(), size.y(), size.z());
 
+  WbOdeGeomData *const odeGeomData = static_cast<WbOdeGeomData *>(dGeomGetData(mOdeGeom));
+  assert(odeGeomData);
+  odeGeomData->setLastChangeTime(WbSimulationState::instance()->time());
+
   if (correctSolidMass)
     applyToOdeMass();
 }
@@ -230,7 +235,7 @@ const WbVector3 WbBox::scaledSize() const {
 bool WbBox::isSuitableForInsertionInBoundingObject(bool warning) const {
   const bool invalidDimensions = (mSize->x() <= 0.0 || mSize->y() <= 0.0 || mSize->z() <= 0.0);
   if (warning && invalidDimensions)
-    warn(tr("All 'size' components must be positive for a Box used in a 'boundingObject'."));
+    parsingWarn(tr("All 'size' components must be positive for a Box used in a 'boundingObject'."));
 
   return !invalidDimensions;
 }

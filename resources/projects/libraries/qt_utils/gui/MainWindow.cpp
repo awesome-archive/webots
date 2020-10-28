@@ -1,10 +1,12 @@
 #include "MainWindow.hpp"
 
+#include <QtCore/QRandomGenerator>
 #include <QtCore/QTime>
+
 #include <QtGui/QCloseEvent>
+#include <QtGui/QScreen>
 
 #include <QtWidgets/QApplication>
-#include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QMessageBox>
 
 #ifdef _WIN32
@@ -77,10 +79,10 @@ void MainWindow::showWindow() {
   // center the window
   if (firstShow) {
     const int MAX_OFFSET = 50;
-    const QRect &desktopRect = QApplication::desktop()->screenGeometry();
+    const QRect &desktopRect = QGuiApplication::primaryScreen()->geometry();
     const QSize &windowSize = size();
-    qsrand(QTime::currentTime().msec());
-    const QPoint offset((qrand() % MAX_OFFSET) - MAX_OFFSET / 2, (qrand() % MAX_OFFSET) - MAX_OFFSET / 2);
+    const QPoint offset(QRandomGenerator::global()->bounded(MAX_OFFSET) - MAX_OFFSET / 2,
+                        QRandomGenerator::global()->bounded(MAX_OFFSET) - MAX_OFFSET / 2);
 
     move(desktopRect.x() + desktopRect.width() / 2 - windowSize.width() / 2 + offset.x(),
          desktopRect.y() + desktopRect.height() / 2 - windowSize.height() / 2 + offset.y());

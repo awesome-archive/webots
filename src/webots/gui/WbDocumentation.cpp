@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 #include "WbDocumentation.hpp"
 
 #include "WbClipboard.hpp"
+#include "WbDesktopServices.hpp"
 #include "WbStandardPaths.hpp"
 
 #include <QtCore/QUrl>
@@ -22,7 +23,6 @@
 #include <cassert>
 
 #include <QtGui/QContextMenuEvent>
-#include <QtGui/QDesktopServices>
 #include <QtWidgets/QMenu>
 
 #ifdef _WIN32
@@ -58,15 +58,15 @@ protected:
     WbActionManager *actionManager = WbActionManager::instance();
     actionManager->enableTextEditActions(false);
     actionManager->setFocusObject(this);
-    actionManager->setEnabled(WbActionManager::COPY, false);
-    actionManager->setEnabled(WbActionManager::CUT, false);
-    actionManager->setEnabled(WbActionManager::PASTE, false);
-    actionManager->setEnabled(WbActionManager::SELECT_ALL, false);
-    actionManager->setEnabled(WbActionManager::UNDO, false);
-    actionManager->setEnabled(WbActionManager::REDO, false);
-    actionManager->setEnabled(WbActionManager::FIND, false);
-    actionManager->setEnabled(WbActionManager::FIND_NEXT, false);
-    actionManager->setEnabled(WbActionManager::FIND_PREVIOUS, false);
+    actionManager->setEnabled(WbAction::COPY, false);
+    actionManager->setEnabled(WbAction::CUT, false);
+    actionManager->setEnabled(WbAction::PASTE, false);
+    actionManager->setEnabled(WbAction::SELECT_ALL, false);
+    actionManager->setEnabled(WbAction::UNDO, false);
+    actionManager->setEnabled(WbAction::REDO, false);
+    actionManager->setEnabled(WbAction::FIND, false);
+    actionManager->setEnabled(WbAction::FIND_NEXT, false);
+    actionManager->setEnabled(WbAction::FIND_PREVIOUS, false);
   }
 #endif
 
@@ -76,7 +76,7 @@ protected:
     menu.addAction(pageAction(QWebPage::Forward));
     menu.addSeparator();
 #ifdef _WIN32
-    menu.addAction(WbActionManager::instance()->action(WbActionManager::COPY));
+    menu.addAction(WbActionManager::instance()->action(WbAction::COPY));
 #else
     menu.addAction(pageAction(QWebEnginePage::Copy));
 #endif
@@ -192,11 +192,11 @@ const QString WbDocumentation::page() const {
 }
 
 void WbDocumentation::updateCopyAction() {
-  WbActionManager::instance()->setEnabled(WbActionManager::COPY, !mWebView->selectedText().isEmpty());
+  WbActionManager::instance()->setEnabled(WbAction::COPY, !mWebView->selectedText().isEmpty());
 }
 
-void WbDocumentation::handleUserCommand(WbActionManager::WbActionKind actionKind) {
-  if (actionKind == WbActionManager::COPY) {
+void WbDocumentation::handleUserCommand(WbAction::WbActionKind actionKind) {
+  if (actionKind == WbAction::COPY) {
     const QString selectedText = mWebView->selectedText();
     if (!selectedText.isEmpty())
       WbClipboard::instance()->setString(selectedText);
@@ -204,5 +204,5 @@ void WbDocumentation::handleUserCommand(WbActionManager::WbActionKind actionKind
 }
 
 void WbDocumentation::openUrlInSystemBrowser(const QUrl &url) {
-  QDesktopServices::openUrl(url);
+  WbDesktopServices::openUrl(url.toString());
 }

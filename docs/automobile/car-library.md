@@ -10,12 +10,12 @@ All the functions included in this library are explained below.
 #### `wbu_car_init`
 #### `wbu_car_cleanup`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 void wbu_car_init();
 void wbu_car_cleanup();
@@ -26,7 +26,7 @@ void wbu_car_cleanup();
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -42,7 +42,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     def __init__(self):
@@ -55,7 +55,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public Car();
@@ -89,12 +89,12 @@ If you use the [driver](driver-library.md) library it is not needed to call thes
 #### `wbu_car_get_type`
 #### `wbu_car_get_engine_type`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 typedef enum {
   WBU_CAR_TRACTION,
@@ -118,7 +118,7 @@ WbuCarEngineType wbu_car_get_engine_type();
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -137,7 +137,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     TRACTION, PROPULSION, FOUR_BY_FOUR
@@ -153,7 +153,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public final static int TRACTION, PROPULSION, FOUR_BY_FOUR;
@@ -210,12 +210,12 @@ These two functions return respectively the type of transmission and of engine o
 #### `wbu_car_set_indicator_period`
 #### `wbu_car_get_indicator_period`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 void wbu_car_set_indicator_period(double period);
 double wbu_car_get_indicator_period();
@@ -226,7 +226,7 @@ double wbu_car_get_indicator_period();
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -242,7 +242,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     def setIndicatorPeriod(self, period):
@@ -255,7 +255,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public void setIndicatorPeriod(double period);
@@ -291,12 +291,12 @@ The `wbu_car_get_indicator_period` function returns the current blinking period 
 #### `wbu_car_get_backwards_lights`
 #### `wbu_car_get_brake_lights`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 bool wbu_car_get_backwards_lights();
 bool wbu_car_get_brake_lights();
@@ -307,7 +307,7 @@ bool wbu_car_get_brake_lights();
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -323,7 +323,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     def getBackwardsLights(self):
@@ -336,7 +336,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public boolean getBackwardsLights();
@@ -372,12 +372,12 @@ These two functions return respectively the state of the backwards and brake lig
 #### `wbu_car_get_front_wheel_radius`
 #### `wbu_car_get_rear_wheel_radius`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 double wbu_car_get_track_front();
 double wbu_car_get_track_rear();
@@ -391,7 +391,7 @@ double wbu_car_get_rear_wheel_radius();
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -410,7 +410,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     def getTrackFront(self):
@@ -426,7 +426,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public double getTrackFront();
@@ -461,12 +461,12 @@ All these functions provide important physical characteristics from the car.
 #### `wbu_car_get_wheel_encoder`
 #### `wbu_car_get_wheel_speed`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 typedef enum {
   WBU_CAR_WHEEL_FRONT_RIGHT,
@@ -485,7 +485,7 @@ double wbu_car_get_wheel_speed(WbuCarWheelIndex wheel_index);
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -503,7 +503,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     WHEEL_FRONT_RIGHT, WHEEL_FRONT_LEFT, WHEEL_REAR_RIGHT, WHEEL_REAR_LEFT, WHEEL_NB
@@ -518,7 +518,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public final static int WHEEL_FRONT_RIGHT, WHEEL_FRONT_LEFT, WHEEL_REAR_RIGHT, WHEEL_REAR_LEFT, WHEEL_NB;
@@ -566,12 +566,12 @@ The `wheel_index` argument should match a value of the `WbuCarWheelIndex` enum.
 #### `wbu_car_get_right_steering_angle`
 #### `wbu_car_get_left_steering_angle`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 double wbu_car_get_right_steering_angle();
 double wbu_car_get_left_steering_angle();
@@ -582,7 +582,7 @@ double wbu_car_get_left_steering_angle();
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -598,7 +598,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     def getRightSteeringAngle(self):
@@ -611,7 +611,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public double getRightSteeringAngle();
@@ -643,12 +643,12 @@ These two functions return respectively the right and left steering angles (beca
 
 #### `wbu_car_enable_limited_slip_differential`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 void wbu_car_enable_limited_slip_differential(bool enable);
 ```
@@ -658,7 +658,7 @@ void wbu_car_enable_limited_slip_differential(bool enable);
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -673,7 +673,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     def enableLimitedSlipDifferential(self, enable):
@@ -685,7 +685,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public void enableLimitedSlipDifferential(boolean enable);
@@ -717,12 +717,12 @@ If the limited differential slip is disabled, when a wheel starts to slip, it wi
 
 #### `wbu_car_enable_indicator_auto_disabling`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/car.h>
+#include <webots/vehicle/car.h>
 
 void wbu_car_enable_indicator_auto_disabling(bool enable);
 ```
@@ -732,7 +732,7 @@ void wbu_car_enable_indicator_auto_disabling(bool enable);
 %tab "C++"
 
 ```cpp
-#include <webots/Car.hpp>
+#include <webots/vehicle/Car.hpp>
 
 namespace webots {
   class Car : public Driver {
@@ -747,7 +747,7 @@ namespace webots {
 %tab "Python"
 
 ```python
-from controller import Car
+from vehicle import Car
 
 class Car (Driver):
     def enableIndicatorAutoDisabling(self, enable):
@@ -759,7 +759,7 @@ class Car (Driver):
 %tab "Java"
 
 ```java
-import com.cyberbotics.webots.controller.Car;
+import com.cyberbotics.webots.controller.vehicle.Car;
 
 public class Car extends Driver {
   public void enableIndicatorAutoDisabling(boolean enable);

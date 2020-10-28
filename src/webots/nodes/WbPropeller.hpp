@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,12 +65,16 @@ public:
   WbLogicalDevice *device() const;
   double position() const { return mPosition; }
 
+  double currentThrust() const { return mCurrentThrust; }
+  double currentTorque() const { return mCurrentTorque; }
+
 private:
   // Scene Tree fields
   WbSFVector3 *mShaftAxis;
   WbSFVector3 *mCenterOfThrust;
   WbSFVector2 *mThrustConstants;
   WbSFVector2 *mTorqueConstants;
+  WbSFDouble *mFastHelixThreshold;
   WbSFNode *mDevice;
   WbSFNode *mFastHelix;
   WbSFNode *mSlowHelix;
@@ -79,6 +83,9 @@ private:
   HelixType mHelixType;
 
   WbVector3 mNormalizedAxis;
+
+  double mCurrentThrust;
+  double mCurrentTorque;
 
   WrTransform *mTransform;
   WrRenderable *mRenderable;

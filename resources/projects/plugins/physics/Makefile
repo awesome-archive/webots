@@ -1,4 +1,4 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+# Copyright 1996-2020 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-include ../../../Makefile.os.include
+ifeq ($(WEBOTS_HOME),)
+WEBOTS_HOME_PATH = ../../..
+else
+null :=
+space := $(null) $(null)
+WEBOTS_HOME_PATH=$(subst $(space),\ ,$(strip $(subst \,/,$(WEBOTS_HOME))))
+endif
+
+include $(WEBOTS_HOME_PATH)/resources/Makefile.os.include
 
 CFLAGS = -c -O3
 
@@ -26,8 +34,8 @@ ifeq ($(OSTYPE), linux)
 PLATFORM_FLAGS = -fPIC
 endif
 
-physics.o: physics.c $(WEBOTS_HOME)/include/plugins/physics.h
-	@gcc $(CFLAGS) $(PLATFORM_FLAGS) physics.c -I$(WEBOTS_HOME)/include -I$(WEBOTS_HOME)/include/ode
+physics.o: physics.c $(WEBOTS_HOME_PATH)/include/plugins/physics.h
+	@gcc $(CFLAGS) $(PLATFORM_FLAGS) physics.c -I$(WEBOTS_HOME_PATH)/include -I$(WEBOTS_HOME_PATH)/include/ode
 release debug profile: physics.o
 clean:
 	@rm -f physics.o

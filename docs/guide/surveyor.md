@@ -15,7 +15,7 @@ SurveyorSrv1 {
   SFRotation rotation        0 1 0 0
   SFString   name            "SurveyorSrv1"
   SFString   controller      "surveyor"
-  SFString   controllerArgs  ""
+  MFString   controllerArgs  []
   SFString   customData      ""
   SFBool     supervisor      FALSE
   SFBool     synchronization TRUE
@@ -35,4 +35,4 @@ You will find the following sample in this folder: "WEBOTS\_HOME/projects/robots
 
 #### srv-1.wbt
 
-![srv-1.wbt.png](images/robots/surveyor/srv-1.wbt.png) This simulation shows a Surveyor robot which moves in a square arena while avoiding obstacles.
+![srv-1.wbt.png](images/robots/surveyor/srv-1.wbt.thumbnail.jpg) This simulation shows a Surveyor robot which moves in a square arena while avoiding obstacles.

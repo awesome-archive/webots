@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,7 +63,8 @@ void WbJointParameters::postFinalize() {
   connect(mSpringConstant, &WbSFDouble::changed, this, &WbJointParameters::updateSpringConstant);
   connect(mDampingConstant, &WbSFDouble::changed, this, &WbJointParameters::updateDampingConstant);
   connect(mStaticFriction, &WbSFDouble::changed, this, &WbJointParameters::updateStaticFriction);
-  connect(mAxis, &WbSFDouble::changed, this, &WbJointParameters::updateAxis);
+  if (mAxis)
+    connect(mAxis, &WbSFDouble::changed, this, &WbJointParameters::updateAxis);
   disconnectFieldNotification(mPosition);
 }
 
@@ -71,7 +72,7 @@ void WbJointParameters::postFinalize() {
 
 void WbJointParameters::updateSpringConstant() {
   if (mSpringConstant->value() < 0.0) {
-    warn(tr("'springConstant' must be greater than or equal to zero."));
+    parsingWarn(tr("'springConstant' must be greater than or equal to zero."));
     mSpringConstant->makeAbsolute();
     return;
   }
@@ -81,7 +82,7 @@ void WbJointParameters::updateSpringConstant() {
 
 void WbJointParameters::updateDampingConstant() {
   if (mDampingConstant->value() < 0.0) {
-    warn(tr("'dampingConstant' must be greater than or equal to zero."));
+    parsingWarn(tr("'dampingConstant' must be greater than or equal to zero."));
     mDampingConstant->makeAbsolute();
     return;
   }
@@ -91,7 +92,7 @@ void WbJointParameters::updateDampingConstant() {
 
 void WbJointParameters::updateStaticFriction() {
   if (mStaticFriction->value() < 0.0) {
-    warn(tr("'staticFriction' must be greater than or equal to zero."));
+    parsingWarn(tr("'staticFriction' must be greater than or equal to zero."));
     mStaticFriction->makeAbsolute();
     return;
   }
@@ -110,20 +111,28 @@ void WbJointParameters::updateMinAndMaxStop() {
     // the simulation starts which may cause instabilities
 
     if (p < m)  // in case of equality, some instabilities may be detected
-      warn(tr("'minStop' must be less than or equal to 'position'."));
+      parsingWarn(tr("'minStop' must be less than or equal to 'position'."));
 
     if (p > M)  // in case of equality, some instabilities may be detected
-      warn(tr("'maxStop' must be greater than or equal to 'position'."));
+      parsingWarn(tr("'maxStop' must be greater than or equal to 'position'."));
   }
 }
 
 void WbJointParameters::updateAxis() {
+  if (!mAxis)
+    return;
   const WbVector3 &a = mAxis->value();
   if (a.isNull()) {
-    warn(tr("'axis' must be non zero."));
+    parsingWarn(tr("'axis' must be non zero."));
     mAxis->setValue(0.0, 0.0, 1.0);
     return;
   }
 
   emit axisChanged();
+}
+
+bool WbJointParameters::exportNodeHeader(WbVrmlWriter &writer) const {
+  if (writer.isUrdf())
+    return true;
+  return WbBaseNode::exportNodeHeader(writer);
 }

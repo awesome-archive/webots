@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -388,8 +388,8 @@ namespace wren {
       mesh->estimateIndexCount(indexCount);
 
       for (int i = 0; i < subdivision + 1; ++i) {
-        double x = glm::sin(i * k);
-        double y = glm::cos(i * k);
+        const double x = glm::sin(i * k + glm::pi<float>());
+        const double y = glm::cos(i * k + glm::pi<float>());
 
         mesh->addCoord(glm::vec3(x, -h, y));
         mesh->addCoord(glm::vec3(x, h, y));
@@ -534,10 +534,11 @@ namespace wren {
 
     const std::array<float, 3> params = {{static_cast<float>(dimensionX), static_cast<float>(dimensionZ), thickness2}};
 
-    uint64_t hash = cache::sipHash13c(reinterpret_cast<const char *>(&params[0]), params.size() * sizeof(float));
-    hash ^= cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(heightData)),
-                              sizeof(float) * dimensionX * dimensionZ);
-    const cache::Key key(hash);
+    uint64_t meshHash = cache::sipHash13c(reinterpret_cast<const char *>(&params[0]), params.size() * sizeof(float));
+    // cppcheck-suppress uninitvar
+    meshHash ^= cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(heightData)),
+                                  sizeof(float) * dimensionX * dimensionZ);
+    const cache::Key key(meshHash);
 
     StaticMesh *mesh;
     if (StaticMesh::createOrRetrieveFromCache(&mesh, key))
@@ -622,8 +623,8 @@ namespace wren {
       for (int zi = 0; zi < dimensionZ; ++zi) {
         for (int xi = 0; xi < dimensionX; ++xi) {
           mesh->addCoord(glm::vec3(spacingX * xi, heightData[dimensionX * zi + xi], spacingZ * zi));
-          mesh->addTexCoord(glm::vec2(du * xi, dv * (stepsZ - zi)));
-          mesh->addUnwrappedTexCoord(glm::vec2(du * xi, dv * (stepsZ - zi)));
+          mesh->addTexCoord(glm::vec2(du * xi, dv * zi));
+          mesh->addUnwrappedTexCoord(glm::vec2(du * xi, dv * zi));
         }
       }
 
@@ -760,7 +761,8 @@ namespace wren {
     return phi;
   };
 
-  static void subdivideToBuffers(StaticMesh *mesh, const glm::vec3 *v1, const glm::vec3 *v2, const glm::vec3 *v3, int level) {
+  static void subdividePolyhedronFace(StaticMesh *mesh, const glm::vec3 *v1, const glm::vec3 *v2, const glm::vec3 *v3,
+                                      int level) {
     if (level == 0) {
       // get the x-axis texture coordinate of each vertex
       float a1 = cartesianCoordinatesToPolarAngle(-v1->z, -v1->x) * 0.5f * glm::one_over_pi<float>();
@@ -822,27 +824,31 @@ namespace wren {
       mesh->addNormal(glm::vec3(v2->x, v2->y, v2->z));
       mesh->addNormal(glm::vec3(v1->x, v1->y, v1->z));
 
-      mesh->addTexCoord(glm::vec2(a3, 1.0f - (v3->y + 1.0f) * 0.5f));
-      mesh->addTexCoord(glm::vec2(a2, 1.0f - (v2->y + 1.0f) * 0.5f));
-      mesh->addTexCoord(glm::vec2(a1, 1.0f - (v1->y + 1.0f) * 0.5f));
-
-      mesh->addUnwrappedTexCoord(glm::vec2(a3, 1.0f - (v3->y + 1.0f) * 0.5f));
-      mesh->addUnwrappedTexCoord(glm::vec2(a2, 1.0f - (v2->y + 1.0f) * 0.5f));
-      mesh->addUnwrappedTexCoord(glm::vec2(a1, 1.0f - (v1->y + 1.0f) * 0.5f));
+      const glm::vec2 uv1(a1, 0.5f - glm::asin(v1->y) * glm::one_over_pi<float>());
+      const glm::vec2 uv2(a2, 0.5f - glm::asin(v2->y) * glm::one_over_pi<float>());
+      const glm::vec2 uv3(a3, 0.5f - glm::asin(v3->y) * glm::one_over_pi<float>());
+      mesh->addTexCoord(uv3);
+      mesh->addTexCoord(uv2);
+      mesh->addTexCoord(uv1);
+      mesh->addUnwrappedTexCoord(uv3);
+      mesh->addUnwrappedTexCoord(uv2);
+      mesh->addUnwrappedTexCoord(uv1);
     } else {
       const glm::vec3 v12 = glm::normalize(*v1 + *v2);
       const glm::vec3 v23 = glm::normalize(*v2 + *v3);
       const glm::vec3 v31 = glm::normalize(*v3 + *v1);
 
-      subdivideToBuffers(mesh, v1, &v12, &v31, level - 1);
-      subdivideToBuffers(mesh, v2, &v23, &v12, level - 1);
-      subdivideToBuffers(mesh, v3, &v31, &v23, level - 1);
-      subdivideToBuffers(mesh, &v12, &v23, &v31, level - 1);
+      subdividePolyhedronFace(mesh, v1, &v12, &v31, level - 1);
+      subdividePolyhedronFace(mesh, v2, &v23, &v12, level - 1);
+      subdividePolyhedronFace(mesh, v3, &v31, &v23, level - 1);
+      subdividePolyhedronFace(mesh, &v12, &v23, &v31, level - 1);
     }
   };
 
-  StaticMesh *StaticMesh::createUnitSphere(int subdivision) {
-    const cache::Key key(cache::sipHash13c(reinterpret_cast<const char *>(&subdivision), sizeof(int)));
+  StaticMesh *StaticMesh::createUnitIcosphere(int subdivision) {
+    char uniqueName[16];
+    sprintf(uniqueName, "Icosphere%d", subdivision);
+    const cache::Key key(cache::sipHash13c(uniqueName, strlen(uniqueName)));
 
     StaticMesh *mesh;
     if (StaticMesh::createOrRetrieveFromCache(&mesh, key))
@@ -871,11 +877,128 @@ namespace wren {
     mesh->estimateVertexCount(vertexCount);
     mesh->estimateIndexCount(vertexCount);
 
+    // iterate over all faces and apply a subdivison with the given value
     for (int i = 0; i < 20; ++i)
-      subdivideToBuffers(mesh, &gVertices[gIndices[i].x], &gVertices[gIndices[i].y], &gVertices[gIndices[i].z], subdivision);
+      subdividePolyhedronFace(mesh, &gVertices[gIndices[i].x], &gVertices[gIndices[i].y], &gVertices[gIndices[i].z],
+                              subdivision);
 
     for (int i = 0; i < vertexCount; ++i)
       mesh->addIndex(i);
+
+    // bounding volumes
+    const primitive::Rectangle rect;
+    mesh->mCacheData->mBoundingSphere = primitive::Sphere(gVec3Zeros, 1.0f);
+    mesh->mCacheData->mAabb = primitive::Aabb(glm::vec3(-1.0f), glm::vec3(1.0f));
+
+    mesh->setup();
+
+    return mesh;
+  }
+
+  StaticMesh *StaticMesh::createUnitUVSphere(int subdivision, bool outline) {
+    char uniqueName[24];
+    if (outline)
+      sprintf(uniqueName, "UVSphereOutline%d", subdivision);
+    else
+      sprintf(uniqueName, "UVSphere%d", subdivision);
+    const cache::Key key(cache::sipHash13c(uniqueName, strlen(uniqueName)));
+
+    StaticMesh *mesh;
+    if (StaticMesh::createOrRetrieveFromCache(&mesh, key))
+      return mesh;
+
+    const int rowSize = subdivision + 1;
+    const int vertexCount = rowSize * rowSize;
+    mesh->estimateVertexCount(vertexCount);
+    mesh->estimateIndexCount(3 * (vertexCount - 1));
+
+    int r, s;
+    const float latitudeUnitAngle = glm::pi<float>() / subdivision;
+    const float longitudeUnitAngle = 2.0f * glm::pi<float>() / subdivision;
+    int index = 0;
+    int **indicesGrid = new int *[rowSize];
+
+    // vertices
+    for (r = 0; r <= subdivision; ++r) {  // rings/latitude
+      // special case for the poles
+      const float uOffset = (r == 0) ? 0.5f / subdivision : ((r == subdivision) ? -0.5f / subdivision : 0.0f);
+      const float theta = (float)r * latitudeUnitAngle;
+      const float sinTheta = glm::sin(theta);
+      const float cosTheta = -glm::cos(theta);
+      int *indicesRow = new int[rowSize];
+      for (s = 0; s <= subdivision; ++s) {  // segments/longitude
+        glm::vec3 vertex;
+        const float phi = ((float)s) * longitudeUnitAngle - glm::half_pi<float>();
+        vertex = glm::vec3(glm::cos(phi) * sinTheta, cosTheta, glm::sin(phi) * sinTheta);
+        mesh->addCoord(vertex);
+        mesh->addNormal(vertex);
+
+        glm::vec2 uv(1.0f - (float)s / subdivision + uOffset, 1.0f - (float)r / subdivision);
+        mesh->addTexCoord(uv);
+        mesh->addUnwrappedTexCoord(uv);
+
+        indicesRow[s] = index;
+        index++;
+      }
+      indicesGrid[r] = indicesRow;
+    }
+
+    // indices
+    if (outline) {
+      const int lastRingIndex = vertexCount - subdivision - 1;
+      for (s = 0; s < subdivision; ++s) {
+        // top
+        mesh->addIndex(0);
+        mesh->addIndex(subdivision + s);
+        // bottom
+        mesh->addIndex(lastRingIndex);
+        mesh->addIndex(lastRingIndex - s - 1);
+      }
+
+      // side
+      for (r = 1; r < (subdivision - 1); ++r) {
+        for (s = 0; s < subdivision; ++s) {
+          int a = indicesGrid[r][s + 1];
+          int b = indicesGrid[r][s];
+          int c = indicesGrid[r + 1][s];
+          int d = indicesGrid[r + 1][s + 1];
+
+          mesh->addIndex(a);
+          mesh->addIndex(b);
+          mesh->addIndex(b);
+          mesh->addIndex(c);
+          mesh->addIndex(c);
+          mesh->addIndex(d);
+          mesh->addIndex(b);
+          mesh->addIndex(d);
+        }
+      }
+    } else {
+      for (r = 0; r < subdivision; ++r) {
+        for (s = 0; s < subdivision; ++s) {
+          int a = indicesGrid[r][s + 1];
+          int b = indicesGrid[r][s];
+          int c = indicesGrid[r + 1][s];
+          int d = indicesGrid[r + 1][s + 1];
+
+          if (r != 0) {
+            mesh->addIndex(a);
+            mesh->addIndex(b);
+            mesh->addIndex(d);
+          }
+          if (r != subdivision - 1) {
+            mesh->addIndex(b);
+            mesh->addIndex(c);
+            mesh->addIndex(d);
+          }
+        }
+      }
+    }
+
+    // cleanup
+    for (r = 0; r <= subdivision; ++r)
+      delete[] indicesGrid[r];
+    delete[] indicesGrid;
 
     // bounding volumes
     const primitive::Rectangle rect;
@@ -1355,15 +1478,16 @@ namespace wren {
   }
 
   StaticMesh *StaticMesh::createLineSet(int coordCount, const float *coordData, const float *colorData) {
-    uint64_t hash = cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(coordData)),
-                                      sizeof(glm::vec3) * coordCount);
+    uint64_t meshHash = cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(coordData)),
+                                          sizeof(glm::vec3) * coordCount);
     if (colorData) {
-      hash ^= cache::sipHash13c("colorData", 9);
-      hash ^= cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(colorData)),
-                                sizeof(glm::vec3) * coordCount);
+      // cppcheck-suppress uninitvar
+      meshHash ^= cache::sipHash13c("colorData", 9);
+      meshHash ^= cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(colorData)),
+                                    sizeof(glm::vec3) * coordCount);
     }
 
-    const cache::Key key(hash);
+    const cache::Key key(meshHash);
 
     StaticMesh *mesh;
     if (StaticMesh::createOrRetrieveFromCache(&mesh, key))
@@ -1397,15 +1521,16 @@ namespace wren {
   }
 
   StaticMesh *StaticMesh::createPointSet(int coordCount, const float *coordData, const float *colorData) {
-    uint64_t hash = cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(coordData)),
-                                      sizeof(glm::vec3) * coordCount);
+    uint64_t meshHash = cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(coordData)),
+                                          sizeof(glm::vec3) * coordCount);
     if (colorData) {
-      hash ^= cache::sipHash13c("colorData", 9);
-      hash ^= cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(colorData)),
-                                sizeof(glm::vec3) * coordCount);
+      // cppcheck-suppress uninitvar
+      meshHash ^= cache::sipHash13c("colorData", 9);
+      meshHash ^= cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(colorData)),
+                                    sizeof(glm::vec3) * coordCount);
     }
 
-    const cache::Key key(hash);
+    const cache::Key key(meshHash);
 
     StaticMesh *mesh;
     if (StaticMesh::createOrRetrieveFromCache(&mesh, key))
@@ -1441,28 +1566,29 @@ namespace wren {
   StaticMesh *StaticMesh::createTriangleMesh(int coordCount, int indexCount, const float *coordData, const float *normalData,
                                              const float *texCoordData, const float *unwrappedTexCoordData,
                                              const unsigned int *indexData, bool outline) {
-    uint64_t hash = cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(coordData)),
-                                      sizeof(glm::vec3) * coordCount);
-    hash ^= cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(normalData)),
-                              sizeof(glm::vec3) * coordCount);
+    uint64_t meshHash = cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(coordData)),
+                                          sizeof(glm::vec3) * coordCount);
+    // cppcheck-suppress uninitvar
+    meshHash ^= cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(normalData)),
+                                  sizeof(glm::vec3) * coordCount);
     uint64_t texCoordDataHash = 0;
     if (texCoordData) {
       texCoordDataHash = cache::sipHash13c(reinterpret_cast<const char *>(reinterpret_cast<const void *>(texCoordData)),
                                            sizeof(glm::vec2) * coordCount);
-      hash ^= texCoordDataHash;
+      meshHash ^= texCoordDataHash;
     }
     if (unwrappedTexCoordData) {
       uint64_t unwrappedTexCoordDataHash = cache::sipHash13c(
         reinterpret_cast<const char *>(reinterpret_cast<const void *>(unwrappedTexCoordData)), sizeof(glm::vec2) * coordCount);
       if (!texCoordData || (texCoordDataHash != unwrappedTexCoordDataHash))
-        hash ^= unwrappedTexCoordDataHash;
+        meshHash ^= unwrappedTexCoordDataHash;
     }
-    hash ^= cache::sipHash13c(reinterpret_cast<const char *>(indexData), sizeof(unsigned int) * indexCount);
+    meshHash ^= cache::sipHash13c(reinterpret_cast<const char *>(indexData), sizeof(unsigned int) * indexCount);
 
     if (outline)
-      hash = ~hash;
+      meshHash = ~meshHash;
 
-    const cache::Key key(hash);
+    const cache::Key key(meshHash);
 
     StaticMesh *mesh;
     if (StaticMesh::createOrRetrieveFromCache(&mesh, key))
@@ -1900,8 +2026,10 @@ WrStaticMesh *wr_static_mesh_quad_new() {
   return reinterpret_cast<WrStaticMesh *>(wren::StaticMesh::createQuad());
 }
 
-WrStaticMesh *wr_static_mesh_unit_sphere_new(int subdivision) {
-  return reinterpret_cast<WrStaticMesh *>(wren::StaticMesh::createUnitSphere(subdivision));
+WrStaticMesh *wr_static_mesh_unit_sphere_new(int subdivision, bool ico, bool outline) {
+  if (ico)
+    return reinterpret_cast<WrStaticMesh *>(wren::StaticMesh::createUnitIcosphere(subdivision));
+  return reinterpret_cast<WrStaticMesh *>(wren::StaticMesh::createUnitUVSphere(subdivision, outline));
 }
 
 WrStaticMesh *wr_static_mesh_capsule_new(int subdivision, float radius, float height, bool has_side, bool has_top,
@@ -1940,6 +2068,10 @@ void wr_static_mesh_get_bounding_sphere(WrStaticMesh *mesh, float *sphere) {
 void wr_static_mesh_read_data(WrStaticMesh *mesh, float *coord_data, float *normal_data, float *tex_coord_data,
                               unsigned int *index_data) {
   reinterpret_cast<wren::StaticMesh *>(mesh)->readData(coord_data, normal_data, tex_coord_data, index_data);
+}
+
+int wr_static_mesh_get_triangle_count(WrStaticMesh *mesh) {
+  return reinterpret_cast<wren::StaticMesh *>(mesh)->triangles().size();
 }
 
 int wr_static_mesh_get_vertex_count(WrStaticMesh *mesh) {

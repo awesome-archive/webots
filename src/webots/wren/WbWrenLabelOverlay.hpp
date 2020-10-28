@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,7 +45,10 @@ public:
     mY = y;
   }
   void setSize(float size) { mSize = size; }
-  void setColor(int color) { colorToArray(mColor, color); }
+  void setColor(int color) {
+    colorToArray(mColor, color);
+    mTextNeedRedraw = true;
+  }
   void setBackgroundColor(int color) { colorToArray(mBackgroundColor, color); }
 
   int id() const { return mId; };
@@ -79,7 +82,7 @@ private:
   static const float HORIZONTAL_MARGIN;
 
   WbWrenLabelOverlay(int id, const QString &font);
-  virtual ~WbWrenLabelOverlay();
+  ~WbWrenLabelOverlay();
 
   void createTexture();
   void updateTextureSize();

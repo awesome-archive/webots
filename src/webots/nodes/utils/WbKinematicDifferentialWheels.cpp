@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ WbKinematicDifferentialWheels *WbKinematicDifferentialWheels::createKinematicDif
       if (!leftJoint->axis().cross(rightJoint->axis()).isNull())
         continue;
       // make sure the axis between the 2 anchors is parallel to the joints axes
-      WbVector3 anchorAxis = leftJoint->anchor() - leftJoint->anchor();
+      WbVector3 anchorAxis = rightJoint->anchor() - leftJoint->anchor();
       if (!leftJoint->axis().cross(anchorAxis).isNull())
         continue;
       WbVector3 globalLeftAnchor =

@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,19 +53,23 @@ void WbJointDevice::postFinalize() {
   // Cache position index
   const WbField *const f = parentField(true);
   assert(f);
-  mPositionIndex = f->name().endsWith("2") ? 2 : 1;
+  mPositionIndex = 1;
+  if (f->name().endsWith("2"))
+    mPositionIndex = 2;
+  else if (f->name().endsWith("3"))
+    mPositionIndex = 3;
 }
 
 WbJoint *WbJointDevice::joint() const {
-  return dynamic_cast<WbJoint *>(parent());
+  return dynamic_cast<WbJoint *>(parentNode());
 }
 
 WbPropeller *WbJointDevice::propeller() const {
-  return dynamic_cast<WbPropeller *>(parent());
+  return dynamic_cast<WbPropeller *>(parentNode());
 }
 
 WbTrack *WbJointDevice::track() const {
-  return dynamic_cast<WbTrack *>(parent());
+  return dynamic_cast<WbTrack *>(parentNode());
 }
 
 WbLogicalDevice *WbJointDevice::getSiblingDeviceByType(int nodeType) const {

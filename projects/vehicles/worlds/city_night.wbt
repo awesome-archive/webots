@@ -1,4 +1,4 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 WorldInfo {
   info [
     "Autonomous Vehicle Simulation"
@@ -9,13 +9,14 @@ WorldInfo {
   title "Autonomous Vehicle"
   ERP 0.6
   basicTimeStep 10
+  coordinateSystem "NUE"
   lineScale 1
   contactProperties [
     ContactProperties {
       coulombFriction [
         8
       ]
-      softCFM 1e-5
+      softCFM 1e-05
       bumpSound ""
       rollSound ""
       slideSound ""
@@ -25,7 +26,7 @@ WorldInfo {
       coulombFriction [
         8
       ]
-      softCFM 1e-5
+      softCFM 1e-05
       bumpSound ""
       rollSound ""
       slideSound ""
@@ -35,7 +36,7 @@ WorldInfo {
       coulombFriction [
         8
       ]
-      softCFM 1e-5
+      softCFM 1e-05
       bumpSound ""
       rollSound ""
       slideSound ""
@@ -45,7 +46,7 @@ WorldInfo {
       coulombFriction [
         8
       ]
-      softCFM 1e-5
+      softCFM 1e-05
       bumpSound ""
       rollSound ""
       slideSound ""
@@ -55,7 +56,7 @@ WorldInfo {
       coulombFriction [
         8
       ]
-      softCFM 1e-5
+      softCFM 1e-05
       bumpSound ""
       rollSound ""
       slideSound ""
@@ -65,7 +66,7 @@ WorldInfo {
       coulombFriction [
         8
       ]
-      softCFM 1e-5
+      softCFM 1e-05
       bumpSound ""
       rollSound ""
       slideSound ""

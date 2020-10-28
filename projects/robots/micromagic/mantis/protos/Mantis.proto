@@ -1,4 +1,4 @@
-#VRML_SIM R2018a utf8
+#VRML_SIM R2020b utf8
 # license: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 # license url: https://cyberbotics.com/webots_assets_license
 # documentation url: https://www.cyberbotics.com/doc/guide/mantis
@@ -10,7 +10,7 @@ PROTO Mantis [
   field SFRotation rotation        0 1 0 0  # Is `Transform.rotation`.
   field SFString   name            "Mantis" # Is `Solid.name`.
   field SFString   controller      "mantis" # Is `Robot.controller`.
-  field SFString   controllerArgs  ""       # Is `Robot.controllerArgs`.
+  field MFString   controllerArgs  []       # Is `Robot.controllerArgs`.
   field SFString   customData      ""       # Is `Robot.customData`.
   field SFBool     supervisor      FALSE    # Is `Robot.supervisor`.
   field SFBool     synchronization TRUE     # Is `Robot.synchronization`.
@@ -141,7 +141,7 @@ PROTO Mantis [
               translation 0.15 0 0
               children [
                 Shape {
-                  appearance PBRAppearance {   
+                  appearance PBRAppearance {
                     baseColor 0.8 0.752941 0.709804
                     roughness 0.2
                   }
@@ -312,7 +312,7 @@ PROTO Mantis [
                               appearance DEF JOINTLED PBRAppearance {
                                 baseColor 0 0.12549 0
                                 roughness 0.4
-                              }                              
+                              }
                               geometry Cylinder {
                                 height 0.1
                                 radius 0.09

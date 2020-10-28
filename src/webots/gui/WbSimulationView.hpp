@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ public:
   void setDecorationVisible(bool visible);
 
   int &handleWidth() { return mHandleWidth; }
-  void setHandleWidth(int &handleWidth) { mHandleWidth = handleWidth; }
+  void setHandleWidth(const int &handleWidth) { mHandleWidth = handleWidth; }
 
   // save/restore splitter perspective
   QList<QByteArray> saveState() const;
@@ -113,6 +113,7 @@ private slots:
   void realTime();
   void run();
   void fast();
+  void disableFastMode(bool disabled);
   void updateVisibility();
   void writeScreenshot(QImage image);
   void updateTitleBarTitle();

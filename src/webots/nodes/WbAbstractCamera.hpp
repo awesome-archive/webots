@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #define WB_ABSTRACT_CAMERA_HPP
 
 #include "WbRenderingDevice.hpp"
+#include "WbSensor.hpp"
 
 struct WrTransform;
 struct WrStaticMesh;
@@ -24,9 +25,13 @@ struct WrMaterial;
 
 class WbLens;
 class WbWrenCamera;
-class WbSensor;
 
+#ifdef _WIN32
 class QSharedMemory;
+#else
+class WbPosixSharedMemory;
+#endif
+
 class QDataStream;
 
 class WbAbstractCamera : public WbRenderingDevice {
@@ -47,7 +52,11 @@ public:
   void writeConfigure(QDataStream &) override;
   void reset() override;
 
+  void updateCameraTexture();
+
   void setNodeVisibility(WbBaseNode *node, bool visible);
+
+  bool isEnabled() { return mSensor ? mSensor->isEnabled() : false; }
 
   // external window
   void enableExternalWindow(bool enabled) override;
@@ -67,6 +76,9 @@ public:
 
   const unsigned char *constImage() const { return image(); }
 
+signals:
+  void enabled(WbAbstractCamera *camera, bool isActive);
+
 protected:
   void setup() override;
 
@@ -82,7 +94,7 @@ protected:
   virtual void addConfigureToStream(QDataStream &stream, bool reconfigure = false);
   bool handleCommand(QDataStream &stream, unsigned char command);
 
-  unsigned char *image() const;
+  unsigned char *image() const { return mImageData; }
   WbLens *lens() const;
 
   virtual WbRgb enabledCameraFrustrumColor() const = 0;
@@ -126,7 +138,12 @@ protected:
   // other stuff
   WbSensor *mSensor;
   short mRefreshRate;
+#ifdef _WIN32
   QSharedMemory *mImageShm;
+#else
+  WbPosixSharedMemory *mImageShm;
+#endif
+  unsigned char *mImageData;
   char mCharType;
   bool mNeedToConfigure;
   bool mHasSharedMemoryChanged;
@@ -160,8 +177,6 @@ protected slots:
   void updateLens();
   void applyLensToWren();
   void removeInvisibleNodeFromList(QObject *node);
-
-  void updateCameraTexture();
 
   virtual void updateFrustumDisplayIfNeeded(int optionalRendering) {}
 

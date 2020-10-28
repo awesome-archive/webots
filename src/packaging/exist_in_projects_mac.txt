@@ -1,2 +1,0 @@
-projects/default/libraries/ros/libroscpp.dylib
-projects/default/controllers/ros/include/xmlrpcpp

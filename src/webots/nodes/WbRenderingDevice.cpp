@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,13 +44,13 @@ void WbRenderingDevice::init() {
   // backward compatibility of the deprecated fields
   mWindowPositionField = findSFVector2("windowPosition");
   if (mWindowPositionField && mWindowPositionField->value() != WbVector2()) {
-    warn(tr("'windowPosition' is deprecated.") + "\n" +
-         tr("The position of the overlay will be automatically stored after moving it from the 3D view."));
+    parsingWarn(tr("'windowPosition' is deprecated.") + "\n" +
+                tr("The position of the overlay will be automatically stored after moving it from the 3D view."));
   }
   mPixelSizeField = findSFDouble("pixelSize");
   if (mPixelSizeField && mPixelSizeField->value() != 1.0) {
-    warn(tr("'pixelSize' is deprecated.") + "\n" +
-         tr("The size of the overlay will be automatically stored after resizing it from the 3D view."));
+    parsingWarn(tr("'pixelSize' is deprecated.") + "\n" +
+                tr("The size of the overlay will be automatically stored after resizing it from the 3D view."));
   }
 }
 
@@ -113,7 +113,7 @@ void WbRenderingDevice::setup() {
 
 void WbRenderingDevice::updateWidth() {
   if (mWidth && mWidth->value() < 1) {
-    warn(tr("Invalid 'width': changed to 1."));
+    parsingWarn(tr("Invalid 'width': changed to 1."));
     mWidth->setValue(1);
     return;
   }
@@ -125,7 +125,7 @@ void WbRenderingDevice::updateWidth() {
 
 void WbRenderingDevice::updateHeight() {
   if (mHeight && mHeight->value() < 1) {
-    warn(tr("Invalid 'height': changed to 1."));
+    parsingWarn(tr("Invalid 'height': changed to 1."));
     mHeight->setValue(1);
     return;
   }
@@ -264,9 +264,11 @@ bool WbRenderingDevice::areOverlaysEnabled() const {
   if (WbVirtualRealityHeadset::isInUse())
     return false;
 #endif
+  // cppcheck-suppress knownConditionTrueFalse
   if (nodeType() == WB_NODE_CAMERA)
     return !WbPreferences::instance()->value("View3d/hideAllCameraOverlays").toBool();
-  else if (nodeType() == WB_NODE_RANGE_FINDER)
+  // cppcheck-suppress knownConditionTrueFalse
+  if (nodeType() == WB_NODE_RANGE_FINDER)
     return !WbPreferences::instance()->value("View3d/hideAllRangeFinderOverlays").toBool();
   return !WbPreferences::instance()->value("View3d/hideAllDisplayOverlays").toBool();
 }

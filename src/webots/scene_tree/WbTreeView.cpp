@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 #include "WbActionManager.hpp"
 #include "WbContextMenuGenerator.hpp"
 #include "WbNodeOperations.hpp"
-#include "WbSelection.hpp"
 #include "WbTreeItem.hpp"
 
 #include <QtWidgets/QHeaderView>
@@ -101,7 +100,7 @@ void WbTreeView::keyPressEvent(QKeyEvent *event) {
     else if (isExpanded(currentIndex()))
       collapse(currentIndex());
   } else if (event->key() == Qt::Key_Right && isExpanded(currentIndex()))
-    setCurrentIndex(currentIndex().child(0, 0));
+    setCurrentIndex(currentIndex().model()->index(0, 0, currentIndex()));
   else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
     emit doubleClickOrEnterPressed();
   else
@@ -121,8 +120,12 @@ void WbTreeView::itemInserted(const QModelIndex &index) {
 }
 
 void WbTreeView::showMenu(const QPoint &position) {
-  const WbBaseNode *selectedNode = WbSelection::instance() ? WbSelection::instance()->selectedNode() : NULL;
-  WbContextMenuGenerator::generateContextMenu(mapToGlobal(position), selectedNode);
+  const QModelIndexList indexes = selectionModel()->selectedIndexes();
+  if (indexes.isEmpty())
+    return;
+  const WbTreeItem *item = static_cast<WbTreeItem *>(indexes.at(0).internalPointer());
+  assert(item);
+  WbContextMenuGenerator::generateContextMenu(mapToGlobal(position), item->node());
 }
 
 void WbTreeView::scrollToModelIndex(const QModelIndex &index) {

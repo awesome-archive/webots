@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -100,6 +100,7 @@ WbOdeDebugger::~WbOdeDebugger() {
 //   return NULL;
 // }
 
+// cppcheck-suppress functionStatic
 void WbOdeDebugger::toggleDebugging(bool val) {
   // TODO_WREN
   // if (val == false)
@@ -118,6 +119,7 @@ void WbOdeDebugger::toggleDebugging(bool val) {
 
 double colorPalette[][3] = {{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}};
 
+// cppcheck-suppress functionStatic
 void WbOdeDebugger::step() {
   // TODO_WREN
   // if (odeDebugNode == NULL)

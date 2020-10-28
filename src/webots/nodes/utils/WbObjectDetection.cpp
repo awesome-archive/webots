@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbObjectDetection.hpp"
+
 #include "WbAffinePlane.hpp"
 #include "WbBoundingSphere.hpp"
 #include "WbBox.hpp"
@@ -76,7 +77,7 @@ void WbObjectDetection::setCollided(double depth) {
 bool WbObjectDetection::recomputeRayDirection(WbSolid *device, const WbVector3 &devicePosition, const WbMatrix3 &deviceRotation,
                                               const WbMatrix3 &deviceInverseRotation, const WbAffinePlane *frustumPlanes) {
   assert(mGeom);
-  mObject->updateTransformAfterPhysicsStep();
+  mObject->updateTransformForPhysicsStep();
   // recompute ray properties
   if (!computeObject(devicePosition, deviceRotation, deviceInverseRotation, frustumPlanes))
     return false;
@@ -252,11 +253,11 @@ bool WbObjectDetection::computeBounds(const WbVector3 &devicePosition, const WbM
     for (int i = 0; i < pointsInFrustum.size(); ++i)
       pointsInFrustum[i] = deviceInverseRotation * (pointsInFrustum[i] - devicePosition);
     double minX = pointsInFrustum[0].x();
-    double maxX = pointsInFrustum[0].x();
+    double maxX = minX;
     double minY = pointsInFrustum[0].y();
-    double maxY = pointsInFrustum[0].y();
+    double maxY = minY;
     double minZ = pointsInFrustum[0].z();
-    double maxZ = pointsInFrustum[0].z();
+    double maxZ = minZ;
     for (int i = 1; i < pointsInFrustum.size(); ++i) {
       minX = qMin(minX, pointsInFrustum[i].x());
       maxX = qMax(maxX, pointsInFrustum[i].x());
@@ -286,7 +287,7 @@ bool WbObjectDetection::computeBounds(const WbVector3 &devicePosition, const WbM
       switch (nodeType) {
         case WB_NODE_SPHERE: {
           const WbSphere *sphere = static_cast<const WbSphere *>(boundingObject);
-          double radius = sphere->scaledRadius();
+          radius = sphere->scaledRadius();
           objectSize.setX(2 * radius);
           objectSize.setY(2 * radius);
           objectSize.setZ(2 * radius);

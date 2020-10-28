@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 #include "WbNode.hpp"
 #include "WbParser.hpp"
+#include "WbPreferences.hpp"
 #include "WbProtoModel.hpp"
 #include "WbStandardPaths.hpp"
 #include "WbTokenizer.hpp"
@@ -26,6 +27,7 @@
 WbProtoList *gCurrent = NULL;
 QFileInfoList WbProtoList::gResourcesProtoCache;
 QFileInfoList WbProtoList::gProjectsProtoCache;
+QFileInfoList WbProtoList::gExtraProtoCache;
 
 WbProtoList *WbProtoList::current() {
   return gCurrent;
@@ -39,6 +41,7 @@ WbProtoList::WbProtoList(const QString &primarySearchPath) {
   if (firstCall) {
     updateResourcesProtoCache();
     updateProjectsProtoCache();
+    updateExtraProtoCache();
     firstCall = false;
   }
 
@@ -81,7 +84,8 @@ void WbProtoList::findProtosRecursively(const QString &dirPath, QFileInfoList &p
     }
   }
   foreach (QFileInfo subfolder, subfolderInfoList) {
-    if (inProtos && (subfolder.fileName() == "textures" || subfolder.fileName() == "icons")) {
+    if (inProtos &&
+        (subfolder.fileName() == "textures" || subfolder.fileName() == "icons" || subfolder.fileName() == "meshes")) {
       // skip any textures or icons subfolder inside a protos folder
       continue;
     }
@@ -101,6 +105,14 @@ void WbProtoList::updateProjectsProtoCache() {
   QFileInfoList protosInfo;
   findProtosRecursively(WbStandardPaths::projectsPath(), protosInfo);
   gProjectsProtoCache << protosInfo;
+}
+
+void WbProtoList::updateExtraProtoCache() {
+  gExtraProtoCache.clear();
+  QFileInfoList protosInfo;
+  if (!WbPreferences::instance()->value("General/extraProjectsPath").toString().isEmpty())
+    findProtosRecursively(WbPreferences::instance()->value("General/extraProjectsPath").toString(), protosInfo);
+  gExtraProtoCache << protosInfo;
 }
 
 void WbProtoList::updatePrimaryProtoCache() {
@@ -159,7 +171,7 @@ WbProtoModel *WbProtoList::findModel(const QString &modelName, const QString &wo
       return model;
 
   QFileInfoList availableProtoFiles;
-  availableProtoFiles << mPrimaryProtoCache << gProjectsProtoCache << gResourcesProtoCache;
+  availableProtoFiles << mPrimaryProtoCache << gExtraProtoCache << gProjectsProtoCache << gResourcesProtoCache;
 
   foreach (const QFileInfo &fi, availableProtoFiles) {
     if (fi.baseName() == modelName) {
@@ -177,7 +189,7 @@ WbProtoModel *WbProtoList::findModel(const QString &modelName, const QString &wo
 
 QString WbProtoList::findModelPath(const QString &modelName) const {
   QFileInfoList availableProtoFiles;
-  availableProtoFiles << mPrimaryProtoCache << gProjectsProtoCache << gResourcesProtoCache;
+  availableProtoFiles << mPrimaryProtoCache << gExtraProtoCache << gProjectsProtoCache << gResourcesProtoCache;
 
   foreach (const QFileInfo &fi, availableProtoFiles) {
     if (fi.baseName() == modelName)

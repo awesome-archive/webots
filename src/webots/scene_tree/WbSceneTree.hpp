@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ class QSplitter;
 
 struct TreeItemState;
 
+// cppcheck-suppress noConstructor
 class WbSceneTree : public QWidget {
   Q_OBJECT
   Q_PROPERTY(int handleWidth MEMBER mHandleWidth READ handleWidth WRITE setHandleWidth)
@@ -63,7 +64,7 @@ public:
   void restoreFactoryLayout();
 
   int &handleWidth() { return mHandleWidth; }
-  void setHandleWidth(int &handleWidth) { mHandleWidth = handleWidth; }
+  void setHandleWidth(const int &handleWidth) { mHandleWidth = handleWidth; }
 
 public slots:
   void selectTransform(WbAbstractTransform *t);
@@ -78,10 +79,11 @@ signals:
   void documentationRequest(const QString &book, const QString &page, bool visible);
 
 private slots:
-  void handleUserCommand(WbActionManager::WbActionKind actionKind);
+  void handleUserCommand(WbAction::WbActionKind actionKind);
   void reset();
   void transform(const QString &modelName);
-  void convertProtoToBaseNode();
+  void convertToBaseNode();
+  void convertRootToBaseNode();
   void moveViewpointToObject();
   void addNew();
   void startWatching(const QModelIndex &index);
@@ -132,7 +134,7 @@ private:
   void pasteInMFValue();
   void clearSelection();
   bool isIndexAncestorOfCurrentIndex(const QModelIndex &index, int start, int end);
-
+  void convertProtoToBaseNode(bool rootOnly);
   bool insertInertiaMatrix(const WbField *selectedField);
   void cut();
   void copy();

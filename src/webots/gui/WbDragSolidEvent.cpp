@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,8 +31,6 @@
 #include "WbWrenRenderingContext.hpp"
 
 #include <QtCore/QSize>
-
-float WbDragPhysicsEvent::cScreenRatio = 1.0f;
 
 WbDragHorizontalSolidEvent::WbDragHorizontalSolidEvent(const QPoint &initialPosition, WbViewpoint *viewpoint,
                                                        WbSolid *selectedSolid) :
@@ -167,7 +165,7 @@ void WbDragPhysicsEvent::apply(const QPoint &currentMousePosition) {
     return;
 
   // Updates the World Coordinates of Force or the Torque's end
-  mViewpoint->viewpointRay(currentMousePosition.x() * cScreenRatio, currentMousePosition.y() * cScreenRatio, mMouseRay);
+  mViewpoint->viewpointRay(currentMousePosition.x(), currentMousePosition.y(), mMouseRay);
   mIntersectionOutput = mMouseRay.intersects(mDragPlane);
   mEnd = mMouseRay.point(mIntersectionOutput.second);
 

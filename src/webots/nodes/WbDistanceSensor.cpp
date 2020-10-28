@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbDistanceSensor.hpp"
+
 #include "WbFieldChecker.hpp"
 #include "WbGeometry.hpp"
 #include "WbLookupTable.hpp"
@@ -31,7 +32,7 @@
 #include "WbWrenRenderingContext.hpp"
 #include "WbWrenShaders.hpp"
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 #include <wren/config.h>
 #include <wren/dynamic_mesh.h>
@@ -86,6 +87,12 @@ public:
     mGeom = NULL;
     mCollidedGeometry = NULL;
     mWeight = 1.0;
+    mContactPosition[0] = 0.0;
+    mContactPosition[1] = 0.0;
+    mContactPosition[2] = 0.0;
+    mContactNormal[0] = 0.0;
+    mContactNormal[1] = 0.0;
+    mContactNormal[2] = 0.0;
   };
 
   ~SensorRay() {
@@ -255,16 +262,16 @@ void WbDistanceSensor::updateRaySetup() {
     mRayType = SONAR;
 
   // correct invalid input values
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mAperture, -mAperture->value()))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mAperture, -mAperture->value()))
     return;  // in order to avoiding passing twice in this function
-  if (WbFieldChecker::checkIntIsGreaterOrEqual(this, mNumberOfRays, 1, 1))
+  if (WbFieldChecker::resetIntIfLess(this, mNumberOfRays, 1, 1))
     return;  // in order to avoiding passing twice in this function
-  if (WbFieldChecker::checkDoubleIsPositive(this, mGaussianWidth, 1.0))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mGaussianWidth, 1.0))
     return;  // in order to avoiding passing twice in this function
-  if (WbFieldChecker::checkDoubleIsPositiveOrDisabled(this, mResolution, -1, -1))
+  if (WbFieldChecker::resetDoubleIfNonPositiveAndNotDisabled(this, mResolution, -1, -1))
     return;  // in order to avoiding passing twice in this function
   if (mRayType == LASER && mNumberOfRays->value() > 1) {
-    warn(tr("'type' \"laser\" must have one single ray."));
+    parsingWarn(tr("'type' \"laser\" must have one single ray."));
     mNumberOfRays->setValue(1);
     return;  // in order to avoiding passing twice in this function
   }
@@ -444,7 +451,7 @@ void WbDistanceSensor::setSensorRays() {
 }
 
 void WbDistanceSensor::updateRaysSetupIfNeeded() {
-  updateTransformAfterPhysicsStep();
+  updateTransformForPhysicsStep();
   setSensorRays();
 }
 
@@ -473,7 +480,7 @@ bool WbDistanceSensor::refreshSensorIfNeeded() {
 
 void WbDistanceSensor::reset() {
   WbSolidDevice::reset();
-  wr_node_set_visible(WR_NODE(mTransform), false);
+  updateOptionalRendering(WbWrenRenderingContext::VF_DISTANCE_SENSORS_RAYS);
 }
 
 void WbDistanceSensor::computeValue() {
@@ -512,9 +519,10 @@ void WbDistanceSensor::computeValue() {
         mRays[i].setDistance(distance);
 
         WbRgb pickedColor;
-        shape->pickColor(pickedColor, WbRay(trans, r));
+        double roughness, occlusion;
+        shape->pickColor(pickedColor, WbRay(trans, r), &roughness, &occlusion);
 
-        const double infraRedFactor = 0.8 * pickedColor.red() + 0.2;
+        const double infraRedFactor = 0.8 * pickedColor.red() * (1 - 0.5 * roughness) * (1 - 0.5 * occlusion) + 0.2;
         averageInfraRedFactor += infraRedFactor * mRays[i].weight();
       } else
         averageInfraRedFactor += mRays[i].weight();
@@ -575,11 +583,11 @@ void WbDistanceSensor::rayCollisionCallback(WbGeometry *object, dGeomID rayGeom,
 void WbDistanceSensor::handleMessage(QDataStream &stream) {
   unsigned char command;
   short refreshRate;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SET_SAMPLING_PERIOD:
-      stream >> (short &)refreshRate;
+      stream >> refreshRate;
       mSensor->setRefreshRate(refreshRate);
       if (refreshRate == 0) {  // sensor disabled
         // update rays appearance
@@ -611,6 +619,12 @@ void WbDistanceSensor::addConfigure(QDataStream &stream) {
   stream << (double)mLut->minValue();
   stream << (double)mLut->maxValue();
   stream << (double)mAperture->value();
+  stream << (int)mLookupTable->size();
+  for (int i = 0; i < mLookupTable->size(); i++) {
+    stream << (double)mLookupTable->item(i).x();
+    stream << (double)mLookupTable->item(i).y();
+    stream << (double)mLookupTable->item(i).z();
+  }
   mNeedToReconfigure = false;
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49,7 +49,9 @@
 #endif
 
 #include "../../../include/controller/c/webots/supervisor.h"
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
+
+#include <ode/ode.h>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
@@ -66,8 +68,9 @@ struct WbFieldGetRequest {
 
 struct WbDeletedNodeInfo {
   int nodeId;
-  WbNode *parent;
-  WbField *parentField;
+  int parentNodeId;
+  QString parentFieldName;
+  int parentFieldCount;
 };
 
 class WbFieldSetRequest {
@@ -135,6 +138,7 @@ private:
 class WbVector2FieldSetRequest : public WbFieldSetRequest {
 public:
   WbVector2FieldSetRequest(WbField *f, int index, double x, double y) : WbFieldSetRequest(f, index), mValue(x, y) {
+    mValue.clamp();
     assert((f->type() == WB_SF_VEC2F && dynamic_cast<WbSFVector2 *>(f->value()) && index == -1) ||
            (f->type() == WB_MF_VEC2F && dynamic_cast<WbMFVector2 *>(f->value()) && index >= 0));
   }
@@ -152,6 +156,7 @@ private:
 class WbVector3FieldSetRequest : public WbFieldSetRequest {
 public:
   WbVector3FieldSetRequest(WbField *f, int index, double x, double y, double z) : WbFieldSetRequest(f, index), mValue(x, y, z) {
+    mValue.clamp();
     assert((f->type() == WB_SF_VEC3F && dynamic_cast<WbSFVector3 *>(f->value()) && index == -1) ||
            (f->type() == WB_MF_VEC3F && dynamic_cast<WbMFVector3 *>(f->value()) && index >= 0));
   }
@@ -192,6 +197,7 @@ public:
     mValue(x, y, z, a) {
     assert((f->type() == WB_SF_ROTATION && dynamic_cast<WbSFRotation *>(f->value()) && index == -1) ||
            (f->type() == WB_MF_ROTATION && dynamic_cast<WbMFRotation *>(f->value()) && index >= 0));
+    mValue.normalize();
   }
   void apply() const override {
     if (mIndex == -1)
@@ -231,6 +237,8 @@ WbSupervisorUtilities::WbSupervisorUtilities(WbRobot *robot) : mRobot(robot) {
   connect(WbApplication::instance(), &WbApplication::videoCreationStatusChanged, this,
           &WbSupervisorUtilities::movieStatusChanged);
   connect(WbNodeOperations::instance(), &WbNodeOperations::nodeDeleted, this, &WbSupervisorUtilities::updateDeletedNodeList);
+  connect(WbTemplateManager::instance(), &WbTemplateManager::postNodeRegeneration, this,
+          &WbSupervisorUtilities::updateProtoRegeneratedFlag);
 
   // Do not apply the change simulation mode during dealing with a controller message
   // otherwise, conflicts can occur in case of multiple controllers
@@ -260,18 +268,23 @@ void WbSupervisorUtilities::initControllerRequests() {
   mFoundNodeUniqueId = -1;
   mFoundNodeType = 0;
   mFoundNodeParentUniqueId = -1;
+  mFoundNodeIsProto = false;
+  mFoundNodeIsProtoInternal = false;
   mFoundFieldId = -2;
   mFoundFieldType = 0;
   mFoundFieldCount = -1;
+  mFoundFieldIsInternal = false;
   mGetSelectedNode = false;
   mGetFromId = false;
-  mNeedToRestartController = false;
+  mNeedToResetSimulation = false;
   mNodeGetPosition = NULL;
   mNodeGetOrientation = NULL;
   mNodeGetCenterOfMass = NULL;
   mNodeGetContactPoints = NULL;
   mNodeGetStaticBalance = NULL;
   mNodeGetVelocity = NULL;
+  mIsProtoRegenerated = false;
+  mShouldRemoveNode = false;
   mImportedNodesNumber = -1;
   mLoadWorldRequested = false;
   mVirtualRealityHeadsetIsUsedRequested = false;
@@ -290,7 +303,7 @@ QString WbSupervisorUtilities::readString(QDataStream &stream) {
   QByteArray txt;
   unsigned char uc;
   do {
-    stream >> (unsigned char &)uc;
+    stream >> uc;
     txt.append(uc);
   } while (uc != 0 && !stream.atEnd());
   return QString(txt.constData());
@@ -317,7 +330,7 @@ WbSimulationState::Mode WbSupervisorUtilities::convertSimulationMode(int supervi
   }
 }
 
-void WbSupervisorUtilities::processImmediateMessages() {
+void WbSupervisorUtilities::processImmediateMessages(bool blockRegeneration) {
   int n = mFieldSetRequests.size();
   if (n == 0)
     return;
@@ -330,6 +343,8 @@ void WbSupervisorUtilities::processImmediateMessages() {
     delete r;
   }
   mFieldSetRequests.clear();
+  if (blockRegeneration)
+    return;
   WbTemplateManager::instance()->blockRegeneration(false);
   emit worldModified();
 }
@@ -339,10 +354,13 @@ void WbSupervisorUtilities::postPhysicsStep() {
     emit WbApplication::instance()->worldLoadRequested(mWorldToLoad);
     mLoadWorldRequested = false;
   }
-
-  if (mNeedToRestartController) {
-    mRobot->restartController();
-    mNeedToRestartController = false;
+  if (mNeedToResetSimulation) {
+    mNeedToResetSimulation = false;
+    WbApplication::instance()->simulationReset(false);
+  }
+  if (mShouldRemoveNode) {
+    emit worldModified();
+    WbNodeOperations::instance()->deleteNode(mRobot, true);
   }
 }
 
@@ -356,7 +374,20 @@ void WbSupervisorUtilities::reset() {
   initControllerRequests();
 }
 
-const WbNode *WbSupervisorUtilities::getNodeFromDEF(const QString &defName, const WbNode *fromNode) {
+const WbNode *WbSupervisorUtilities::getNodeFromProtoDEF(const WbNode *fromNode, const QString &defName) const {
+  // recursively search in PROTO body for the DEF node
+  QList<WbNode *> descendants = fromNode->subNodes(false, true, false);  // get nodes from PROTO fields
+  for (int i = 0; i < descendants.size(); ++i) {
+    const WbNode *child = descendants.at(i);
+    if (child->defName() == defName)
+      return child;
+    // recursively search in field or parameters (if PROTO) of descendant nodes
+    descendants.append(child->subNodes(true, false, false));
+  }
+  return NULL;
+}
+
+const WbNode *WbSupervisorUtilities::getNodeFromDEF(const QString &defName, bool allowSearchInProto, const WbNode *fromNode) {
   assert(!defName.isEmpty());
   if (defName.isEmpty())
     return NULL;
@@ -368,20 +399,24 @@ const WbNode *WbSupervisorUtilities::getNodeFromDEF(const QString &defName, cons
   const QString &nextDefName = (remainingChars <= 0) ? QString() : defName.right(remainingChars);
 
   const WbNode *baseNode = fromNode;
-  if (baseNode == NULL) {
-    baseNode = WbDictionary::instance()->getNodeFromDEF(currentDefName);
+  if (baseNode == NULL || allowSearchInProto) {
+    if (allowSearchInProto)
+      baseNode = getNodeFromProtoDEF(baseNode ? baseNode : WbWorld::instance()->root(), defName);
+    else
+      baseNode = WbDictionary::instance()->getNodeFromDEF(currentDefName);
+
     if (!baseNode || nextDefName.isEmpty())
       return baseNode;
-    return getNodeFromDEF(nextDefName, baseNode);
+    return getNodeFromDEF(nextDefName, false, baseNode);
   }
 
-  const QList<WbNode *> &descendants = baseNode->subNodes(false, false, false);
+  const QList<WbNode *> &descendants = baseNode->subNodes(false, allowSearchInProto, false);
   for (int i = 0; i < descendants.size(); ++i) {
     const WbNode *child = descendants.at(i);
     if (child->defName() == currentDefName) {
       if (nextDefName.isEmpty())
         return child;
-      return getNodeFromDEF(nextDefName, child);
+      return getNodeFromDEF(nextDefName, false, child);
     }
   }
 
@@ -414,30 +449,60 @@ void WbSupervisorUtilities::changeSimulationMode(int newMode) {
   WbSimulationState::instance()->setMode(mode);
 }
 
+void WbSupervisorUtilities::updateProtoRegeneratedFlag() {
+  mIsProtoRegenerated = true;
+}
+
 void WbSupervisorUtilities::updateDeletedNodeList(WbNode *node) {
   if (!node)
     return;
 
+  // check if node already in the list
+  const int deletedNodesSize = mNodesDeletedSinceLastStep.size();
+  for (int i = 0; i < deletedNodesSize; ++i) {
+    if (mNodesDeletedSinceLastStep[i].nodeId == node->uniqueId())
+      return;
+  }
+
   struct WbDeletedNodeInfo nodeInfo;
   nodeInfo.nodeId = node->uniqueId();
-  nodeInfo.parent = node->parent();
-  nodeInfo.parentField = node->parentField();
+  // store values in case parent PROTO invalid due to regeneration
+  const WbNode *parentNode = node->parentNode();
+  if (!parentNode)
+    nodeInfo.parentNodeId = -1;
+  else if (parentNode == WbWorld::instance()->root())
+    nodeInfo.parentNodeId = 0;
+  else
+    nodeInfo.parentNodeId = parentNode->uniqueId();
+  const WbField *parentField = node->parentField();
+  if (parentField) {
+    nodeInfo.parentFieldName = parentField->name();
+    nodeInfo.parentFieldCount =
+      parentField->isMultiple() ? (dynamic_cast<WbMultipleValue *>(parentField->value())->size() - 1) : -1;
+  } else {
+    nodeInfo.parentFieldName = " ";
+    nodeInfo.parentFieldCount = -1;
+  }
   mNodesDeletedSinceLastStep.push_back(nodeInfo);
+  QList<WbNode *> children = node->subNodes(false, true, true);
+  const int childrenSize = children.size();
+  for (int i = 0; i < childrenSize; ++i)
+    updateDeletedNodeList(children[i]);
 }
 
 void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
   unsigned char byte;
-  stream >> (unsigned char &)byte;
+  stream >> byte;
 
   switch (byte) {
     case C_SUPERVISOR_SIMULATION_QUIT: {
       int exitStatus;
-      stream >> (int &)exitStatus;
+      stream >> exitStatus;
       WbApplication::instance()->simulationQuit(exitStatus);
       return;
     }
     case C_SUPERVISOR_SIMULATION_RESET:
-      WbApplication::instance()->simulationReset();
+      mNeedToResetSimulation = true;
       return;
     case C_SUPERVISOR_RELOAD_WORLD:
       WbApplication::instance()->worldReload();
@@ -447,7 +512,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       return;
     case C_SUPERVISOR_SIMULATION_CHANGE_MODE: {
       int newMode;
-      stream >> (int &)newMode;
+      stream >> newMode;
       emit changeSimulationModeRequested(newMode);
       return;
     }
@@ -456,13 +521,13 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       double x, y, size;
       unsigned int color;
 
-      stream >> (unsigned short &)id;
-      stream >> (double &)x;
-      stream >> (double &)y;
-      stream >> (double &)size;
-      stream >> (unsigned int &)color;
+      stream >> id;
+      stream >> x;
+      stream >> y;
+      stream >> size;
+      stream >> color;
       const QString &text = readString(stream);
-      const QString font = readString(stream);
+      const QString &font = readString(stream);
 
       bool fileFound = false;
       QString filename = WbStandardPaths::fontsPath() + font + ".ttf";
@@ -480,7 +545,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       }
 
       if (id < MAX_LABELS) {
-        int labelId = (int)id + mRobot->uniqueId() * MAX_LABELS;  // kind of hash to avoid an id clash.
+        int labelId = (int)id + mRobot->uniqueId() * MAX_LABELS;  // kind of hack to avoid an id clash.
 
         mLabelIds.removeAll(labelId);
         mLabelIds << labelId;
@@ -504,7 +569,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     }
     case C_SUPERVISOR_EXPORT_IMAGE: {
       unsigned char quality;
-      stream >> (unsigned char &)quality;
+      stream >> quality;
       QString filename = readString(stream);
       makeFilenameAbsolute(filename);
       WbApplication::instance()->takeScreenshot(filename, quality);
@@ -513,14 +578,15 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_START_MOVIE: {
       int width, height;
       unsigned char codec, quality, acceleration, caption;
-      stream >> (int &)width;
-      stream >> (int &)height;
-      stream >> (unsigned char &)codec;
-      stream >> (unsigned char &)quality;
-      stream >> (unsigned char &)acceleration;
-      stream >> (unsigned char &)caption;
+      stream >> width;
+      stream >> height;
+      stream >> codec;
+      stream >> quality;
+      stream >> acceleration;
+      stream >> caption;
       QString filename = readString(stream);
       makeFilenameAbsolute(filename);
+      // cppcheck-suppress knownConditionTrueFalse
       WbApplication::instance()->startVideoCapture(filename, codec, width, height, quality, acceleration, caption == 1);
       return;
     }
@@ -538,11 +604,8 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       return;
     case C_SUPERVISOR_NODE_GET_FROM_ID: {
       int id;
-
-      stream >> (int &)id;
-
+      stream >> id;
       const WbBaseNode *node = dynamic_cast<const WbBaseNode *>(WbNode::findNode(id));
-
       if (node) {
         // since 8.6 -> each message has its own mechanism
         mGetFromId = true;
@@ -550,7 +613,10 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
         mFoundNodeUniqueId = node->uniqueId();
         mFoundNodeType = node->nodeType();
         mFoundNodeModelName = node->modelName();
-        mFoundNodeParentUniqueId = (node->parent() ? node->parent()->uniqueId() : -1);
+        mFoundNodeParentUniqueId = (node->parentNode() ? node->parentNode()->uniqueId() : -1);
+        mFoundNodeIsProto = node->isProtoInstance();
+        mFoundNodeIsProtoInternal =
+          node->parentNode() != WbWorld::instance()->root() && !WbNodeUtilities::isVisible(node->parentField());
         connect(node, &WbNode::defUseNameChanged, this, &WbSupervisorUtilities::notifyNodeUpdate, Qt::UniqueConnection);
       }
 
@@ -558,21 +624,28 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     }
     case C_SUPERVISOR_NODE_GET_FROM_DEF: {
       const QString &nodeName = readString(stream);
-      const WbBaseNode *baseNode = dynamic_cast<const WbBaseNode *>(getNodeFromDEF(nodeName));
-      if (baseNode && !baseNode->parentField())  // make sure the parent field is visible
+      int parentProtoId;
+      stream >> parentProtoId;  // if > 0, then search for a PROTO internal node
+      WbNode *proto = parentProtoId > 0 ? WbNode::findNode(parentProtoId) : NULL;
+      const WbBaseNode *baseNode = dynamic_cast<const WbBaseNode *>(getNodeFromDEF(nodeName, proto != NULL, proto));
+      if (!proto && baseNode && !baseNode->parentField())  // make sure the parent field is visible
         baseNode = NULL;
       mFoundNodeUniqueId = baseNode ? baseNode->uniqueId() : 0;
       mFoundNodeType = baseNode ? baseNode->nodeType() : 0;
       mFoundNodeModelName = baseNode ? baseNode->modelName() : QString();
-      mFoundNodeParentUniqueId = -1;
+      mFoundNodeIsProtoInternal = false;
       if (baseNode) {
-        if (baseNode->parent()) {
-          if (baseNode->parent() != WbWorld::instance()->root())
-            mFoundNodeParentUniqueId = baseNode->parent()->uniqueId();
+        if (baseNode->parentNode()) {
+          if (baseNode->parentNode() != WbWorld::instance()->root())
+            mFoundNodeParentUniqueId = baseNode->parentNode()->uniqueId();
           else
             mFoundNodeParentUniqueId = 0;
         }
+        mFoundNodeIsProto = baseNode->isProtoInstance();
         connect(baseNode, &WbNode::defUseNameChanged, this, &WbSupervisorUtilities::notifyNodeUpdate, Qt::UniqueConnection);
+      } else {
+        mFoundNodeParentUniqueId = -1;
+        mFoundNodeIsProto = false;
       }
       return;
     }
@@ -585,9 +658,9 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
         mFoundNodeType = baseNode->nodeType();
         mFoundNodeModelName = baseNode->modelName();
         mFoundNodeParentUniqueId = -1;
-        if (baseNode->parent()) {
-          if (baseNode->parent() != WbWorld::instance()->root())
-            mFoundNodeParentUniqueId = baseNode->parent()->uniqueId();
+        if (baseNode->parentNode()) {
+          if (baseNode->parentNode() != WbWorld::instance()->root())
+            mFoundNodeParentUniqueId = baseNode->parentNode()->uniqueId();
           else
             mFoundNodeParentUniqueId = 0;
         }
@@ -598,7 +671,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_NODE_GET_POSITION: {
       unsigned int id;
 
-      stream >> (unsigned int &)id;
+      stream >> id;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
       WbTransform *const transform = dynamic_cast<WbTransform *>(node);
@@ -610,7 +683,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_NODE_GET_ORIENTATION: {
       unsigned int id;
 
-      stream >> (unsigned int &)id;
+      stream >> id;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
       WbTransform *const transform = dynamic_cast<WbTransform *>(node);
@@ -622,7 +695,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_NODE_GET_CENTER_OF_MASS: {
       unsigned int id;
 
-      stream >> (unsigned int &)id;
+      stream >> id;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
       WbSolid *const solid = dynamic_cast<WbSolid *>(node);
@@ -634,7 +707,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_NODE_GET_CONTACT_POINTS: {
       unsigned int id;
 
-      stream >> (unsigned int &)id;
+      stream >> id;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
       WbSolid *const solid = dynamic_cast<WbSolid *>(node);
@@ -648,7 +721,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_NODE_GET_STATIC_BALANCE: {
       unsigned int id;
 
-      stream >> (unsigned int &)id;
+      stream >> id;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
       WbSolid *const solid = dynamic_cast<WbSolid *>(node);
@@ -660,7 +733,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_NODE_GET_VELOCITY: {
       unsigned int id;
 
-      stream >> (unsigned int &)id;
+      stream >> id;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
       WbSolid *const solid = dynamic_cast<WbSolid *>(node);
@@ -674,13 +747,13 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       unsigned int id;
       double a0, a1, a2, l0, l1, l2;
 
-      stream >> (unsigned int &)id;
-      stream >> (double &)l0;
-      stream >> (double &)l1;
-      stream >> (double &)l2;
-      stream >> (double &)a0;
-      stream >> (double &)a1;
-      stream >> (double &)a2;
+      stream >> id;
+      stream >> l0;
+      stream >> l1;
+      stream >> l2;
+      stream >> a0;
+      stream >> a1;
+      stream >> a2;
 
       const double linearVelocity[3] = {l0, l1, l2};
       const double angularVelocity[3] = {a0, a1, a2};
@@ -696,7 +769,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_NODE_RESET_PHYSICS: {
       unsigned int id;
 
-      stream >> (unsigned int &)id;
+      stream >> id;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
       WbSolid *const solid = dynamic_cast<WbSolid *>(node);
@@ -709,16 +782,12 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_NODE_RESTART_CONTROLLER: {
       unsigned int id;
 
-      stream >> (unsigned int &)id;
+      stream >> id;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
       WbRobot *const robot = dynamic_cast<WbRobot *>(node);
-      if (robot == mRobot)
-        // we can't restart the controller associated to this supervisor here
-        // we postpone it to the end of the physic step
-        mNeedToRestartController = true;
-      else if (robot)
-        robot->restartController();
+      if (robot)  // postpone the restart to the end of the physic step.
+        robot->setControllerNeedRestart();
       else
         mRobot->warn(tr("wb_supervisor_node_restart_controller() can exclusively be used with a Robot"));
       return;
@@ -727,9 +796,9 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       unsigned int nodeId, fromId;
       unsigned char visible;
 
-      stream >> (unsigned int &)nodeId;
-      stream >> (unsigned int &)fromId;
-      stream >> (unsigned char &)visible;
+      stream >> nodeId;
+      stream >> fromId;
+      stream >> visible;
 
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(nodeId));
       WbNode *const cameraNode = getProtoParameterNodeInstance(WbNode::findNode(fromId));
@@ -738,19 +807,111 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       WbBaseNode *const baseNode = dynamic_cast<WbBaseNode *>(node);
       assert(baseNode);
       if (camera)
+        // cppcheck-suppress knownConditionTrueFalse
         camera->setNodeVisibility(baseNode, visible == 1);
       else if (viewpoint)
+        // cppcheck-suppress knownConditionTrueFalse
         viewpoint->setNodeVisibility(baseNode, visible == 1);
       return;
     }
     case C_SUPERVISOR_NODE_MOVE_VIEWPOINT: {
       unsigned int nodeId;
-      stream >> (unsigned int &)nodeId;
+      stream >> nodeId;
       WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(nodeId));
       WbBaseNode *const baseNode = dynamic_cast<WbBaseNode *>(node);
       assert(baseNode);
       if (WbNodeUtilities::boundingSphereAncestor(baseNode) != NULL)
         WbWorld::instance()->viewpoint()->moveViewpointToObject(baseNode);
+      return;
+    }
+    case C_SUPERVISOR_NODE_ADD_FORCE: {
+      unsigned int id;
+      double fx, fy, fz;
+      unsigned char relative;
+
+      stream >> id;
+      stream >> fx;
+      stream >> fy;
+      stream >> fz;
+      stream >> relative;
+
+      WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
+      WbSolid *const solid = dynamic_cast<WbSolid *>(node);
+      if (solid) {
+        WbVector3 force(fx, fy, fz);
+        if (relative == 1)
+          force = solid->matrix().extracted3x3Matrix() * force;
+        dBodyID body = solid->bodyMerger();
+        WbVector3 position = solid->computedGlobalCenterOfMass() - solid->solidMerger()->solid()->computedGlobalCenterOfMass();
+        if (body) {
+          dBodyAddForceAtRelPos(body, force.x(), force.y(), force.z(), position.x(), position.y(), position.z());
+          dBodyEnable(body);
+        } else
+          mRobot->warn(tr("wb_supervisor_node_add_force() can't be used with a kinematic Solid"));
+      } else
+        mRobot->warn(tr("wb_supervisor_node_add_force() can exclusively be used with a Solid"));
+      return;
+    }
+    case C_SUPERVISOR_NODE_ADD_FORCE_WITH_OFFSET: {
+      unsigned int id;
+      double fx, fy, fz, ox, oy, oz;
+      unsigned char relative;
+
+      stream >> id;
+      stream >> fx;
+      stream >> fy;
+      stream >> fz;
+      stream >> ox;
+      stream >> oy;
+      stream >> oz;
+      stream >> relative;
+
+      WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
+      WbSolid *const solid = dynamic_cast<WbSolid *>(node);
+      if (solid) {
+        const WbMatrix4 &solidMatrix = solid->matrix();
+
+        const WbVector3 offset = solidMatrix * WbVector3(ox, oy, oz);
+
+        WbVector3 force(fx, fy, fz);
+        if (relative == 1)
+          force = solidMatrix.extracted3x3Matrix() * force;
+
+        dBodyID body = solid->bodyMerger();
+        if (body) {
+          dBodyEnable(body);
+          dBodyAddForceAtPos(body, force.x(), force.y(), force.z(), offset.x(), offset.y(), offset.z());
+        } else
+          mRobot->warn(tr("wb_supervisor_node_add_force_with_offset() can't be used with a kinematic Solid"));
+      } else
+        mRobot->warn(tr("wb_supervisor_node_add_force_with_offset() can exclusively be used with a Solid"));
+      return;
+    }
+    case C_SUPERVISOR_NODE_ADD_TORQUE: {
+      unsigned int id;
+      double tx, ty, tz;
+      unsigned char relative;
+
+      stream >> id;
+      stream >> tx;
+      stream >> ty;
+      stream >> tz;
+      stream >> relative;
+
+      WbNode *const node = getProtoParameterNodeInstance(WbNode::findNode(id));
+      WbSolid *const solid = dynamic_cast<WbSolid *>(node);
+      if (solid) {
+        WbVector3 torque(tx, ty, tz);
+        if (relative == 1)
+          torque = solid->matrix().extracted3x3Matrix() * torque;
+        dBodyID body = solid->bodyMerger();
+        if (body) {
+          dBodyEnable(body);
+          dBodyAddTorque(body, torque.x(), torque.y(), torque.z());
+        } else
+          mRobot->warn(tr("wb_supervisor_node_add_torque() can't be used with a kinematic Solid"));
+      } else
+        mRobot->warn(tr("wb_supervisor_node_add_torque() can exclusively be used with a Solid"));
       return;
     }
     case C_SUPERVISOR_LOAD_WORLD: {
@@ -760,9 +921,9 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       return;
     }
     case C_SUPERVISOR_SAVE_WORLD: {
-      bool saveAs;
+      unsigned char saveAs;
 
-      stream >> (unsigned char &)saveAs;
+      stream >> saveAs;
 
       if (saveAs) {
         QString filename = readString(stream);
@@ -779,24 +940,27 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     }
     case C_SUPERVISOR_FIELD_GET_FROM_NAME: {
       int id;
-      stream >> (int &)id;
+      unsigned char allowSearchInProto;
+      stream >> id;
       const QString name = readString(stream);
+      stream >> allowSearchInProto;
 
       mFoundFieldId = -1;
       mFoundFieldType = 0;
       mFoundFieldCount = -1;
+      mFoundFieldIsInternal = false;
 
       WbNode *const node = WbNode::findNode(id);
       if (node) {
-        // qDebug() << "Node=" << node->fullName() << " uniqueId=" << id << " fieldName=" << name;
-        id = node->findFieldId(name);
+        id = node->findFieldId(name, allowSearchInProto == 1);
         if (id != -1) {
-          WbField *field = node->field(id);
+          WbField *field = node->field(id, allowSearchInProto == 1);
           if (field) {
             WbMultipleValue *mv = dynamic_cast<WbMultipleValue *>(field->value());
             mFoundFieldCount = mv ? mv->size() : -1;
             mFoundFieldId = id;
             mFoundFieldType = field->type();
+            mFoundFieldIsInternal = allowSearchInProto == 1;
           }
         }
       }
@@ -805,17 +969,19 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_FIELD_GET_VALUE: {
       unsigned int uniqueId, fieldId;
       int index = -1;
+      unsigned char internal = false;
 
-      stream >> (unsigned int &)uniqueId;
-      stream >> (unsigned int &)fieldId;
+      stream >> uniqueId;
+      stream >> fieldId;
+      stream >> internal;
 
       WbNode *const node = WbNode::findNode(uniqueId);
       WbField *field = NULL;
 
       if (node) {
-        field = node->field(fieldId);
+        field = node->field(fieldId, internal == 1);
         if (field && field->isMultiple())
-          stream >> (int &)index;
+          stream >> index;
       }
 
       assert(!mFieldGetRequest);
@@ -828,10 +994,10 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       unsigned int uniqueId, fieldId, fieldType;
       int index;
 
-      stream >> (unsigned int &)uniqueId;
-      stream >> (unsigned int &)fieldId;
-      stream >> (unsigned int &)fieldType;
-      stream >> (int &)index;
+      stream >> uniqueId;
+      stream >> fieldId;
+      stream >> fieldType;
+      stream >> index;
       WbNode *const node = WbNode::findNode(uniqueId);
       WbField *field = node ? node->field(fieldId) : NULL;
 
@@ -843,45 +1009,45 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
       switch (fieldType) {
         case WB_SF_BOOL:
         case WB_MF_BOOL:
-          stream >> (unsigned char &)b;
+          stream >> b;
           mFieldSetRequests << new WbBoolFieldSetRequest(field, index, b);
           break;
         case WB_SF_INT32:
         case WB_MF_INT32:
-          stream >> (int &)i;
+          stream >> i;
           mFieldSetRequests << new WbIntFieldSetRequest(field, index, i);
           break;
         case WB_SF_FLOAT:
         case WB_MF_FLOAT:
-          stream >> (double &)d0;
+          stream >> d0;
           mFieldSetRequests << new WbDoubleFieldSetRequest(field, index, d0);
           break;
         case WB_SF_VEC2F:
         case WB_MF_VEC2F:
-          stream >> (double &)d0;
-          stream >> (double &)d1;
+          stream >> d0;
+          stream >> d1;
           mFieldSetRequests << new WbVector2FieldSetRequest(field, index, d0, d1);
           break;
         case WB_SF_COLOR:
         case WB_MF_COLOR:
-          stream >> (double &)d0;
-          stream >> (double &)d1;
-          stream >> (double &)d2;
+          stream >> d0;
+          stream >> d1;
+          stream >> d2;
           mFieldSetRequests << new WbColorFieldSetRequest(field, index, d0, d1, d2);
           break;
         case WB_SF_VEC3F:
         case WB_MF_VEC3F:
-          stream >> (double &)d0;
-          stream >> (double &)d1;
-          stream >> (double &)d2;
+          stream >> d0;
+          stream >> d1;
+          stream >> d2;
           mFieldSetRequests << new WbVector3FieldSetRequest(field, index, d0, d1, d2);
           break;
         case WB_SF_ROTATION:
         case WB_MF_ROTATION:
-          stream >> (double &)d0;
-          stream >> (double &)d1;
-          stream >> (double &)d2;
-          stream >> (double &)d3;
+          stream >> d0;
+          stream >> d1;
+          stream >> d2;
+          stream >> d3;
           mFieldSetRequests << new WbRotationFieldSetRequest(field, index, d0, d1, d2, d3);
           break;
         case WB_SF_STRING:
@@ -896,64 +1062,69 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
     case C_SUPERVISOR_FIELD_INSERT_VALUE: {
       unsigned int nodeId, fieldId, index;
 
-      stream >> (unsigned int &)nodeId;
-      stream >> (unsigned int &)fieldId;
-      stream >> (unsigned int &)index;
+      stream >> nodeId;
+      stream >> fieldId;
+      stream >> index;
+
+      // apply queued set field operations
+      processImmediateMessages(true);
 
       WbNode *const node = WbNode::findNode(nodeId);
       WbField *field = node->field(fieldId);
 
       switch (field->type()) {  // import value
         case WB_MF_BOOL: {
+          // cppcheck-suppress unassignedVariable
           unsigned char value;
-          stream >> (unsigned char &)value;
+          stream >> value;
+          // cppcheck-suppress knownConditionTrueFalse
           (dynamic_cast<WbMFBool *>(field->value()))->insertItem(index, value == 1);
           break;
         }
         case WB_MF_INT32: {
-          int value = 0;
-          stream >> (int &)value;
+          int value;
+          stream >> value;
           (dynamic_cast<WbMFInt *>(field->value()))->insertItem(index, value);
           break;
         }
         case WB_MF_FLOAT: {
-          double value = 0;
-          stream >> (double &)value;
+          double value;
+          stream >> value;
           (dynamic_cast<WbMFDouble *>(field->value()))->insertItem(index, value);
           break;
         }
         case WB_MF_VEC2F: {
-          double d0 = 0.0, d1 = 0.0;
-          stream >> (double &)d0;
-          stream >> (double &)d1;
+          double d0, d1;
+          stream >> d0;
+          stream >> d1;
           WbVector2 value(d0, d1);
           (dynamic_cast<WbMFVector2 *>(field->value()))->insertItem(index, value);
           break;
         }
         case WB_MF_VEC3F: {
-          double d0 = 0.0, d1 = 0.0, d2 = 0.0;
-          stream >> (double &)d0;
-          stream >> (double &)d1;
-          stream >> (double &)d2;
+          double d0, d1, d2;
+          stream >> d0;
+          stream >> d1;
+          stream >> d2;
           WbVector3 value(d0, d1, d2);
           (dynamic_cast<WbMFVector3 *>(field->value()))->insertItem(index, value);
           break;
         }
         case WB_MF_ROTATION: {
-          double d0 = 0.0, d1 = 0.0, d2 = 0.0, d3 = 0.0;
-          stream >> (double &)d0;
-          stream >> (double &)d1;
-          stream >> (double &)d2;
-          stream >> (double &)d3;
+          double d0, d1, d2, d3;
+          stream >> d0;
+          stream >> d1;
+          stream >> d2;
+          stream >> d3;
           WbRotation value(d0, d1, d2, d3);
           (dynamic_cast<WbMFRotation *>(field->value()))->insertItem(index, value);
           break;
         }
         case WB_MF_COLOR: {
-          double d0 = 0.0, d1 = 0.0, d2 = 0.0;
-          stream >> (double &)d0;
-          stream >> (double &)d1;
-          stream >> (double &)d2;
+          double d0, d1, d2;
+          stream >> d0;
+          stream >> d1;
+          stream >> d2;
           WbRgb value(d0, d1, d2);
           (dynamic_cast<WbMFColor *>(field->value()))->insertItem(index, value);
           break;
@@ -981,46 +1152,83 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
             mImportedNodesNumber = importedNodesNumber;
           break;
         }
+        case WB_SF_NODE: {
+          QString filename = readString(stream);
+          makeFilenameAbsolute(filename);
+          int importedNodesNumber;
+          if (filename.endsWith(".wbo", Qt::CaseInsensitive))
+            WbNodeOperations::instance()->importNode(nodeId, fieldId, index, filename, "", &importedNodesNumber, true);
+          else
+            assert(false);
+          const WbSFNode *sfNode = dynamic_cast<WbSFNode *>(field->value());
+          assert(sfNode);
+          if (sfNode->value())
+            mImportedNodesNumber = sfNode->value()->uniqueId();
+          else
+            mImportedNodesNumber = -1;
+          break;
+        }
         default:
           assert(0);
       }
 
+      WbTemplateManager::instance()->blockRegeneration(false);
       emit worldModified();
       return;
     }
     case C_SUPERVISOR_FIELD_IMPORT_NODE_FROM_STRING: {
       unsigned int nodeId, fieldId, index;
 
-      stream >> (unsigned int &)nodeId;
-      stream >> (unsigned int &)fieldId;
-      stream >> (unsigned int &)index;
+      stream >> nodeId;
+      stream >> fieldId;
+      stream >> index;
       const QString nodeString = readString(stream);
+
+      // apply queued set field operations
+      processImmediateMessages(true);
 
       int importedNodesNumber;
       WbNodeOperations::OperationResult operationResult =
         WbNodeOperations::instance()->importNode(nodeId, fieldId, index, "", nodeString, &importedNodesNumber, true);
-      if (operationResult != WbNodeOperations::FAILURE)
+      const WbField *field = WbNode::findNode(nodeId)->field(fieldId);
+      const WbSFNode *sfNode = dynamic_cast<WbSFNode *>(field->value());
+      if (sfNode) {
+        if (sfNode->value())
+          mImportedNodesNumber = sfNode->value()->uniqueId();
+        else
+          mImportedNodesNumber = -1;
+      } else if (operationResult != WbNodeOperations::FAILURE)
         mImportedNodesNumber = importedNodesNumber;
+
+      WbTemplateManager::instance()->blockRegeneration(false);
       emit worldModified();
       return;
     }
     case C_SUPERVISOR_NODE_REMOVE_NODE: {
       unsigned int nodeId;
-      stream >> (unsigned int &)nodeId;
+      stream >> nodeId;
       WbNode *node = WbNode::findNode(nodeId);
       if (node) {
-        WbNodeOperations::instance()->deleteNode(node, true);
-        emit worldModified();
+        if (node == mRobot)
+          mShouldRemoveNode = true;
+        else {
+          WbNodeOperations::instance()->deleteNode(node, true);
+          emit worldModified();
+        }
       }
       return;
     }
     case C_SUPERVISOR_FIELD_REMOVE_VALUE: {
       int index;
       unsigned int nodeId, fieldId;
-      stream >> (unsigned int &)nodeId;
-      stream >> (unsigned int &)fieldId;
-      stream >> (int &)index;
+      stream >> nodeId;
+      stream >> fieldId;
+      stream >> index;
 
+      // apply queued set field operations
+      processImmediateMessages(true);
+
+      bool modified = false;
       WbNode *parentNode = WbNode::findNode(nodeId);
       WbField *field = parentNode->field(fieldId);
       switch (field->type()) {  // remove value
@@ -1035,7 +1243,7 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
           WbMultipleValue *multipleValue = dynamic_cast<WbMultipleValue *>(field->value());
           assert(multipleValue->size() > index);
           multipleValue->removeItem(index);
-          emit worldModified();
+          modified = true;
           break;
         }
         case WB_MF_NODE: {
@@ -1052,14 +1260,34 @@ void WbSupervisorUtilities::handleMessage(QDataStream &stream) {
           }
 
           if (node) {
-            WbNodeOperations::instance()->deleteNode(node, true);
-            emit worldModified();
+            if (node == mRobot)
+              mShouldRemoveNode = true;
+            else {
+              WbNodeOperations::instance()->deleteNode(node, true);
+              modified = true;
+            }
+          }
+          break;
+        }
+        case WB_SF_NODE: {
+          WbSFNode *sfNode = dynamic_cast<WbSFNode *>(field->value());
+          if (sfNode->value()) {
+            if (sfNode->value() == mRobot)
+              mShouldRemoveNode = true;
+            else {
+              WbNodeOperations::instance()->deleteNode(sfNode->value(), true);
+              modified = true;
+            }
           }
           break;
         }
         default:
           assert(0);
       }
+
+      WbTemplateManager::instance()->blockRegeneration(false);
+      if (modified)
+        emit worldModified();
 
       return;
     }
@@ -1101,7 +1329,8 @@ void WbSupervisorUtilities::writeNode(QDataStream &stream, const WbBaseNode *bas
   assert(baseNode);
   stream << (int)baseNode->uniqueId();
   stream << (int)baseNode->nodeType();
-  stream << (int)(baseNode->parent() ? baseNode->parent()->uniqueId() : -1);
+  stream << (int)(baseNode->parentNode() ? baseNode->parentNode()->uniqueId() : -1);
+  stream << (unsigned char)baseNode->isProtoInstance();
   const QByteArray &modelName = baseNode->modelName().toUtf8();
   const QByteArray &defName = baseNode->defName().toUtf8();
   stream.writeRawData(modelName.constData(), modelName.size() + 1);
@@ -1133,6 +1362,9 @@ void WbSupervisorUtilities::writeAnswer(QDataStream &stream) {
     stream << (int)mFoundNodeUniqueId;
     stream << (int)mFoundNodeType;
     stream << (int)mFoundNodeParentUniqueId;
+    stream << (unsigned char)mFoundNodeIsProto;
+    if (mGetFromId)
+      stream << (unsigned char)mFoundNodeIsProtoInternal;
     const QByteArray &modelName = mFoundNodeModelName.toUtf8();
     const QByteArray &defName = mCurrentDefName.toUtf8();
     stream.writeRawData(modelName.constData(), modelName.size() + 1);
@@ -1146,6 +1378,7 @@ void WbSupervisorUtilities::writeAnswer(QDataStream &stream) {
     stream << (int)mFoundNodeUniqueId;
     stream << (int)mFoundNodeType;
     stream << (int)mFoundNodeParentUniqueId;
+    stream << (unsigned char)mFoundNodeIsProto;
     QByteArray s = mFoundNodeModelName.toUtf8();
     stream.writeRawData(s.constData(), s.size() + 1);
     mFoundNodeUniqueId = -1;
@@ -1155,9 +1388,15 @@ void WbSupervisorUtilities::writeAnswer(QDataStream &stream) {
     stream << (unsigned char)C_SUPERVISOR_FIELD_GET_FROM_NAME;
     stream << (int)mFoundFieldId;
     stream << (int)mFoundFieldType;
+    stream << (unsigned char)mFoundFieldIsInternal;
     if (mFoundFieldCount != -1)
       stream << (int)mFoundFieldCount;
     mFoundFieldId = -2;
+  }
+  if (mIsProtoRegenerated) {
+    stream << (short unsigned int)0;
+    stream << (unsigned char)C_SUPERVISOR_NODE_REGENERATED;
+    mIsProtoRegenerated = false;
   }
   if (!mNodesDeletedSinceLastStep.isEmpty()) {
     for (int i = 0; i < mNodesDeletedSinceLastStep.size(); ++i) {
@@ -1166,16 +1405,10 @@ void WbSupervisorUtilities::writeAnswer(QDataStream &stream) {
       stream << (short unsigned int)0;
       stream << (unsigned char)C_SUPERVISOR_NODE_REMOVE_NODE;
       stream << (int)deletedNodeInfo.nodeId;
-      if (deletedNodeInfo.parent == WbWorld::instance()->root())
-        stream << (int)0;
-      else
-        stream << (int)deletedNodeInfo.parent->uniqueId();
-      QByteArray ba = deletedNodeInfo.parentField->name().toUtf8();
+      stream << (int)deletedNodeInfo.parentNodeId;
+      QByteArray ba = deletedNodeInfo.parentFieldName.toUtf8();
       stream.writeRawData(ba.constData(), ba.size() + 1);
-      if (deletedNodeInfo.parentField->isMultiple())
-        stream << (int)dynamic_cast<WbMultipleValue *>(deletedNodeInfo.parentField->value())->size();
-      else
-        stream << (int)-1;
+      stream << (int)deletedNodeInfo.parentFieldCount;
     }
     mNodesDeletedSinceLastStep.clear();
   }
@@ -1189,7 +1422,10 @@ void WbSupervisorUtilities::writeAnswer(QDataStream &stream) {
     mNodeGetPosition = NULL;
   }
   if (mNodeGetOrientation) {
-    const WbMatrix4 &m = mNodeGetOrientation->matrix();
+    WbMatrix4 m(mNodeGetOrientation->matrix());
+    // remove scale from matrix
+    const WbVector3 &s = m.scale();
+    m.scale(1.0 / s.x(), 1.0 / s.y(), 1.0 / s.z());
     stream << (short unsigned int)0;
     stream << (unsigned char)C_SUPERVISOR_NODE_GET_ORIENTATION;
     stream << (double)m(0, 0) << (double)m(0, 1) << (double)m(0, 2);
@@ -1449,12 +1685,18 @@ void WbSupervisorUtilities::writeAnswer(QDataStream &stream) {
 }
 
 void WbSupervisorUtilities::writeConfigure(QDataStream &stream) {
+  WbNode *selfNode = mRobot;
+  while (selfNode->protoParameterNode())
+    selfNode = selfNode->protoParameterNode();
   stream << (short unsigned int)0;
   stream << (unsigned char)C_CONFIGURE;
-  stream << (int)mRobot->uniqueId();
-  QByteArray s = mRobot->modelName().toUtf8();
+  stream << (int)selfNode->uniqueId();
+  stream << (unsigned char)selfNode->isProtoInstance();
+  stream << (unsigned char)(selfNode->parentNode() != WbWorld::instance()->root() &&
+                            !WbNodeUtilities::isVisible(selfNode->parentField()));
+  const QByteArray &s = selfNode->modelName().toUtf8();
   stream.writeRawData(s.constData(), s.size() + 1);
-  QByteArray ba = mRobot->defName().toUtf8();
+  const QByteArray &ba = selfNode->defName().toUtf8();
   stream.writeRawData(ba.constData(), ba.size() + 1);
 }
 

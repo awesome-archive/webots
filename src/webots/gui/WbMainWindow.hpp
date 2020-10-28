@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,12 +32,14 @@ class WbOdeDebugger;
 class WbRecentFilesList;
 class WbRobot;
 class WbSimulationView;
+class WbStreamingServer;
 
 class QMenu;
 class QMenuBar;
 class QProgressDialog;
 class QTimer;
 
+// cppcheck-suppress noConstructor
 class WbMainWindow : public QMainWindow {
   Q_OBJECT
   Q_PROPERTY(QString enabledIconPath MEMBER mEnabledIconPath READ enabledIconPath WRITE setEnabledIconPath)
@@ -46,7 +48,7 @@ class WbMainWindow : public QMainWindow {
   Q_PROPERTY(QString toolBarAlign MEMBER mToolBarAlign READ toolBarAlign WRITE setToolBarAlign)
 
 public:
-  explicit WbMainWindow(bool minimizedOnStart, QWidget *parent = NULL);
+  explicit WbMainWindow(bool minimizedOnStart, WbStreamingServer *streamingServer, QWidget *parent = NULL);
   virtual ~WbMainWindow();
 
   void lockFullScreen(bool isLocked);
@@ -58,10 +60,10 @@ public:
   const QString &coreIconPath() const { return mCoreIconPath; }
   const QString &toolBarAlign() const { return mToolBarAlign; }
 
-  void setEnabledIconPath(QString &path) { mEnabledIconPath = path; }
-  void setDisabledIconPath(QString &path) { mDisabledIconPath = path; }
-  void setCoreIconPath(QString &path) { mCoreIconPath = path; }
-  void setToolBarAlign(QString &align) { mToolBarAlign = align; }
+  void setEnabledIconPath(const QString &path) { mEnabledIconPath = path; }
+  void setDisabledIconPath(const QString &path) { mDisabledIconPath = path; }
+  void setCoreIconPath(const QString &path) { mCoreIconPath = path; }
+  void setToolBarAlign(const QString &align) { mToolBarAlign = align; }
 
   void restorePreferredGeometry(bool minimizedOnStart = false);
 
@@ -90,7 +92,8 @@ private slots:
   void saveWorld();
   void saveWorldAs(bool skipSimulationHasRunWarning = false);
   void reloadWorld();
-  void resetWorld();
+  void resetWorldFromGui();
+  void resetWorld(bool restartControllers);
   void importVrml();
   void exportVrml();
   void exportHtml();
@@ -105,9 +108,16 @@ private slots:
   void showOfflineUserGuide();
   void showOfflineReferenceManual();
   void showOfflineAutomobileDocumentation();
+
+  void openGithubRepository();
+  void openCyberboticsWebsite();
   void openBugReport();
-  void openSupportTicket();
-  void showCyberboticsWebsite();
+  void openNewsletterSubscription();
+  void openDiscord();
+  void openTwitter();
+  void openYouTube();
+  void openLinkedIn();
+
   void newProjectDirectory();
   void newRobotController();
   void newPhysicsPlugin();
@@ -136,7 +146,7 @@ private:
   void showOnlineBook(const QString &);
   void showHtmlRobotWindow(WbRobot *);
   int mExitStatus;
-  WbConsole *mConsole;
+  QList<WbConsole *> mConsoles;
   WbDocumentation *mDocumentation;
   WbBuildEditor *mTextEditor;
   WbSimulationView *mSimulationView;
@@ -175,7 +185,6 @@ private:
   void updateGui();
   void updateSimulationMenu();
   void writePreferences() const;
-  void openSupport(const QString &type);
   void showDocument(const QString &url);
   bool runSimulationHasRunWarningMessage();
   void logActiveControllersTermination();
@@ -192,6 +201,8 @@ private:
   // QSS properties
   QString mEnabledIconPath, mDisabledIconPath, mCoreIconPath, mToolBarAlign;
 
+  WbStreamingServer *mStreamingServer;
+
 private slots:
   void updateProjectPath(const QString &oldPath, const QString &newPath);
   void simulationQuit(int exitStatus);
@@ -205,6 +216,9 @@ private slots:
 
   void toggleFullScreen(bool enabled);
   void exitFullScreen();
+
+  void openNewConsole(const QString &name = QString("Console"));
+  void handleConsoleClosure();
 
   void openUrl(const QString &fileName, const QString &message, const QString &title);
 

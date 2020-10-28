@@ -33,7 +33,7 @@ Currently, there is no implementation difference between the "radio" and "serial
 
 - `aperture`: opening angle of the reception cone (in radians); for "infra-red" only.
 The receiver can only receive messages from emitters currently located within its reception cone.
-The cone's apex is located at the origin ([0 0 0]) of the receiver's coordinate system and the cone's axis coincides with the *z*-axis of the receiver coordinate system (see [this figure](emitter.md#illustration-of-aperture-and-range-for-infra-red-emitter-receiver) in [this section](emitter.md)).
+The cone's apex is located at the origin ([0 0 0]) of the receiver's coordinate system and the cone's axis coincides with the z-axis of the receiver coordinate system (see [this figure](emitter.md#illustration-of-aperture-and-range-for-infra-red-emitter-receiver) in [this section](emitter.md)).
 An `aperture` of -1 (the default) is considered to be infinite, meaning that a signal can be received from any direction.
 For "radio" receivers, the `aperture` field is ignored.
 
@@ -67,7 +67,7 @@ The noise is not dependent on the distance between emitter-receiver.
 #### `wb_receiver_disable`
 #### `wb_receiver_get_sampling_period`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -129,7 +129,7 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_receiver_enable(tag, sampling_period)
 wb_receiver_disable(tag)
 period = wb_receiver_get_sampling_period(tag)
@@ -169,7 +169,7 @@ The `wb_receiver_get_sampling_period` function returns the period given into the
 #### `wb_receiver_get_queue_length`
 #### `wb_receiver_next_packet`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -227,7 +227,7 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 length = wb_receiver_get_queue_length(tag)
 wb_receiver_next_packet(tag)
 ```
@@ -277,7 +277,7 @@ Any user chosen format is suitable, as long as emitters and receivers agree.
 
 %figure "Receiver's packet queue"
 
-![receiver_queue.png](images/receiver_queue.png)
+![receiver_queue.png](images/receiver_queue.thumbnail.png)
 
 %end
 
@@ -298,7 +298,7 @@ Making assumptions based on timing will result in code that is not robust.
 #### `wb_receiver_get_data`
 #### `wb_receiver_get_data_size`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -356,9 +356,9 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 size = wb_receiver_get_data_size(tag)
-data = wb_receiver_get_data(tag)
+data = wb_receiver_get_data(tag, type)
 ```
 
 %tab-end
@@ -401,11 +401,11 @@ Here is an example for getting the data:
 
 <!-- -->
 
-> **Note** [MATLAB]: The MATLAB `wb_receiver_get_data` function returns a MATLAB *libpointer*.
+> **Note** [MATLAB]: The MATLAB `wb_receiver_get_data` function returns a MATLAB *libpointer* if the `type` argument is not set (type should be `uint8`, `double` or `string`).
 The receiving code is responsible for extracting the data from the *libpointer* using MATLAB's `setdatatype` and `get` functions.
 Here is an example on how to send and receive a 2x3 MATLAB matrix.
 
-> ```matlab
+> ```MATLAB
 > % sending robot
 > emitter = wb_robot_get_device('emitter');
 >
@@ -428,7 +428,7 @@ Here is an example on how to send and receive a 2x3 MATLAB matrix.
 In this case the function does not return a *libpointer* but an object of the specified type, and it is not necessary to call `setdatatype` and `get` functions.
 For example the `wb_receiver_get_data` function can be used like this:
 
-> ```matlab
+> ```MATLAB
 > % receiving robot
 > receiver = wb_robot_get_device('receiver');
 > wb_receiver_enable(receiver, TIME_STEP);
@@ -447,7 +447,7 @@ More sophisticated data typed must be accessed explicitly using `setdatatype` an
 #### `wb_receiver_get_signal_strength`
 #### `wb_receiver_get_emitter_direction`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -505,9 +505,9 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 strength = wb_receiver_get_signal_strength(tag)
-[x y z] = wb_receiver_get_emitter_direction(tag)
+x_y_z_array = wb_receiver_get_emitter_direction(tag)
 ```
 
 %tab-end
@@ -530,7 +530,7 @@ strength = wb_receiver_get_signal_strength(tag)
 The `wb_receiver_get_signal_strength` function operates on the head packet in the receiver's queue (see [this figure](#receivers-packet-queue)).
 It returns the simulated signal strength at the time the packet was transmitted.
 This signal strength is equal to the inverse of the distance between the emitter and the receiver squared.
-In other words, *s = 1 / r^2*, where *s* is the signal strength and *r* is the distance between emitter and receiver.
+In other words, *s = 1 / r²*, where *s* is the signal strength and *r* is the distance between emitter and receiver.
 If the packet is sent from a physics plugin, the returned value will be positive infinity.
 It is illegal to call this function if the receiver's queue is empty (i.e. when `wb_receiver_get_queue_length() == 0`).
 
@@ -550,7 +550,7 @@ It is illegal to call this function if the receiver's queue is empty (i.e. when 
 #### `wb_receiver_set_channel`
 #### `wb_receiver_get_channel`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -616,7 +616,7 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_CHANNEL_BROADCAST
 
 wb_receiver_set_channel(tag, channel)

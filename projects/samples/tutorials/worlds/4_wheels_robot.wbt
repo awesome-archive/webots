@@ -1,6 +1,7 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 WorldInfo {
   basicTimeStep 16
+  coordinateSystem "NUE"
 }
 Viewpoint {
   orientation -0.24852896702592445 -0.9044928799946061 -0.3465919540152224 2.16502
@@ -80,24 +81,19 @@ Robot {
       ]
       endPoint Solid {
         translation 0.06 0 0.05
-        rotation 1 0 0 0
+        rotation 0 0 1 1.5708
         children [
-          DEF WHEEL Transform {
-            rotation 0 0 1 1.5708
-            children [
-              Shape {
-                appearance PBRAppearance {
-                  baseColor 0.305882 0.898039 0.25098
-                  roughness 1
-                  metalness 0
-                }
-                geometry Cylinder {
-                  height 0.02
-                  radius 0.04
-                  subdivision 24
-                }
-              }
-            ]
+          DEF WHEEL Shape {
+            appearance PBRAppearance {
+              baseColor 0.305882 0.898039 0.25098
+              roughness 1
+              metalness 0
+            }
+            geometry Cylinder {
+              height 0.02
+              radius 0.04
+              subdivision 24
+            }
           }
         ]
         boundingObject USE WHEEL
@@ -116,7 +112,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.06 0 0.05
-        rotation 1 0 0 0
+        rotation 0 0 1 1.5708
         children [
           USE WHEEL
         ]
@@ -137,7 +133,7 @@ Robot {
       ]
       endPoint Solid {
         translation 0.06 0 -0.05
-        rotation 1 0 0 0
+        rotation 0 0 1 1.5708
         children [
           USE WHEEL
         ]
@@ -158,7 +154,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.06 0 -0.05
-        rotation 1 0 0 0
+        rotation 0 0 1 1.5708
         children [
           USE WHEEL
         ]
@@ -208,5 +204,5 @@ Robot {
     density -1
     mass 1
   }
-  controller "4_wheels_collision_avoidance"
+  controller "four_wheels_collision_avoidance"
 }

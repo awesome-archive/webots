@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ WbWrenGtao::WbWrenGtao() :
   mFov(0.78f),
   mRadius(2.0),
   mHalfResolution(false),
+  mFlipNormalY(0.0f),
   mFrameCounter(0) {
   mClipInfo[0] = mClipInfo[1] = mClipInfo[2] = mClipInfo[3] = 0.0f;
   mParams[0] = mParams[1] = mParams[2] = mParams[3] = 0.0f;
@@ -49,6 +50,23 @@ WbWrenGtao::WbWrenGtao() :
   mOffsets[1] = 0.5f;
   mOffsets[2] = 0.25f;
   mOffsets[3] = 0.75f;
+
+  mPreviousInverseViewMatrix[0] = 1.0f;
+  mPreviousInverseViewMatrix[1] = 0.0f;
+  mPreviousInverseViewMatrix[2] = 0.0f;
+  mPreviousInverseViewMatrix[3] = 0.0f;
+  mPreviousInverseViewMatrix[4] = 0.0f;
+  mPreviousInverseViewMatrix[5] = 1.0f;
+  mPreviousInverseViewMatrix[6] = 0.0f;
+  mPreviousInverseViewMatrix[7] = 0.0f;
+  mPreviousInverseViewMatrix[8] = 0.0f;
+  mPreviousInverseViewMatrix[9] = 0.0f;
+  mPreviousInverseViewMatrix[10] = 1.0f;
+  mPreviousInverseViewMatrix[11] = 0.0f;
+  mPreviousInverseViewMatrix[12] = 0.0f;
+  mPreviousInverseViewMatrix[13] = 0.0f;
+  mPreviousInverseViewMatrix[14] = 0.0f;
+  mPreviousInverseViewMatrix[15] = 0.0f;
 }
 
 void WbWrenGtao::setup(WrViewport *viewport) {
@@ -128,6 +146,12 @@ void WbWrenGtao::setQualityLevel(int qualityLevel) {
   applyParametersToWren();
 }
 
+void WbWrenGtao::setFlipNormalY(float flip) {
+  mFlipNormalY = flip;
+
+  applyParametersToWren();
+}
+
 void WbWrenGtao::copyNewInverseViewMatrix(const float *inverseViewMatrix) {
   memcpy(mPreviousInverseViewMatrix, inverseViewMatrix, sizeof(float) * 16);
 }
@@ -154,6 +178,8 @@ void WbWrenGtao::applyParametersToWren() {
   wr_post_processing_effect_pass_set_program_parameter(mGtaoPass, "params", reinterpret_cast<const char *>(&mParams));
 
   wr_post_processing_effect_pass_set_program_parameter(mGtaoPass, "radius", reinterpret_cast<const char *>(&mRadius));
+
+  wr_post_processing_effect_pass_set_program_parameter(mGtaoPass, "flipNormalY", reinterpret_cast<const char *>(&mFlipNormalY));
 
   ++mFrameCounter;
 

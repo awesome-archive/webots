@@ -1,4 +1,4 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 # license: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 # license url: https://cyberbotics.com/webots_assets_license
 # documentation url: https://www.cyberbotics.com/doc/guide/altino
@@ -9,7 +9,7 @@ PROTO Altino [
   field SFRotation rotation        0 1 0 1.5708            # Is `Transform.rotation`.
   field SFString   name            "vehicle"               # Is `Solid.name`.
   field SFString   controller      "vehicle_driver_altino" # Is `Robot.controller`.
-  field SFString   controllerArgs  ""                      # Is `Robot.controllerArgs`.
+  field MFString   controllerArgs  []                      # Is `Robot.controllerArgs`.
   field SFBool     synchronization TRUE                    # Is `Robot.synchronization`.
   field SFColor    color           0.3 0.3 0.7             # Is `Material.diffuseColor`.
 ]
@@ -116,7 +116,7 @@ PROTO Altino [
                 translation 0 0.024 0.071
                 children [
                   SpotLight {
-                    attenuation 1 0 0
+                    attenuation 0 0 1
                     beamWidth   0.1
                     color       1 1 0.66667
                     cutOffAngle 0.2
@@ -128,7 +128,7 @@ PROTO Altino [
                     location    0.03 0.02 -0.05
                   }
                   SpotLight {
-                    attenuation 1 0 0
+                    attenuation 0 0 1
                     beamWidth   0.1
                     color       1 1 0.66667
                     cutOffAngle 0.2
@@ -176,7 +176,7 @@ PROTO Altino [
                     appearance PBRAppearance {
                       metalness 0
                       roughness 0.4
-                      baseColor 0.6 0.6 0.6 
+                      baseColor 0.6 0.6 0.6
                     }
                     geometry IndexedFaceSet {
                       coord Coordinate {
@@ -193,7 +193,7 @@ PROTO Altino [
                     appearance PBRAppearance {
                       metalness 0
                       roughness 0.4
-                      baseColor 0.6 0.6 0.6 
+                      baseColor 0.6 0.6 0.6
                     }
                     geometry IndexedFaceSet {
                       coord Coordinate {
@@ -272,6 +272,6 @@ PROTO Altino [
     engineMinRPM            1
     engineMaxRPM            250
     gearRatio               [-30 30]
-    maxWheelVelocity         29.8
+    maxVelocity             0.596
   }
 }

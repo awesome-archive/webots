@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 #include "WbVideoRecorder.hpp"
 
 #include "WbApplication.hpp"
+#include "WbDesktopServices.hpp"
 #include "WbFileUtil.hpp"
 #include "WbLog.hpp"
 #include "WbMainWindow.hpp"
@@ -36,13 +37,11 @@
 #include <QtCore/QProcess>
 #include <QtCore/QTextStream>
 #include <QtCore/QThread>
-#include <QtGui/QDesktopServices>
 #include <QtGui/QImage>
 #include <QtGui/QImageWriter>
 #include <QtGui/QScreen>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QCheckBox>
-#include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QFileDialog>
 
 #ifndef _WIN32
@@ -54,20 +53,24 @@
 
 class FrameWriterThread : public QThread {
 public:
-  FrameWriterThread(unsigned char *frame, int mutexIndex, const QString &fileName, const QSize &resolution, int quality,
-                    WbView3D *view) :
-    mFrame(frame),
-    mMutexIndex(mutexIndex),
+  FrameWriterThread(unsigned char *frame, const QString &fileName, const QSize &resolution, int pixelRatio, int quality) :
     mFileName(fileName),
     mResolution(resolution),
+    mPixelRatio(pixelRatio),
     mQuality(quality),
-    mView(view),
-    mSuccess(false) {}
+    mSuccess(false) {
+    const int w = mResolution.width() / mPixelRatio;
+    const int h = mResolution.height() / mPixelRatio;
+    mFrame = new unsigned char[4 * w * h];
+    WbView3D::flipAndScaleDownImageBuffer(frame, mFrame, mResolution.width(), mResolution.height(), mPixelRatio);
+  }
+
+  virtual ~FrameWriterThread() { delete[] mFrame; }
 
   void run() override {
-    mView->lockPBOMutex(mMutexIndex);
-    WbView3D::flipImageBuffer(mFrame, mResolution.width(), mResolution.height(), 4);
-    QImage img = QImage(mFrame, mResolution.width(), mResolution.height(), QImage::Format_RGB32);
+    const int w = mResolution.width() / mPixelRatio;
+    const int h = mResolution.height() / mPixelRatio;
+    QImage img = QImage(mFrame, w, h, QImage::Format_RGB32);
     QImageWriter writer(mFileName);
     writer.setQuality(mQuality);
     mSuccess = writer.write(img);
@@ -81,18 +84,16 @@ public:
         supportedFormatsLog.append(QString::fromUtf8(supportedFormats[i]) + " ");
       WbLog::info(supportedFormatsLog, false);
     }
-    mView->unlockPBOMutex(mMutexIndex);
   }
 
   bool success() const { return mSuccess; }
 
 private:
   unsigned char *mFrame;
-  const int mMutexIndex;
   const QString mFileName;
   const QSize mResolution;
+  const int mPixelRatio;
   const int mQuality;
-  WbView3D *mView;
   bool mSuccess;
 };
 
@@ -115,6 +116,7 @@ WbVideoRecorder::WbVideoRecorder() :
   mIsFullScreen(false),
   mFrameFilePrefix(TEMP_FRAME_FILENAME_PREFIX + QString::number(QCoreApplication::applicationPid()) + "_"),
   mLastFileNumber(-1),
+  mScreenPixelRatio(1),
   mVideoQuality(0),
   mVideoAcceleration(1),
   mShowCaption(false),
@@ -129,7 +131,7 @@ WbVideoRecorder::~WbVideoRecorder() {
 bool WbVideoRecorder::initRecording(WbSimulationView *view, double basicTimeStep) {
   // show dialog to select parameters
   // compute maximum slow down with the current basicTimeStep
-  WbVideoRecorderDialog dialog(NULL, view->view3D()->size(), 1.0 / floor(EXPECTED_FRAME_STEP / basicTimeStep));
+  WbVideoRecorderDialog dialog(NULL, view->view3D()->size(), 1.0 / ceil(EXPECTED_FRAME_STEP / basicTimeStep));
   bool accept = dialog.exec();
   if (!accept) {
     // cancel button - reject
@@ -166,19 +168,19 @@ bool WbVideoRecorder::setMainWindowFullScreen(bool fullScreen) {
 }
 
 void WbVideoRecorder::estimateMovieInfo(double basicTimeStep) {
-  int roundedBasicTimeStep = round(basicTimeStep);
-  double refresh = EXPECTED_FRAME_STEP / (double)roundedBasicTimeStep;
-  int floorRefresh = floor(refresh);
-  int ceilRefresh = ceil(refresh);
-  int frameStep0 = floorRefresh * roundedBasicTimeStep;
-  int frameStep1 = ceilRefresh * roundedBasicTimeStep;
+  const int ceilBasicTimeStep = ceil(basicTimeStep);
+  const double refresh = mVideoAcceleration * EXPECTED_FRAME_STEP / (double)ceilBasicTimeStep;
+  const int floorRefresh = floor(refresh);
+  const int ceilRefresh = ceil(refresh);
+  const int frameStep0 = floorRefresh * ceilBasicTimeStep;
+  const int frameStep1 = ceilRefresh * ceilBasicTimeStep;
 
   if (frameStep0 == 0 || abs(frameStep0 - EXPECTED_FRAME_STEP) > abs(frameStep1 - EXPECTED_FRAME_STEP)) {
-    mMovieFPS = 1000.0 / frameStep1;
-    cDisplayRefresh = ceilRefresh * mVideoAcceleration;
+    mMovieFPS = mVideoAcceleration * 1000.0 / frameStep1;
+    cDisplayRefresh = frameStep1;
   } else {
-    mMovieFPS = 1000.0 / frameStep0;
-    cDisplayRefresh = floorRefresh * mVideoAcceleration;
+    mMovieFPS = mVideoAcceleration * 1000.0 / frameStep0;
+    cDisplayRefresh = frameStep0;
   }
 }
 
@@ -225,10 +227,8 @@ bool WbVideoRecorder::initRecording(WbSimulationView *view, double basicTimeStep
   // remove old files
   removeOldTempFiles();
 
-  const QDesktopWidget *qDesktop = QApplication::desktop();
-  const int screenNumber = qDesktop->screenNumber(QCursor::pos());
-  QSize fullScreen(qDesktop->screenGeometry(screenNumber).width(), qDesktop->screenGeometry(screenNumber).height());
-  fullScreen *= QGuiApplication::screens()[screenNumber]->devicePixelRatio();
+  const QScreen *screen = QGuiApplication::screenAt(QCursor::pos());
+  const QSize fullScreen(screen->geometry().width(), screen->geometry().height());
 
   mIsFullScreen = (mVideoResolution == fullScreen);
   if (mIsFullScreen) {
@@ -343,10 +343,10 @@ void WbVideoRecorder::stopRecording(bool canceled) {
   mIsInitialized = false;
 }
 
-void WbVideoRecorder::writeSnapshot(unsigned char *frame, int PBOIndex) {
+void WbVideoRecorder::writeSnapshot(unsigned char *frame) {
   QString fileName = nextFileName();
   FrameWriterThread *thread =
-    new FrameWriterThread(frame, PBOIndex, fileName, mVideoResolution, mVideoQuality, mSimulationView->view3D());
+    new FrameWriterThread(frame, fileName, mVideoResolution * mScreenPixelRatio, mScreenPixelRatio, mVideoQuality);
   connect(thread, &QThread::finished, this, &WbVideoRecorder::terminateSnapshotWrite);
   thread->start();
 }
@@ -408,10 +408,10 @@ void WbVideoRecorder::terminateVideoCreation(int exitCode, QProcess::ExitStatus 
     box.setCheckBox(checkBox);
     if (box.exec() == QMessageBox::Yes) {
       if (checkBox->isChecked()) {
-        QDesktopServices::openUrl(QUrl("https://www.youtube.com/upload"));
+        WbDesktopServices::openUrl("https://www.youtube.com/upload");
         WbFileUtil::revealInFileManager(mVideoName);
       }
-      QDesktopServices::openUrl(QUrl::fromLocalFile(mVideoName));
+      WbDesktopServices::openUrl(QUrl::fromLocalFile(mVideoName).toString());
     }
   }
 }
@@ -455,7 +455,7 @@ void WbVideoRecorder::removeOldTempFiles() {
 
 QString WbVideoRecorder::nextFileName() {
   mLastFileNumber++;
-  return mTempDirPath + mFrameFilePrefix + QString().sprintf("%06d", mLastFileNumber) + ".jpg";
+  return mTempDirPath + mFrameFilePrefix + QString::asprintf("%06d", mLastFileNumber) + ".jpg";
 }
 
 void WbVideoRecorder::createMpeg() {
@@ -480,8 +480,8 @@ void WbVideoRecorder::createMpeg() {
   if (ffmpegScript.open(QIODevice::WriteOnly)) {
     // bitrate range between 4 and 24000000
     // cast into 'long long int' is mandatory on 32-bit machine
-    long long int bitrate =
-      (long long int)mVideoQuality * mMovieFPS * mVideoResolution.width() * mVideoResolution.height() / 256;
+    long long int bitrate = (long long int)mVideoQuality * mMovieFPS * mVideoResolution.width() * mVideoResolution.height() /
+                            256 / (mScreenPixelRatio * mScreenPixelRatio);
 
     QTextStream stream(&ffmpegScript);
 #ifndef _WIN32
@@ -544,7 +544,7 @@ void WbVideoRecorder::createMpeg() {
     env.insert("AV_LOG_FORCE_COLOR", "1");  // force output message to use ANSI Escape sequences
     mScriptProcess = new QProcess();
     mScriptProcess->setProcessEnvironment(env);
-    mScriptProcess->start("./" + mScriptPath);
+    mScriptProcess->start("./" + mScriptPath, QStringList());
     connect(mScriptProcess, (void (QProcess::*)(int, QProcess::ExitStatus)) & QProcess::finished, this,
             &WbVideoRecorder::terminateVideoCreation);
     connect(mScriptProcess, &QProcess::readyReadStandardOutput, this, &WbVideoRecorder::readStdout);

@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -101,6 +101,7 @@ WbPerformanceLog::WbPerformanceLog(const QString &fileName, int stepsCount) :
   mValues(INFO_COUNT, 0.0),
   mValuesCount(INFO_COUNT, 0),
   mTimers(INFO_COUNT),
+  mAverageFPS(0.0),
   mIsLogCompleted(false) {
   mFile = new QFile(mFileName);
   for (int i = 0; i < INFO_COUNT; ++i)
@@ -167,8 +168,7 @@ void WbPerformanceLog::writeTotalValues() {
 
   WbPreferences *prefs = WbPreferences::instance();
   out << "Shadows disabled: " << (prefs->value("OpenGL/disableShadows").toBool() ? "true" : "false") << "\n";
-  out << "Camera Anti Aliasing disabled: " << (prefs->value("OpenGL/disableCameraAntiAliasing").toBool() ? "true" : "false")
-      << "\n";
+  out << "Anti-aliasing disabled: " << (prefs->value("OpenGL/disableAntiAliasing").toBool() ? "true" : "false") << "\n";
 
   QList<QString> devicesKeys = mRenderingDevicesValues.keys();
   QList<QString> controllersKeys = mControllersValues.keys();

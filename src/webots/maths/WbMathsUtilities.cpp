@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ namespace {
 
     return true;  // it turns right or the three points are aligned
   }
-};
+};  // namespace
 
 bool WbMathsUtilities::isPowerOf2(unsigned int n) {
   return (n != 0) && ((n & (n - 1)) == 0);

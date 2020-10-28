@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 
 #include "WbBaseNode.hpp"
 #include "WbVector2.hpp"
+
+#include <QtCore/QSet>
 
 class WbRgb;
 
@@ -42,7 +44,7 @@ public:
   void postFinalize() override;
 
   // specific functions
-  void pickColor(WbRgb &pickedColor, const WbVector2 &uv) const;
+  void pickColor(WbRgb &pickedColor, const WbVector2 &uv);
 
   // WREN
   virtual const WrTexture *wrenTexture() const { return mWrenTexture; }
@@ -51,8 +53,6 @@ public:
   // Texture features
   int width() const;
   int height() const;
-  bool isTransparent() const;
-  int filtering() const;
 
   // external texture
   void setExternalTexture(WrTexture *texture, unsigned char *image, double ratioX, double ratioY);
@@ -61,14 +61,20 @@ public:
   void unsetBackgroundTexture();
 
   QString path();
-  void setContainerField(QString &field);
+
+  void setRole(const QString &role) { mRole = role; }
+
+  void write(WbVrmlWriter &writer) const override;
 
 signals:
   void changed();
 
 protected:
+  bool exportNodeHeader(WbVrmlWriter &writer) const override;
   void exportNodeFields(WbVrmlWriter &writer) const override;
   void exportNodeSubNodes(WbVrmlWriter &writer) const override;
+
+  bool loadTextureData();
 
 private:
   // user accessible fields
@@ -90,7 +96,9 @@ private:
 
   QString mContainerField;
   QImage *mImage;
+  int mUsedFiltering;
   bool mIsMainTextureTransparent;
+  QString mRole;  // Role in a PBR appearance.
 
   WbImageTexture &operator=(const WbImageTexture &);  // non copyable
   WbNode *clone() const override { return new WbImageTexture(*this); }
@@ -98,6 +106,8 @@ private:
   void updateWrenTexture();
   void applyTextureParams();
   void destroyWrenTexture();
+
+  static QSet<QString> cQualityChangedTexturesList;
 
 private slots:
   void updateUrl();

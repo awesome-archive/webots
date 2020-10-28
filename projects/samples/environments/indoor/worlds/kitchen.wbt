@@ -1,5 +1,6 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
   fieldOfView 1.1
@@ -7,10 +8,12 @@ Viewpoint {
   position 6.442030557280244 5.206668161781518 3.0097162179105705
   exposure 0.7999999999999999
 }
-Background {
-  cubemap Cubemap {
-    textureBaseName "brown_floor"
-  }
+TexturedBackground {
+  texture "empty_office"
+  skybox FALSE
+  skyColor [
+    0.2 0.2 0.2
+  ]
 }
 Cabinet {
   translation 1 0.83 -2.15
@@ -553,9 +556,8 @@ Table {
 }
 CeilingLight {
   translation 1.5 2.4 0.7
-  pointLightAttenuation 0 0 4
   pointLightColor 1 0.9764705882352941 0.9058823529411765
-  pointLightIntensity 7
+  pointLightIntensity 4
 }
 Chair {
   translation 0.5 0 0.64
@@ -703,7 +705,7 @@ Cookware {
 }
 Lid {
   translation -1.31968 0.960471 -1.66658
-  rotation 0.7083611653994737 6.470801510906041e-5 -0.7058501648131651 0.000636256
+  rotation 0.7083611653994737 6.470801510906041e-05 -0.7058501648131651 0.000636256
 }
 WoodenSpoon {
   translation -1.37605 0.889212 -1.24856

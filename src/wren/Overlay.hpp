@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ namespace wren {
     static void deleteOverlay(Overlay *overlay) { delete overlay; }
 
     static void setDefaultSizeProgram(ShaderProgram *program) { cDefaultSizeProgram = program; }
-    static void setScreenRatio(float ratio) { cScreenRatio = ratio; }
 
     void setOrder(int order) { mOrder = order; };
     void putOnTop();
@@ -97,7 +96,6 @@ namespace wren {
     static ShaderProgram *cDefaultSizeProgram;
     static size_t cMaxOrder;
     static std::vector<Overlay *> cOverlays;
-    static float cScreenRatio;
 
     int mOrder;  // overlays are sorted in ascending order before rendering
     bool mIsVisible;

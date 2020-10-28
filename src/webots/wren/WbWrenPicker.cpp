@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@
 
 #include <wren/material.h>
 #include <wren/scene.h>
-
-float WbWrenPicker::cScreenRatio = 1.0f;
 
 // Setup & attach picking material, based on the unique ID
 // ID is encoded in the following way:
@@ -83,10 +81,6 @@ void WbWrenPicker::setup() {
   WrViewport *viewport = wr_scene_get_viewport(wr_scene_get_instance());
   mWidth = wr_viewport_get_width(viewport);
   mHeight = wr_viewport_get_height(viewport);
-  if (cScreenRatio != 1.0) {  // Typically for Retina displays.
-    mWidth /= cScreenRatio;
-    mHeight /= cScreenRatio;
-  }
   wr_viewport_set_size(mViewport, mWidth, mHeight);
 
   mFrameBuffer = wr_frame_buffer_new();
@@ -146,7 +140,7 @@ bool WbWrenPicker::pick(int x, int y) {
   wr_viewport_enable_skybox(mViewport, false);
   wr_scene_enable_translucence(scene, false);
   wr_scene_enable_depth_reset(scene, false);
-  wr_scene_render_to_viewports(scene, 1, &mViewport, "picking");
+  wr_scene_render_to_viewports(scene, 1, &mViewport, "picking", true);
   wr_scene_enable_depth_reset(scene, true);
   wr_viewport_enable_skybox(mViewport, true);
   wr_scene_enable_translucence(scene, true);

@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 
 #define NUMBER_OF_THEMES 3
 
+class QCheckBox;
 class QLabel;
 class QPushButton;
 class QRadioButton;
@@ -37,10 +38,10 @@ public:
   // qproperty methods
   const QColor &backgroundColor() const { return mBackgroundColor; }
 
-  void setBackgroundColor(QColor &color) { mBackgroundColor = color; }
+  void setBackgroundColor(const QColor &color) { mBackgroundColor = color; }
 
 private slots:
-  void selectTheme();
+  void startButtonPressed();
   void updatePreview();
 
 private:
@@ -48,10 +49,9 @@ private:
   virtual ~WbNewVersionDialog() {}
 
   QColor mBackgroundColor;
-
   QRadioButton *mRadioButtons[NUMBER_OF_THEMES];
-  QPushButton *mStartButton;
   QLabel *mPreviewLabel;
+  QCheckBox *mTelemetryCheckBox;
 };
 
 #endif

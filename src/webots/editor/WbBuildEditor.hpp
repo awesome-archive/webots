@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QDir>
 #include <QtCore/QProcess>
+#include <QtCore/QStringList>
 #include "WbTextEditor.hpp"
 
 class QAction;
@@ -48,12 +49,11 @@ public:
   QAction *crossCompileAction() const { return mCrossCompileAction; }
   QAction *cleanCrossCompilationAction() const { return mCleanCrossCompilationAction; }
 
+  void updateGui() override;
+
 signals:
   void reloadRequested();
-  void resetRequested();
-
-protected:
-  void updateGui() override;
+  void resetRequested(bool restartControllers);
 
 private:
   QAction *mBuildAction, *mCleanAction, *mMakeJarAction;
@@ -74,7 +74,7 @@ private:
   void updateTargetModificationTime();
   void reloadMessageBoxIfNeeded();
   const QDir compileDir() const;
-  QString getJavaCommandLine(const QString &target) const;
+  QStringList getJavaCommandLine(const QString &target) const;
 
 private slots:
   void readStdout();

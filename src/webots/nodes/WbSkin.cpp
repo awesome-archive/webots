@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@
 #include <wren/skeleton_bone.h>
 #include <wren/transform.h>
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QQueue>
@@ -56,7 +56,6 @@ void WbSkin::init() {
 
   mBoneMesh = NULL;
   mBoneMaterial = NULL;
-  mModelPath = QString();
 
   mName = findSFString("name");
   mModelName = findSFString("model");
@@ -209,19 +208,19 @@ void WbSkin::updateAppearance() {
     }
 
     if (index < 0)
-      warn(tr("No material named '%1' could be found in mesh file.").arg(appearanceName));
+      parsingWarn(tr("No material named '%1' could be found in mesh file.").arg(appearanceName));
     else if (!duplicated)
       wr_renderable_set_material(mRenderables[index], mMaterials[index], NULL);
     else
-      warn(tr("Duplicated Appearance with name '%1' in 'appearance' field. "
-              "Only the first instance will be used.")
-             .arg(appearanceName));
+      parsingWarn(tr("Duplicated Appearance with name '%1' in 'appearance' field. "
+                     "Only the first instance will be used.")
+                    .arg(appearanceName));
   }
 
   for (int i = 0; i < undefinedList.size(); ++i) {
     const int index = mMaterialNames.indexOf(undefinedList[i]);
     mMaterials[index] = WbAppearance::fillWrenDefaultMaterial(mMaterials[index]);
-    warn(tr("Undefined Appearance with name '%1'.").arg(undefinedList[i]));
+    parsingWarn(tr("Undefined Appearance with name '%1'.").arg(undefinedList[i]));
     wr_renderable_set_material(mRenderables[index], mMaterials[index], NULL);
   }
 }
@@ -275,9 +274,9 @@ void WbSkin::updateAppearanceName(const QString &newName, const QString &prevNam
 
   if (newNameExistsBefore || newNameExistsAfter)
     // another definition of newName material is specified before this one
-    warn(tr("Duplicated Appearance with name '%1' in 'appearance' field. "
-            "Only the first instance will be used.")
-           .arg(newName));
+    parsingWarn(tr("Duplicated Appearance with name '%1' in 'appearance' field. "
+                   "Only the first instance will be used.")
+                  .arg(newName));
 
   if (newNameDefined && !newNameExistsBefore) {
     // modify newName material
@@ -297,7 +296,7 @@ void WbSkin::updateAppearanceName(const QString &newName, const QString &prevNam
 
     if (other == NULL) {
       material = WbAppearance::fillWrenDefaultMaterial(material);
-      warn(tr("Undefined Appearance with name '%1'.").arg(newName));
+      parsingWarn(tr("Undefined Appearance with name '%1'.").arg(newName));
     } else
       material = other->modifyWrenMaterial(material);
 
@@ -413,7 +412,7 @@ void WbSkin::createWrenSkeleton() {
 
   mModelPath = WbProject::current()->path() + "skins/" + mModelName->value() + "/";
   if (!QDir(mModelPath).exists()) {
-    warn(tr("Model directory not found."));
+    parsingWarn(tr("Model directory not found."));
     return;
   }
 
@@ -424,7 +423,7 @@ void WbSkin::createWrenSkeleton() {
     const QString fullPath = meshFilePath + supportedExtensions[i];
     if (QFileInfo::exists(fullPath)) {
       if (supportedExtensions[i] == ".mesh" && !QFileInfo::exists(meshFilePath + ".skeleton")) {
-        warn(tr("OGRE skeleton file not found."));
+        parsingWarn(tr("OGRE skeleton file not found."));
         return;
       }
       meshFilePath = fullPath;
@@ -433,7 +432,7 @@ void WbSkin::createWrenSkeleton() {
   }
 
   if (!QFileInfo::exists(meshFilePath)) {
-    warn(tr("Mesh file not found: '%1'.").arg(meshFilePath));
+    parsingWarn(tr("Mesh file not found: '%1'.").arg(meshFilePath));
     return;
   }
 
@@ -442,7 +441,7 @@ void WbSkin::createWrenSkeleton() {
   int count;
   const char *error = wr_import_skeleton(meshFilePath.toStdString().c_str(), &mSkeleton, &meshes, &materialNames, &count);
   if (error) {
-    warn(tr("Unable to read mesh file '%1': %2").arg(meshFilePath).arg(error));
+    parsingWarn(tr("Unable to read mesh file '%1': %2").arg(meshFilePath).arg(error));
     return;
   }
 
@@ -580,16 +579,16 @@ bool WbSkin::createSkeletonFromWebotsNodes() {
     WbSolid *solid = ref->solid();
     QString boneName = solid->name();
     if (boneNames.contains(boneName)) {
-      warn(tr("Invalid item %1 in 'bones' field: "
-              "duplicated reference to Solid with name '%2'.")
-             .arg(i)
-             .arg(solid->name()));
+      parsingWarn(tr("Invalid item %1 in 'bones' field: "
+                     "duplicated reference to Solid with name '%2'.")
+                    .arg(i)
+                    .arg(solid->name()));
       continue;
     }
 
     WrTransform *wrenBone = WR_TRANSFORM(wr_skeleton_get_bone_by_name(mSkeleton, boneName.toStdString().c_str()));
     if (!wrenBone) {
-      warn(tr("Bone named '%1' could not be found in skeleton file.").arg(boneName));
+      parsingWarn(tr("Bone named '%1' could not be found in skeleton file.").arg(boneName));
       continue;
     }
 
@@ -600,10 +599,10 @@ bool WbSkin::createSkeletonFromWebotsNodes() {
 
   const int skeletonBoneCount = wr_skeleton_get_bone_count(mSkeleton);
   if (validBoneCount != skeletonBoneCount) {
-    warn(tr("Number of valid bones defined in 'bones' field does not match with skeleton file. "
-            "Expected: %1, was: %2.")
-           .arg(skeletonBoneCount)
-           .arg(validBoneCount));
+    parsingWarn(tr("Number of valid bones defined in 'bones' field does not match with skeleton file. "
+                   "Expected: %1, was: %2.")
+                  .arg(skeletonBoneCount)
+                  .arg(validBoneCount));
     return false;
   }
 
@@ -617,8 +616,8 @@ bool WbSkin::createSkeletonFromWebotsNodes() {
     WrTransform *parent = wr_node_get_parent(WR_NODE(wrenBone));
     if (parent) {
       // Attach bone representation
-      const WbVector3 offset = solid->translation();
-      const WbVector3 scale = solid->scale();
+      const WbVector3 &offset = solid->translation();
+      const WbVector3 &scale = solid->scale();
       const float length = (offset * scale).length();
       const float boneScale[3] = {length, length, length};
 
@@ -683,13 +682,13 @@ void WbSkin::handleMessage(QDataStream &stream) {
   bool invalidSkeleton = false;
   bool webotsSkeletonWarning = false;
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SKIN_GET_BONE_POSITION: {
       functionName = "wb_skin_get_bone_position";
-      stream >> (unsigned short int &)index;
-      stream >> (unsigned char &)absolute;
+      stream >> index;
+      stream >> absolute;
       assert(mBonePositionRequest == NULL);
 
       if (!mSkeleton)
@@ -706,8 +705,8 @@ void WbSkin::handleMessage(QDataStream &stream) {
     }
     case C_SKIN_GET_BONE_ORIENTATION: {
       functionName = "wb_skin_get_bone_orientation";
-      stream >> (unsigned short int &)index;
-      stream >> (unsigned char &)absolute;
+      stream >> index;
+      stream >> absolute;
       assert(mBoneOrientationRequest == NULL);
 
       if (!mSkeleton)
@@ -725,11 +724,11 @@ void WbSkin::handleMessage(QDataStream &stream) {
     case C_SKIN_SET_BONE_POSITION: {
       functionName = "wb_skin_set_bone_position";
       double x, y, z;
-      stream >> (unsigned short int &)index;
-      stream >> (double &)x;
-      stream >> (double &)y;
-      stream >> (double &)z;
-      stream >> (unsigned char &)absolute;
+      stream >> index;
+      stream >> x;
+      stream >> y;
+      stream >> z;
+      stream >> absolute;
       if (!mSkeleton)
         invalidSkeleton = true;
       else if (mBonesField->size() > 0)
@@ -741,12 +740,12 @@ void WbSkin::handleMessage(QDataStream &stream) {
     case C_SKIN_SET_BONE_ORIENTATION: {
       functionName = "wb_skin_set_bone_orientation";
       double x, y, z, angle;
-      stream >> (unsigned short int &)index;
-      stream >> (double &)x;
-      stream >> (double &)y;
-      stream >> (double &)z;
-      stream >> (double &)angle;
-      stream >> (unsigned char &)absolute;
+      stream >> index;
+      stream >> x;
+      stream >> y;
+      stream >> z;
+      stream >> angle;
+      stream >> absolute;
       if (!mSkeleton)
         invalidSkeleton = true;
       else if (mBonesField->size() > 0)
@@ -761,12 +760,12 @@ void WbSkin::handleMessage(QDataStream &stream) {
   }
 
   if (invalidSkeleton)
-    warn(tr("%1 cannot be executed because no valid skeleton is available.").arg(functionName));
+    parsingWarn(tr("%1 cannot be executed because no valid skeleton is available.").arg(functionName));
 
   if (webotsSkeletonWarning && !mBonesWarningPrinted) {
-    warn(tr("Skin animation control using %1 is disabled if a Webots "
-            "skeleton is used.\n")
-           .arg(functionName));
+    parsingWarn(tr("Skin animation control using %1 is disabled if a Webots "
+                   "skeleton is used.\n")
+                  .arg(functionName));
     mBonesWarningPrinted = true;
   }
 }

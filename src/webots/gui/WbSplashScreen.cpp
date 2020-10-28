@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,15 +30,17 @@ WbSplashScreen::WbSplashScreen(const QStringList &screenshots, const QString &lo
 
   mScreenshot = QImage("images:splash_images/" + screenshots.at(randomImageIndex));
   mWebotsLogo = QImage("images:" + logoFileName);
+#ifdef _WIN32
+  setWindowModality(Qt::ApplicationModal);
+#endif
 }
 
 WbSplashScreen::~WbSplashScreen() {
 }
 
 void WbSplashScreen::drawContents(QPainter *painter) {
-#ifdef _WIN32
-  // for some reason dpi scaling on windows doesn't work properly on the splash
-  // screen so we have to correct this manually
+#ifndef __linux__
+  // fix manually the dpi scaling.
   const double dotsPerInchRatio = 96.0 / logicalDpiX();
 #else
   const double dotsPerInchRatio = 1.0;
@@ -58,22 +60,22 @@ void WbSplashScreen::drawContents(QPainter *painter) {
 
   // draw application name
   QFont font;
-  font = QFont("Raleway Light", 44 * dotsPerInchRatio);
+  font = QFont("Raleway", 44 * dotsPerInchRatio, QFont::Light);
   painter->setFont(font);
   painter->setPen(companyColor());
   painter->drawText(QRect(144, 76, 228, 60), Qt::AlignCenter, "Webots");
 
   // draw tagline
-  font = QFont("Raleway Light", 15 * dotsPerInchRatio);
+  font = QFont("Raleway", 15 * dotsPerInchRatio, QFont::Light);
   painter->setFont(font);
   painter->setPen(taglineColor());
   painter->drawText(QRect(0, 140, 380, 100), Qt::AlignCenter, "Model. Program. Simulate. Transfer.");
 
   // draw version
-  font = QFont("Raleway Light", 30 * dotsPerInchRatio);
+  font = QFont("Raleway", 30 * dotsPerInchRatio, QFont::Light);
   painter->setFont(font);
   painter->setPen(versionColor());
-  painter->drawText(QRect(0, 273, 380, 100), Qt::AlignCenter, WbApplicationInfo::version().toString());
+  painter->drawText(QRect(0, 273, 380, 100), Qt::AlignCenter, WbApplicationInfo::version().toString(true, false, false));
 
   // then draw updating text
   font = QFont("Helvetica", 10 * dotsPerInchRatio);

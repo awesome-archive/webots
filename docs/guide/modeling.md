@@ -1,6 +1,6 @@
 ## Modeling
 
-### My Robot/Simulation Explodes, What Should I Do?
+### My Robot/Simulation Explodes or Behaves Weirdly, What Should I Do?
 
 The explosion is usually caused by inappropriate values passed to the physics engine (ODE).
 There are many things you can be try to improve the stability of the simulation (adapted from ODE's User Guide):
@@ -20,32 +20,55 @@ Since contact forces are computed and applied only at every time step, too fast 
 6. Avoid building mechanical loops by using [Connector](../reference/connector.md) nodes.
 The mechanical loops may cause constraints to fight each other and generate strange forces in the system that can swamp the normal forces.
 For example, an affected body might fly around as though it has life on its own, with complete disregard for gravity.
+7. Avoid thin objects.
+The problem with thin objects is the following: since the simulation time increases step-by-step, if the time step is too large and a thin object is moving fast, it is possible that at step _t_, the thin object does not collide and at step _t+1_ it is already completely inside another object.
+In that case, ODE (the physics engine of Webots) might not know on which side to push back the thin object and this might result in big instabilities.
+Similarly, you can think of a bullet fired into a wall.
+If the simulation step is too large, it is completely possible that the bullet goes through the wall without even noticing it.
+At time _t_, it will be on one side of the wall and at time _t+1_, it will be already on the other side, so no step is producing a collision.
 
 ### How to Make Replicable/Deterministic Simulations?
 
 In order for Webots simulation results to be reproducible, the following conditions must be fulfilled:
 
-1. Each simulation must be restarted either by pushing the `Reload` button, or by using the `wb_supervisor_world_reload` function, or by restarting Webots.
+1. Each simulation must be executed with the same version of the Webots software, on the same machine.
+Running the same simulation on different machines or different Webots versions may result in small numerical differences.
+However, it is possible to run fully reproducible results on different machines if these machines have the same operating system (same version, same updates), same graphics card and same graphics driver.
+It turns out that different OpenGL drivers or different graphics cards produce slightly different 3D rendering results.
+So, if your simulation doesn't rely on OpenGL rendering (no camera, lidar or range-finder), it should be reproducible on machines with a different graphics configuration.
+2. Each simulation must be restarted either by pushing the `Reload` button, or by using the `wb_supervisor_world_reload` function, or by restarting Webots.
 The random seeds used by Webots internally are reset for each simulation restarted with one of the above methods.
-2. The `synchronization` flag of every robot and supervisor must be TRUE.
-Otherwise the number of physics steps per control step may vary with the current CPU load and hence the robot's behavior may also vary.
-3. The controllers (and physics plugin) code must also be deterministic.
-In particular that code must not use a pseudo random generator initialized with an non-deterministic seed such as the system time.
+3. The `synchronization` flag of every robot and supervisor must be TRUE.
+Otherwise, the number of physics steps per control step may vary with the current CPU load and hence the robot's behavior may also vary.
+4. The controllers (and physics plugin) code must also be deterministic.
+In particular, that code must not use a pseudo random generator initialized with a non-deterministic seed such as the system time.
 For example this is not suitable for replicable experiments: `srand(time(NULL))`.
 Note that uninitialized variables may also be a source of undeterministc behavior.
-4. Each simulation must be executed with the same version of the Webots software and on the same OS platform.
-Different OS platforms and different Webots versions may result small numerical differences.
 5. Webots physics must run in single thread mode.
-The number of threads used by the physics engine (ODE) can be changed either globally in the [preferences](preferences.md) or using the `WorldInfo.basicTimeStep` field.
+The number of threads used by the physics engine (ODE) can be changed either globally in the [preferences](preferences.md) or using the `WorldInfo.optimalThreadCount` field.
 It should be set to 1.
 6. The Webots random number generator should have a fixed seed.
 The seed is defined in the `WorldInfo.randomSeed` field, it should be non-negative to avoid non-replicable time based seed.
 
 If the six above conditions are met, Webots simulations become replicable.
 This means that after the same number of steps two simulations will have exactly the same internal state.
-Hence if both simulation are saved using the `Save as...` button, the resulting files will be identical.
+Hence if both simulations are saved using the `Save as...` button, the resulting files will be identical.
 This is true independently of the simulation mode used to execute the simulation: `Step`, `Real-Time`, `Run` or `Fast`.
 This is also true whether or not sensor noise is used (see below).
+
+### My Robot Sinks into the Ground, How to Remove This Effect?
+
+#### My Robot Is Heavy and Sinks into the Ground Constantly
+
+My robot weighs over hundreds of kilograms.
+
+- Reduce the `basicTimeStep` field value of the [WorldInfo](../reference/worldinfo.md) node.
+- Reduce the `softCFM` field of the [ContactProperties](../reference/contactproperties.md) node which defines the contact between the robot (typically the robot wheels or feet) and the ground.
+
+#### My Robot Suddenly Sinks into the Ground (ElevationGrid) as It Moves from One Tile to Another
+
+This is an ODE bug.
+A workaround is to make the [ElevationGrid](../reference/elevationgrid.md) tiles larger than the size of the robot.
 
 ### How to Remove the Noise from the Simulation?
 
@@ -112,7 +135,7 @@ void webots_physics_cleanup() {
 ```
 
 You will find the description of Webots physics plugin API [here](../reference/physics-plugin.md).
-You will find the description about the ODE functions on [this page](http://ode-wiki.org/wiki/index.php?title=Manual).
+You will find the description about the ODE functions on [this page](http://ode.org/wiki/index.php?title=Manual).
 
 ### Should I Specify the "mass" or the "density" in the Physics Nodes?
 

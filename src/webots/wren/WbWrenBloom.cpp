@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,8 +22,6 @@
 #include <wren/texture.h>
 #include <wren/viewport.h>
 
-float WbWrenBloom::cScreenRatio = 1.0f;
-
 WbWrenBloom::WbWrenBloom() : WbWrenAbstractPostProcessingEffect(), mThreshold(10.0f) {
 }
 
@@ -39,8 +37,8 @@ void WbWrenBloom::setup(WrViewport *viewport) {
 
   mWrenViewport = viewport;
 
-  const float width = wr_viewport_get_width(mWrenViewport) / cScreenRatio;
-  const float height = wr_viewport_get_height(mWrenViewport) / cScreenRatio;
+  const float width = wr_viewport_get_width(mWrenViewport);
+  const float height = wr_viewport_get_height(mWrenViewport);
 
   // can't use the effect on resolutions smaller than this, it requires 6 passes dividing the viewport each time, so resolutions
   // smaller than 2^6 in width or height preculde the use of this effect

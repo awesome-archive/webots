@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,12 @@
 
 #include "WbApplication.hpp"
 #include "WbBackground.hpp"
+#include "WbBallJointParameters.hpp"
 #include "WbBasicJoint.hpp"
 #include "WbFileUtil.hpp"
 #include "WbGeometry.hpp"
 #include "WbGroup.hpp"
+#include "WbHingeJointParameters.hpp"
 #include "WbImageTexture.hpp"
 #include "WbJoint.hpp"
 #include "WbJointDevice.hpp"
@@ -28,15 +30,16 @@
 #include "WbLog.hpp"
 #include "WbMFNode.hpp"
 #include "WbMFString.hpp"
-#include "WbMaterial.hpp"
 #include "WbMotor.hpp"
 #include "WbNodeOperations.hpp"
 #include "WbNodeReader.hpp"
 #include "WbNodeUtilities.hpp"
 #include "WbOdeContact.hpp"
+#include "WbPbrAppearance.hpp"
 #include "WbPerspective.hpp"
 #include "WbPreferences.hpp"
 #include "WbProject.hpp"
+#include "WbPropeller.hpp"
 #include "WbProtoList.hpp"
 #include "WbProtoModel.hpp"
 #include "WbRenderingDevice.hpp"
@@ -68,6 +71,7 @@
 
 static WbWorld *gInstance = NULL;
 bool WbWorld::cX3DMetaFileExport = false;
+bool WbWorld::cX3DStreaming = false;
 
 WbWorld *WbWorld::instance() {
   return gInstance;
@@ -86,10 +90,10 @@ WbWorld::WbWorld(WbProtoList *protos, WbTokenizer *tokenizer) :
   mIsCleaning(false) {
   gInstance = this;
   WbNode::setInstantiateMode(true);
-  WbNode::setGlobalParent(NULL);
+  WbNode::setGlobalParentNode(NULL);
   mRoot = new WbGroup();
   mRoot->setUniqueId(0);
-  WbNode::setGlobalParent(mRoot);
+  WbNode::setGlobalParentNode(mRoot);
   mRadarTargets.clear();
   mCameraRecognitionObjects.clear();
 
@@ -131,7 +135,7 @@ WbWorld::WbWorld(WbProtoList *protos, WbTokenizer *tokenizer) :
         node->validate();
         mRoot->addChild(node);
       } else
-        mRoot->warn(errorMessage);
+        mRoot->parsingWarn(errorMessage);
     }
     WbTemplateManager::instance()->blockRegeneration(false);
 
@@ -150,7 +154,7 @@ WbWorld::WbWorld(WbProtoList *protos, WbTokenizer *tokenizer) :
     mRoot->addChild(mViewpoint);
   }
 
-  WbNode::setGlobalParent(NULL);
+  WbNode::setGlobalParentNode(NULL);
   updateTopLevelLists();
 
   // world loading stuff
@@ -302,6 +306,8 @@ bool WbWorld::exportAsHtml(const QString &fileName, bool animation) const {
       animationFilename.replace(QRegExp(".html$", Qt::CaseInsensitive), ".json");
       setAnimation = "\n          view.setAnimation(\"" + QFileInfo(animationFilename).fileName() + "\", \"play\", true);";
     }
+
+    templateValues << QPair<QString, QString>("%wwiPath%", WbStandardPaths::resourcesWebPath() + "wwi/");
     templateValues << QPair<QString, QString>("%setAnimation%", setAnimation);
     templateValues << QPair<QString, QString>("%title%", titleString);
     templateValues << QPair<QString, QString>("%description%", infoString);
@@ -347,7 +353,7 @@ void WbWorld::write(WbVrmlWriter &writer) const {
   }
 
   assert(mPerspective);
-  QHash<QString, QString> parameters = mPerspective->x3dExportParameters();
+  QMap<QString, QString> parameters = mPerspective->x3dExportParameters();
   writer.setX3DFrustumCullingValue(parameters.value("frustumCulling"));
   writer.writeHeader(worldInfo()->title());
 
@@ -374,7 +380,7 @@ WbNode *WbWorld::findTopLevelNode(const QString &modelName, int preferredPositio
     WbNode *const node = it.next();
     if (node->nodeModelName() == modelName) {
       if (result)
-        WbLog::warning(tr("'%1': found duplicate %2 node.").arg(mFileName, modelName));
+        WbLog::warning(tr("'%1': found duplicate %2 node.").arg(mFileName, modelName), false, WbLog::PARSING);
       else {
         result = node;
         if (position != preferredPosition)
@@ -382,14 +388,15 @@ WbNode *WbWorld::findTopLevelNode(const QString &modelName, int preferredPositio
                            .arg(mFileName)
                            .arg(modelName)
                            .arg(preferredPosition + 1)
-                           .arg(position + 1));
+                           .arg(position + 1),
+                         false, WbLog::PARSING);
       }
     }
     ++position;
   }
 
   if (!result)
-    WbLog::warning(tr("'%1': added missing %2 node.").arg(mFileName, modelName));
+    WbLog::warning(tr("'%1': added missing %2 node.").arg(mFileName, modelName), false, WbLog::PARSING);
 
   return result;
 }
@@ -419,24 +426,48 @@ void WbWorld::createX3DMetaFile(const QString &filename) const {
       QJsonObject deviceObject;
       deviceObject.insert("name", device->deviceName());
       const WbBaseNode *deviceBaseNode = dynamic_cast<const WbBaseNode *>(device);
+      const WbJointDevice *jointDevice = dynamic_cast<const WbJointDevice *>(device);
+      const WbMotor *motor = dynamic_cast<const WbMotor *>(jointDevice);
+
       if (deviceBaseNode)
         deviceObject.insert("type", deviceBaseNode->nodeModelName());
 
-      const WbJointDevice *jointDevice = dynamic_cast<const WbJointDevice *>(device);
-      if (jointDevice) {  // case: joint devices.
+      if (jointDevice && jointDevice->joint()) {  // case: joint devices.
         deviceObject.insert("transformID", QString("n%1").arg(jointDevice->joint()->solidEndPoint()->uniqueId()));
-        const WbMotor *motor = dynamic_cast<const WbMotor *>(jointDevice);
         if (motor) {
           deviceObject.insert("minPosition", motor->minPosition());
           deviceObject.insert("maxPosition", motor->maxPosition());
           deviceObject.insert("position", motor->position());
-          if (motor->positionIndex() == 2)
-            deviceObject.insert("axis", motor->joint()->parameters2()->axis().toString(WbPrecision::FLOAT_MAX));
+          const WbJointParameters *jointParameters = NULL;
+          if (motor->positionIndex() == 3)
+            jointParameters = motor->joint()->parameters3();
+          else if (motor->positionIndex() == 2)
+            jointParameters = motor->joint()->parameters2();
+          else {
+            assert(motor->positionIndex() == 1);
+            jointParameters = motor->joint()->parameters();
+          }
+          deviceObject.insert("axis", jointParameters->axis().toString(WbPrecision::FLOAT_MAX));
+          const WbBallJointParameters *ballJointParameters = dynamic_cast<const WbBallJointParameters *>(jointParameters);
+          const WbHingeJointParameters *hingeJointParameters = dynamic_cast<const WbHingeJointParameters *>(jointParameters);
+          if (hingeJointParameters)
+            deviceObject.insert("anchor", hingeJointParameters->anchor().toString(WbPrecision::FLOAT_MAX));
+          else if (ballJointParameters)
+            deviceObject.insert("anchor", ballJointParameters->anchor().toString(WbPrecision::FLOAT_MAX));
           else
-            deviceObject.insert("axis", motor->joint()->parameters()->axis().toString(WbPrecision::FLOAT_MAX));
+            deviceObject.insert("anchor", "0 0 0");
         }
+      } else if (jointDevice && jointDevice->propeller() && motor) {  // case: propeller.
+        WbSolid *helix = jointDevice->propeller()->helix(WbPropeller::SLOW_HELIX);
+        deviceObject.insert("transformID", QString("n%1").arg(helix->uniqueId()));
+        deviceObject.insert("position", motor->position());
+        deviceObject.insert("axis", motor->propeller()->axis().toString(WbPrecision::FLOAT_MAX));
+        deviceObject.insert("minPosition", motor->minPosition());
+        deviceObject.insert("maxPosition", motor->maxPosition());
+        deviceObject.insert("anchor", "0 0 0");
       } else {  // case: other WbDevice nodes.
-        const WbBaseNode *parent = deviceBaseNode;
+        const WbBaseNode *parent =
+          jointDevice ? dynamic_cast<const WbBaseNode *>(deviceBaseNode->parentNode()) : deviceBaseNode;
         // Retrieve closest exported Transform parent, and compute its translation offset.
         WbMatrix4 m;
         while (parent) {
@@ -445,13 +476,15 @@ void WbWorld::createX3DMetaFile(const QString &filename) const {
             WbVector3 v = m.translation();
             if (!v.almostEquals(WbVector3()))
               deviceObject.insert("transformOffset", v.toString(WbPrecision::FLOAT_MAX));
+            if (motor && parent->nodeType() == WB_NODE_TRACK)
+              deviceObject.insert("track", "true");
             break;
           } else {
             const WbAbstractTransform *transform = dynamic_cast<const WbAbstractTransform *>(parent);
             if (transform)
               m *= transform->vrmlMatrix();
           }
-          parent = dynamic_cast<const WbBaseNode *>(parent->parent());
+          parent = dynamic_cast<const WbBaseNode *>(parent->parentNode());
         }
         // LED case: export color data.
         const WbLed *led = dynamic_cast<const WbLed *>(device);
@@ -461,15 +494,16 @@ void WbWorld::createX3DMetaFile(const QString &filename) const {
           for (int c = 0; c < led->colorsCount(); ++c)
             colorArray.push_back(led->color(c).toString(WbPrecision::FLOAT_MAX));
           deviceObject.insert("ledColors", colorArray);
-          QJsonArray materialArray;
-          foreach (const WbMaterial *material, led->materials())
-            materialArray.push_back(QString("n%1").arg(material->uniqueId()));
-          deviceObject.insert("ledMaterialsIDs", materialArray);
+          QJsonArray appearanceArray;
+          foreach (const WbPbrAppearance *appearance, led->pbrAppearances())
+            appearanceArray.push_back(QString("n%1").arg(appearance->uniqueId()));
+          deviceObject.insert("ledPBRAppearanceIDs", appearanceArray);
         }
       }
       deviceArray.push_back(deviceObject);
     }
     robotObject.insert("name", robot->name());
+    robotObject.insert("robotID", QString("n%1").arg(robot->uniqueId()));
     robotObject.insert("devices", deviceArray);
     robotArray.push_back(robotObject);
   }

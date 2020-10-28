@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbTouchSensor.hpp"
+
 #include "WbFieldChecker.hpp"
 #include "WbLookupTable.hpp"
 #include "WbMFVector3.hpp"
@@ -25,7 +26,7 @@
 #include <ode/ode.h>
 #include <QtCore/QDataStream>
 #include <cassert>
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 void WbTouchSensor::init() {
   mIsTouching = false;
@@ -41,6 +42,8 @@ void WbTouchSensor::init() {
   mLookupTable = findMFVector3("lookupTable");
   mType = findSFString("type");
   mResolution = findSFDouble("resolution");
+
+  mNeedToReconfigure = false;
 }
 
 WbTouchSensor::WbTouchSensor(WbTokenizer *tokenizer) : WbSolidDevice("TouchSensor", tokenizer) {
@@ -86,6 +89,8 @@ void WbTouchSensor::updateLookupTable() {
   mValues[0] = mLut->minValue();
   mValues[1] = mLut->minValue();
   mValues[2] = mLut->minValue();
+
+  mNeedToReconfigure = true;
 }
 
 void WbTouchSensor::updateType() {
@@ -99,24 +104,24 @@ void WbTouchSensor::updateType() {
     mDeviceType = BUMPER;
 
   if (mDeviceType == BUMPER && mType->value() != "bumper")
-    warn(tr("Unknown 'type': \"%1\". Set to \"bumper\"").arg(mType->value()));
+    parsingWarn(tr("Unknown 'type': \"%1\". Set to \"bumper\"").arg(mType->value()));
 
   if ((mDeviceType == FORCE || mDeviceType == FORCE3D) && !physics())
-    warn(tr("\"force\" and \"force-3d\" 'type' requires 'physics' to be functional."));
+    parsingWarn(tr("\"force\" and \"force-3d\" 'type' requires 'physics' to be functional."));
 }
 
 void WbTouchSensor::updateResolution() {
-  WbFieldChecker::checkDoubleIsPositiveOrDisabled(this, mResolution, -1.0, -1.0);
+  WbFieldChecker::resetDoubleIfNonPositiveAndNotDisabled(this, mResolution, -1.0, -1.0);
 }
 
 void WbTouchSensor::handleMessage(QDataStream &stream) {
   unsigned char command;
   short refreshRate;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SET_SAMPLING_PERIOD:
-      stream >> (short &)refreshRate;
+      stream >> refreshRate;
       mSensor->setRefreshRate(refreshRate);
       return;
     default:
@@ -136,6 +141,22 @@ void WbTouchSensor::writeAnswer(QDataStream &stream) {
     }
     mSensor->resetPendingValue();
   }
+
+  if (mNeedToReconfigure)
+    addConfigure(stream);
+}
+
+void WbTouchSensor::addConfigure(QDataStream &stream) {
+  stream << (short unsigned int)tag();
+  stream << (unsigned char)C_CONFIGURE;
+  stream << (int)mDeviceType;
+  stream << (int)mLookupTable->size();
+  for (int i = 0; i < mLookupTable->size(); i++) {
+    stream << (double)mLookupTable->item(i).x();
+    stream << (double)mLookupTable->item(i).y();
+    stream << (double)mLookupTable->item(i).z();
+  }
+  mNeedToReconfigure = false;
 }
 
 bool WbTouchSensor::refreshSensorIfNeeded() {
@@ -251,10 +272,7 @@ dJointID WbTouchSensor::createJoint(dBodyID body, dBodyID parentBody, dWorldID w
 
 void WbTouchSensor::writeConfigure(QDataStream &stream) {
   mSensor->connectToRobotSignal(robot());
-
-  stream << (short unsigned int)tag();
-  stream << (unsigned char)C_CONFIGURE;
-  stream << (int)mDeviceType;
+  addConfigure(stream);
 }
 
 bool WbTouchSensor::forceBehavior() const {

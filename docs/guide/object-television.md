@@ -6,7 +6,7 @@ A television (1 x 0.6 x 0.1 m).
 
 %figure
 
-![Television](images/objects/television/Television/model.png)
+![Television](images/objects/television/Television/model.thumbnail.png)
 
 %end
 
@@ -26,7 +26,7 @@ Television {
 }
 ```
 
-> **File location**: "WEBOTS\_HOME/projects/objects/television/protos/Television.proto"
+> **File location**: "[WEBOTS\_HOME/projects/objects/television/protos/Television.proto](https://github.com/cyberbotics/webots/tree/master/projects/objects/television/protos/Television.proto)"
 
 > **License**: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 [More information.](https://cyberbotics.com/webots_assets_license)
@@ -37,9 +37,9 @@ Television {
 
 - `textureUrl`: Defines the texture used for the television.
 
-- `displayWidth`: Defines the width of the internal Display device.
+- `displayWidth`: Defines the width of the internal [Display](../reference/display.md) device.
 
-- `displayHeight`: Defines the height of the internal Display device.
+- `displayHeight`: Defines the height of the internal [Display](../reference/display.md) device.
 
-- `controller`: Defines the controller used to display images using the internal Display device.
+- `controller`: Defines the controller used to display images using the internal [Display](../reference/display.md) device.
 

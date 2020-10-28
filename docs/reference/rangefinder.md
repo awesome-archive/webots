@@ -37,7 +37,7 @@ An object can be semi-transparent either if its texture has an alpha channel, or
 The value is limited to the range 0 to &pi; radians if the `spherical` field is set to FALSE, otherwise there is no upper limit.
 Since range-finder pixels are squares, the vertical field of view can be computed from the `width`, `height` and horizontal `fieldOfView`:
 
-    *vertical FOV = fieldOfView * height / width*
+    *vertical FOV = 2 * atan(tan(fieldOfView * 0.5) * (height / width))*
 
 - `width`: width of the image in pixels
 
@@ -96,7 +96,7 @@ Then, after closing the window, the overlay will be automatically restored.
 #### `wb_range_finder_disable`
 #### `wb_range_finder_get_sampling_period`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -158,7 +158,7 @@ public class RangeFinder extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_range_finder_enable(tag, sampling_period)
 wb_range_finder_disable(tag)
 period = wb_range_finder_get_sampling_period(tag)
@@ -193,7 +193,7 @@ The `wb_range_finder_get_sampling_period` function returns the period given into
 
 #### `wb_range_finder_get_fov`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -247,7 +247,7 @@ public class RangeFinder extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 fov = wb_range_finder_get_fov(tag)
 ```
 
@@ -274,7 +274,7 @@ These functions allow the controller to get the value of the field of view (fov)
 #### `wb_range_finder_get_width`
 #### `wb_range_finder_get_height`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -332,7 +332,7 @@ public class RangeFinder extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 width = wb_range_finder_get_width(tag)
 height = wb_range_finder_get_height(tag)
 ```
@@ -360,7 +360,7 @@ These functions return the width and height of a range-finder image as defined i
 #### `wb_range_finder_get_min_range`
 #### `wb_range_finder_get_max_range`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -418,7 +418,7 @@ public class RangeFinder extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 min_range = wb_range_finder_get_min_range(tag)
 max_range = wb_range_finder_get_max_range(tag)
 ```
@@ -446,7 +446,7 @@ These functions return the minRange and maxRange parameters of a range-finder de
 #### `wb_range_finder_get_range_image`
 #### `wb_range_finder_image_get_depth`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -506,7 +506,7 @@ public class RangeFinder extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 image = wb_range_finder_get_range_image(tag)
 depth = wb_range_finder_image_get_depth(image, width, x, y)
 ```
@@ -555,7 +555,7 @@ Their content are identical but their handling is of course different.
 
 #### `wb_range_finder_save_image`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -609,7 +609,7 @@ public class RangeFinder extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 success = wb_range_finder_save_image(tag, 'filename', quality)
 ```
 
@@ -627,24 +627,24 @@ success = wb_range_finder_save_image(tag, 'filename', quality)
 
 ##### Description
 
-*save a range-finder image in PNG, JPEG or TIFF format*
+*save a range-finder image in PNG, JPEG or HDR format*
 
 The `wb_range_finder_save_image` function allows the user to save a `tag` image which was previously obtained with the `wb_range_finder_get_image` function.
-The image can be saved in a file using the PNG, JPEG, or TIFF format.
+The image can be saved in a file using the PNG, JPEG, or HDR format.
 The image format is specified by the `filename` parameter.
 If `filename` is terminated by `.png`, the image format is PNG.
 Similarly, if `filename` is terminated by `.jpg` or `.jpeg`, the image format is JPEG.
-Lastly, if `filename` is terminated by `.tif` or `.tiff`, the image format is TIFF.
+Lastly, if `filename` is terminated by `.hdr` or `.HDR`, the image format is HDR.
 Other image formats are not supported.
 The `quality` parameter is useful only for JPEG images.
 It defines the JPEG quality of the saved image.
 The `quality` parameter should be in the range 1 (worst quality) to 100 (best quality).
 Low quality JPEG files will use less disk space.
-For PNG and TIFF images, the `quality` parameter is ignored.
+For PNG and HDR images, the `quality` parameter is ignored.
 
 PNG and JPEG images are saved using an 8-bit RGB (grayscale) encoding.
-TIFF images are saved as 32-bit floating-point single-channel images.
-For PNG and JPEG, depth data is stored in the range `0` to `255`, and for TIFF depth data is in the range `0.0` to `1.0`.
+HDR images are saved as 32-bit floating-point single-channel images.
+For PNG and JPEG, depth data is stored in the range `0` to `255`.
 This depth data can thus be extracted for further use by reading the image file.
 
 The return value of the `wb_range_finder_save_image` function is 0 in case of success.

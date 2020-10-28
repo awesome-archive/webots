@@ -1,4 +1,4 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 WorldInfo {
   info [
     "Benchmark objective:"
@@ -10,6 +10,7 @@ WorldInfo {
   window "inverted_pendulum"
   physics "inverted_pendulum_perturbation"
   basicTimeStep 4
+  coordinateSystem "NUE"
   lineScale 0.01
 }
 Viewpoint {
@@ -18,8 +19,38 @@ Viewpoint {
   follow "e-puck"
 }
 TexturedBackground {
+  texture "entrance_hall"
+  luminosity 0.6
 }
-TexturedBackgroundLight {
+SpotLight {
+  attenuation 0 0 1
+  beamWidth 0.33
+  cutOffAngle 0.56
+  direction 0 -1 0
+  intensity 16
+  location 0 6.5 0.3
+  radius 8
+  castShadows TRUE
+}
+SpotLight {
+  attenuation 0 0 1
+  beamWidth 0.58
+  cutOffAngle 0.757
+  direction 0 -1 0
+  intensity 16
+  location 11 8 0.3
+  radius 20
+  castShadows TRUE
+}
+SpotLight {
+  attenuation 0 0 1
+  beamWidth 0.5
+  cutOffAngle 0.72
+  direction 0 -1 0
+  intensity 16
+  location -8 6 0.3
+  radius 8
+  castShadows TRUE
 }
 Floor {
   size 40 5
@@ -36,6 +67,11 @@ Floor {
 Wall {
   translation 0 0 2.52
   size 40 2.4 0.2
+  appearance Roughcast {
+    textureTransform TextureTransform {
+      scale 20 1.2
+    }
+  }
 }
 E-puck {
   translation 0 0 -0.98
@@ -50,8 +86,7 @@ E-puck {
         Shape {
           appearance PBRAppearance {
             baseColor 0.8 0.8 0.8
-            roughness 0.5
-            metalness 0
+            metalness 0.2
             textureTransform TextureTransform {
               rotation 1.5708
             }
@@ -87,7 +122,12 @@ E-puck {
               Shape {
                 appearance PBRAppearance {
                   baseColor 0.8 0.8 0.8
-                  roughness 0.5
+                  baseColorMap ImageTexture {
+                    url [
+                      "textures/wood.jpg"
+                    ]
+                  }
+                  roughness 1
                   metalness 0
                   textureTransform TextureTransform {
                   }
@@ -105,12 +145,14 @@ E-puck {
               Shape {
                 appearance PBRAppearance {
                   baseColor 0.8 0.8 0.8
-                  roughness 0.5
+                  baseColorMap ImageTexture {
+                    url [
+                      "textures/red_rubber.jpg"
+                    ]
+                  }
+                  roughness 1
                   metalness 0
                   textureTransform TextureTransform {
-                    rotation 1.5708
-                    scale 0.5 0.5
-                    translation 0.2 0
                   }
                 }
                 geometry Sphere {

@@ -1,12 +1,12 @@
 ## Adept's Pioneer 3-AT
 
-%robot pioneer-3at images/robots/pioneer-3at/model.png
+%robot pioneer-3at images/robots/pioneer-3at/model.thumbnail.png
 
 The Pioneer 3-AT robot is an all-purpose outdoor base, used for research and prototyping applications involving mapping, navigation, monitoring, reconnaissance and other behaviors.
 It is caracterized by a set of features listed in [this table](#pioneer-3-at-characteristics).
 This model includes support for 4 motors and 16 sonar sensors (8 forward-facing, 8 rear-facing) for proximity measurements.
 
-More information on the specifications and optional devices is available on the Adept Mobile Robots official [webpage](http://www.mobilerobots.com/ResearchRobots/ResearchRobots/P3AT.aspx).
+More information on specifications and optional devices are available on the following links as the official Adept Mobile Robots website no longer exists: [Operations manual (2007, v.5)](http://vigir.missouri.edu/~gdesouza/Research/MobileRobotics/Software/P3OpMan5.pdf) and [technical data](https://www.generationrobots.com/media/Pioneer3AT-P3AT-RevA-datasheet.pdf).
 
 ### Movie Presentation
 
@@ -57,7 +57,7 @@ Pioneer3at {
   SFRotation rotation        0 1 0 0
   SFString   name            "Pioneer 3-AT"
   SFString   controller      "void"
-  SFString   controllerArgs  ""
+  MFString   controllerArgs  []
   SFString   customData      ""
   SFBool     supervisor      FALSE
   SFBool     synchronization TRUE
@@ -75,6 +75,6 @@ Pioneer3at {
 
 #### pioneer3at.wbt
 
-![pioneer3at_avoidance.png](images/robots/pioneer-3at/pioneer3at_avoidance.wbt.png) The "pioneer3at.wbt" world file is a simulation example of a simple obstacle avoidance behavior based on the use of a SICK LMS 291 [Lidar](../reference/lidar.md) (see the "obstacle\_avoidance\_with\_lidar.c" controller file in the "WEBOTS\_HOME/projects/robots/adept/pioneer3/controller" directory).
+![pioneer3at_avoidance.png](images/robots/pioneer-3at/pioneer3at_avoidance.wbt.thumbnail.jpg) The "pioneer3at.wbt" world file is a simulation example of a simple obstacle avoidance behavior based on the use of a SICK LMS 291 [Lidar](../reference/lidar.md) (see the "obstacle\_avoidance\_with\_lidar.c" controller file in the "WEBOTS\_HOME/projects/robots/adept/pioneer3/controller" directory).
 The [Lidar](../reference/lidar.md) depth output is used to compute two stimuli in front of the robot.
 These two stimuli are computed by a [Gaussian function](https://en.wikipedia.org/wiki/Gaussian_function) applied slightly on the front left, and respectively on the front right of the robot.

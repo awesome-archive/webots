@@ -42,7 +42,7 @@ This field defines the maximum value that can be set using the `wb_emitter_set_r
 A value of -1 (the default) for `maxRange` is considered to be infinite.
 
 - `aperture` opening angle of the emission cone (in radians); for "infra-red" only.
-The cone's apex is located at the origin ([0 0 0]) of the emitter's coordinate system and the cone's axis coincides with the *z*-axis of the emitter coordinate system.
+The cone's apex is located at the origin ([0 0 0]) of the emitter's coordinate system and the cone's axis coincides with the z-axis of the emitter coordinate system.
 An "infra-red" emitter can only send data to receivers currently located within its emission cone.
 An `aperture` of -1 (the default) is considered to be infinite, meaning that the emitted signals are omni-directional.
 For "radio" and "serial" emitters, this field is ignored.
@@ -79,7 +79,7 @@ In addition it is highly recommended to choose -1 for the baudRate, in order to 
 
 #### `wb_emitter_send`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -133,7 +133,7 @@ public class Emitter extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 success = wb_emitter_send(tag, data)
 ```
 
@@ -205,12 +205,20 @@ Here is an example of sending a Java string in a way that is compatible with a C
 > }
 > ```
 
+<!-- -->
+
+> **Note** [Matlab]: If you want to send strings you have to convert them to unsigned integer arrays:
+
+> ```MATLAB
+>   wb_emitter_send(emitter, uint8('Hello World'));
+> ```
+
 ---
 
 #### `wb_emitter_set_channel`
 #### `wb_emitter_get_channel`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -276,7 +284,7 @@ public class Emitter extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_CHANNEL_BROADCAST
 
 wb_emitter_set_channel(tag, channel)
@@ -314,7 +322,7 @@ The `wb_emitter_get_channel` function returns the current channel number of the 
 #### `wb_emitter_set_range`
 #### `wb_emitter_get_range`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -372,7 +380,7 @@ public class Emitter extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_emitter_set_range(tag, range)
 range = wb_emitter_get_range(tag)
 ```
@@ -405,7 +413,7 @@ For both the `wb_emitter_set_range` and `emitter_get_range` functions, a value o
 
 #### `wb_emitter_get_buffer_size`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -459,7 +467,7 @@ public class Emitter extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 size = wb_emitter_get_buffer_size(tag)
 ```
 

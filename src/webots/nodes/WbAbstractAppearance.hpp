@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,13 +50,14 @@ protected:
   WbAbstractAppearance(const WbAbstractAppearance &other);
   WbAbstractAppearance(const WbNode &other);
 
+  WbSFNode *mTextureTransform;
+
 private:
   WbAbstractAppearance &operator=(const WbAbstractAppearance &);  // non copyable
   void init();
 
   WbSFString *mName;
   QString mNameValue;
-  WbSFNode *mTextureTransform;
 
 private slots:
   void updateName();

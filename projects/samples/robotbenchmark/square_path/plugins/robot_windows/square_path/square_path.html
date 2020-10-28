@@ -11,12 +11,12 @@
     </p>
   </div>
   <div id='infotab-metrics'>
-    <div style='text-align:center'>Segment 1: <span id='segment0-display'>1.0</span></div>
-    <div style='text-align:center'>Segment 2: <span id='segment1-display'>1.0</span></div>
-    <div style='text-align:center'>Segment 3: <span id='segment2-display'>1.0</span></div>
-    <div style='text-align:center'>Segment 4: <span id='segment3-display'>1.0</span></div>
+    <div style='text-align:center'>Segment 1: <span id='segment0-display'>0.00%</span></div>
+    <div style='text-align:center'>Segment 2: <span id='segment1-display'>0.00%</span></div>
+    <div style='text-align:center'>Segment 3: <span id='segment2-display'>0.00%</span></div>
+    <div style='text-align:center'>Segment 4: <span id='segment3-display'>0.00%</span></div>
     <br>
-    <div style='text-align:center'>Average: <span id='average-display'>1.0</span></div>
+    <div style='text-align:center'>Average: <span id='average-display'>0.00%</span></div>
 
     <div style='position:relative'>
       <div style='position:absolute;width:100%;text-align:center'>
@@ -69,7 +69,7 @@
     <p>
       In order to use a sensor, you first have to enable it, as they are disabled by default.
     </p>
-    <code>rightWheelSensor = robot.getPositionSensor('right_wheel_sensor')</code><br>
+    <code>rightWheelSensor = robot.getPositionSensor('right wheel sensor')</code><br>
     <code>rightWheelSensor.enable(16) # Refreshes the sensor every 16ms.</code>
     <p>
       You can then access the value of the sensor with its <code>getValue()</code> method.
@@ -93,7 +93,8 @@
     </p>
     <div style='text-align:center'><img width='249' src='path.jpg'></div>
     <p>
-      To compute the performance, you need to generate a CSV file containing a list of points with a time associated with each point.
+      When running your controller program on a real environment with your Pioneer 3-DX robot, you have to generate a CSV file containing the achieved trajectory.
+      The CSV file should contain a list of points with a time associated with each point.
       The points should be ordered chronologically.
       <br>
       Each row should have 3 elements, separated by commas:
@@ -104,10 +105,17 @@
         <li>time since the beginning of the benchmark, in seconds</li>
       </ul>
       You can then use this <a href="https://robotbenchmark.net/benchmark/square_path/real_robot/compute_performance.zip" target="_blank">script</a> to compute the performance.
-      (You need Python installed on your machine to run the script.)
-      Extract all the files in the same folder and then call real_robot_performance.py with your CSV file as argument to compute the performance.<br>
+      You need Python installed on your machine to run the script.
+      Extract all the files and call `real_robot_performance.py` with your CSV file as argument to compute the performance.<br>
       For example, you can run the sample file included in the archive by using the following command in a terminal:<br>
       <code>python real_robot_performance.py sample.csv</code>
+      <br>
+      <br>
+      Note that the provided archive is a UTILITY TO EVALUATE TRAJECTORIES ACHIEVED WITH A REAL ROBOT.
+      <br>
+      <br>
+      IT DOESN'T CONTAIN THE TRAJECTORY RECORDED ON <a href="https://robotbenchmark.net/benchmark/square_path/" target="_blank">robotbenchmark.net</a> but a sample trajectory.
+      If you want to save the trajectory of the simulated robot when running the benchmark, then you can write the points on the console and then copy them in a file.
     </p>
   </div>
 </div>

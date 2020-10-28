@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ WbDataPacket::WbDataPacket(WbDataPacket &other) :
   mEmitter(other.mEmitter),
   mChannel(other.mChannel),
   mDataSize(other.mDataSize),
+  mEmitterPos(NAN, NAN, NAN),
   mEmitterDir(NAN, NAN, NAN),
   mSignalStrength(std::numeric_limits<double>::infinity()) {
   mData = new char[mDataSize];

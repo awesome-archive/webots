@@ -20,10 +20,10 @@ namespace webotsQtUtils {
     Q_OBJECT
 
   public:
-    VectorialSensorWidget(Device *device, QWidget *parent = NULL);
+    explicit VectorialSensorWidget(Device *device, QWidget *parent = NULL);
     virtual ~VectorialSensorWidget();
 
-    virtual void readSensors();
+    void readSensors() override;
 
   protected slots:
     void setMode(int mode);

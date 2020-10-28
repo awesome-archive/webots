@@ -1,4 +1,4 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 WorldInfo {
   info [
     "The Pioneer Robot has to follow the wall."
@@ -6,6 +6,7 @@ WorldInfo {
   title "Wall Following"
   window "wall_following"
   basicTimeStep 16
+  coordinateSystem "NUE"
 }
 Viewpoint {
   orientation -0.10407812983052953 -0.9652828784282292 -0.2395760996098981 2.4222972
@@ -25,15 +26,6 @@ RectangleArena {
   translation 3 0 16
   floorSize 16 36
   wallHeight 0.5
-  wallAppearance PBRAppearance {
-    baseColorMap ImageTexture {
-      url [
-        "textures/wall.jpg"
-      ]
-    }
-    roughness 1
-    metalness 0
-  }
 }
 DEF WALL LinkedWalls {
   translation 5 0.25 0

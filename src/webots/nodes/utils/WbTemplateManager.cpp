@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -148,8 +148,8 @@ void WbTemplateManager::recursiveFieldSubscribeToRegenerateNode(WbNode *node, bo
       case WB_MF_NODE: {
         WbMFNode *mfnode = static_cast<WbMFNode *>(field->value());
         assert(mfnode);
-        for (int i = 0; i < mfnode->size(); i++) {
-          WbNode *subnode = mfnode->item(i);
+        for (int j = 0; j < mfnode->size(); j++) {
+          WbNode *subnode = mfnode->item(j);
           if (directSubscriptionEnabled || nodeNeedsToSubscribe(subnode))
             subscribe(subnode, subscribedDescendant || (subscribedNode && field->isTemplateRegenerator()));
         }
@@ -186,7 +186,7 @@ void WbTemplateManager::regenerateNodeFromParameterChange(WbField *field) {
 }
 
 // intermediate function to determine which node should be updated
-// Note: The security is probably overkilled there, but its also safer for the first versions of the template mechanism
+// Note: The security is probably overkill there, but its also safer for the first versions of the template mechanism
 void WbTemplateManager::regenerateNodeFromField(WbNode *templateNode, WbField *field, bool isParameter) {
   // 1. retrieve upper template node where the modification appeared in a template regenerator field
   templateNode = WbNodeUtilities::findUpperTemplateNeedingRegenerationFromField(field, templateNode);
@@ -205,7 +205,7 @@ void WbTemplateManager::regenerateNodeFromField(WbNode *templateNode, WbField *f
   regenerateNode(templateNode);
 }
 
-void WbTemplateManager::regenerateNode(WbNode *node) {
+void WbTemplateManager::regenerateNode(WbNode *node, bool restarted) {
   assert(node);
 
   if (mBlockRegeneration) {
@@ -215,7 +215,7 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
     node->setRegenerationRequired(false);
 
   // 1. get stuff
-  WbNode *parent = node->parent();
+  WbNode *parent = node->parentNode();
   WbProtoModel *proto = node->proto();
   assert(parent && proto);
   if (!parent || !proto)
@@ -225,11 +225,13 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
   QList<WbField *> previousParentRedirections;
   WbField *parentField = node->parentField();
   QVector<WbField *> parameters;
+  WbNode::setRestoreUniqueIdOnClone(true);
   foreach (WbField *parameter, node->parameters()) {
     parameters << new WbField(*parameter, NULL);
     if (parameter->parameter() != NULL)
       previousParentRedirections.append(parameter->parameter());
   }
+  WbNode::setRestoreUniqueIdOnClone(false);
   int uniqueId = node->uniqueId();
   const WbSolid *solid = dynamic_cast<const WbSolid *>(node);
   WbVector3 translationFromFile;
@@ -254,16 +256,18 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
   WbNode *upperTemplateNode = WbNodeUtilities::findUpperTemplateNeedingRegeneration(node);
   bool nested = upperTemplateNode && upperTemplateNode != node;
   cRegeneratingNodeCount++;
-  if (isWorldInitialized)
+  if (isWorldInitialized && !restarted)
+    // signal is not emitted in case a node has been regenerated twice in a row (`restart` == TRUE)
+    // to preserve the scene tree selection
     emit preNodeRegeneration(node, nested);
 
-  WbNode::setGlobalParent(parent);
+  WbNode::setGlobalParentNode(parent);
 
   WbNode *newNode = WbNode::regenerateProtoInstanceFromParameters(proto, parameters, node->isTopLevel(),
                                                                   WbWorld::instance()->fileName(), true, uniqueId);
 
   if (!newNode) {
-    WbLog::error(tr("Template regeneration failed. The node cannot be generated."));
+    WbLog::error(tr("Template regeneration failed. The node cannot be generated."), false, WbLog::PARSING);
     delete newNode;
     if (isWorldInitialized)
       emit abortNodeRegeneration();
@@ -271,7 +275,7 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
   }
 
   newNode->setDefName(node->defName());
-  WbNode::setGlobalParent(NULL);
+  WbNode::setGlobalParentNode(NULL);
 
   WbNodeUtilities::validateInsertedNode(parentField, newNode, parent, isInBoundingObject);
 
@@ -363,7 +367,7 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
     else if (parentJoint && newSlot)
       parentJoint->setSolidEndPoint(newSlot);
     else {
-      WbLog::error(tr("Template regeneration failed. Unsupported node type."));
+      WbLog::error(tr("Template regeneration failed. Unsupported node type."), false, WbLog::PARSING);
       delete newNode;
       emit abortNodeRegeneration();
       return;
@@ -393,19 +397,26 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
     }
   }
 
+  mBlockRegeneration = true;  // prevent regenerating `newNode` in the finalization step due to field checks
+
   WbBaseNode *base = dynamic_cast<WbBaseNode *>(newNode);
   if (isWorldInitialized) {
     assert(base);
     base->finalize();
   }
 
+  mBlockRegeneration = false;
+  if (newNode->isRegenerationRequired()) {  // if needed, trigger `newNode` regeneration with finalized fields values
+    regenerateNode(newNode, true);
+    return;
+  }
+
   // if the viewpoint is being re-generated we need to re-get the correct pointer, not the old dangling pointer from before
   // the node was regenerated
   viewpoint = world->viewpoint();
-  if (isFollowedSolid) {
-    WbSolid *newSolid = dynamic_cast<WbSolid *>(newNode);
+  if (isFollowedSolid)
     viewpoint->startFollowUp(newSolid, true);
-  } else if (!followedSolidName.isEmpty() && viewpoint->followedSolid() == NULL)
+  else if (!followedSolidName.isEmpty() && viewpoint->followedSolid() == NULL)
     // restore follow solid
     viewpoint->startFollowUp(WbSolid::findSolidFromUniqueName(followedSolidName), true);
 

@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,12 +50,12 @@ void RemoteControlWidget::clear() {
 // constructor
 RemoteControlWidget::RemoteControlWidget(QWidget *parent) :
   QWidget(parent),
+  mHexFileName(""),
   mProgressDialog(NULL),
   mPressButtonDialog(NULL),
   mConnectProgressDialog(NULL) {
   mConnectFutureWatcher = new QFutureWatcher<int>(this);
   mUploadFutureWatcher = new QFutureWatcher<int>(this);
-  mHexFileName = "";
 
   // create and set the combo box into this widget
   mLayout = new QGridLayout();
@@ -122,12 +122,8 @@ void RemoteControlWidget::updateValues() {
 void RemoteControlWidget::portsUpdated(int index) {
   if (index == 0)
     wb_robot_set_mode(WB_MODE_SIMULATION, NULL);
-  else {
-    const string &port = mPortsComboBox->currentText().toStdString();
-    printf("test 1 \n");
-    wb_robot_set_mode(WB_MODE_REMOTE_CONTROL, (void *)&port);
-    printf("test 2 \n");
-  }
+  else
+    wb_robot_set_mode(WB_MODE_REMOTE_CONTROL, mPortsComboBox->currentText().toStdString().c_str());
 }
 
 void RemoteControlWidget::enableAllSensors() {

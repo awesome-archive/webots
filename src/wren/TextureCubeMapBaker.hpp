@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,10 +30,8 @@ namespace wren {
     void renderCube();
     void renderQuad();
     TextureCubeMap *bakeDiffuseIrradiance(TextureCubeMap *inputCube, ShaderProgram *irradianceShader, unsigned int size);
-    TextureCubeMap *bakeSpecularIrradiance(TextureCubeMap *inputCube, ShaderProgram *irradianceShader);
-    TextureRtt *bakeBrdf(ShaderProgram *brdfShader);
-    TextureCubeMap *bakeEquirectangularToCube(Texture2d *equirectangularMap, ShaderProgram *equirectangularShader,
-                                              unsigned int size);
+    TextureCubeMap *bakeSpecularIrradiance(TextureCubeMap *inputCube, ShaderProgram *irradianceShader, unsigned int size);
+    TextureRtt *bakeBrdf(ShaderProgram *brdfShader, unsigned int size);
 
   }  // namespace texturecubemapbaker
 }  // namespace wren

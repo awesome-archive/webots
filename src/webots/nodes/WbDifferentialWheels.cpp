@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbDifferentialWheels.hpp"
+
 #include "WbKinematicDifferentialWheels.hpp"
 #include "WbLog.hpp"
 #include "WbMFDouble.hpp"
@@ -22,16 +23,16 @@
 #include "WbTokenizer.hpp"
 #include "WbVersion.hpp"
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 #include <ode/ode.h>
 #include <QtCore/QDataStream>
 #include <cassert>
 
 void WbDifferentialWheels::init() {
-  warn(tr("The DifferentialWheels node is deprecated. Please use the Robot node instead with two "
-          "HingeJoint, RotationalMotor and PositionSensor nodes. You can open a support ticket from "
-          "the Help menu to get assistance on converting your DifferentialWheels robot."));
+  parsingWarn(tr("The DifferentialWheels node is deprecated. Please use the Robot node instead with two "
+                 "HingeJoint, RotationalMotor and PositionSensor nodes. You can open a support ticket from "
+                 "the Help menu to get assistance on converting your DifferentialWheels robot."));
 
   for (int i = 0; i < 2; i++) {
     mPosition[i] = 0.0;
@@ -111,27 +112,27 @@ void WbDifferentialWheels::handleMessage(QDataStream &stream) {
     return;
 
   unsigned char byte;
-  stream >> (unsigned char &)byte;
+  stream >> byte;
 
   switch (byte) {
-    case C_DIFFERENTIAL_WHEELS_SET_SPEED:
+    case C_DIFFERENTIAL_WHEELS_SET_SPEED: {
       double left, right;
-      stream >> (double &)left >> (double &)right;
+      stream >> left >> right;
       mTargetSpeed[0] = left * mSpeedUnit->value();
       mTargetSpeed[1] = right * mSpeedUnit->value();
       qBound(-mMaxSpeed->value(), mTargetSpeed[0], mMaxSpeed->value());
       qBound(-mMaxSpeed->value(), mTargetSpeed[1], mMaxSpeed->value());
       awake();
       return;
-
+    }
     case C_DIFFERENTIAL_WHEELS_ENCODERS_SET_SAMPLING_PERIOD: {
       short rate;
-      stream >> (short &)rate;
+      stream >> rate;
       mEncoderSensor->setRefreshRate(rate);
       return;
     }
     case C_DIFFERENTIAL_WHEELS_ENCODERS_SET_VALUE:
-      stream >> (double &)mPosition[0] >> (double &)mPosition[1];
+      stream >> mPosition[0] >> mPosition[1];
       return;
     default:
       assert(0);
@@ -220,27 +221,27 @@ void WbDifferentialWheels::findWheels() {
 
   if (physics()) {
     if (!mRightWheel) {
-      warn(tr("A Solid children named \"right wheel\" is missing."));
+      parsingWarn(tr("A Solid children named \"right wheel\" is missing."));
       return;
     }
     if (!mLeftWheel) {
-      warn(tr("A Solid children named \"left wheel\" is missing."));
+      parsingWarn(tr("A Solid children named \"left wheel\" is missing."));
       return;
     }
     if (!mRightWheel->boundingObject()) {
-      warn(tr("The Solid children named \"right wheel\" has no 'boundingObject'."));
+      parsingWarn(tr("The Solid children named \"right wheel\" has no 'boundingObject'."));
       return;
     }
     if (!mLeftWheel->boundingObject()) {
-      warn(tr("The Solid children named \"left wheel\" has no 'boundingObject'."));
+      parsingWarn(tr("The Solid children named \"left wheel\" has no 'boundingObject'."));
       return;
     }
     if (!mRightWheel->physics()) {
-      warn(tr("The Solid children named \"right wheel\" has no 'physics'."));
+      parsingWarn(tr("The Solid children named \"right wheel\" has no 'physics'."));
       return;
     }
     if (!mLeftWheel->physics()) {
-      warn(tr("The Solid children named \"left wheel\" has no 'physics'."));
+      parsingWarn(tr("The Solid children named \"left wheel\" has no 'physics'."));
       return;
     }
   }

@@ -23,7 +23,7 @@ WrStaticMesh *wr_static_mesh_unit_rectangle_new(bool outline);
 /* Creates a screen-sized quad useful for post-processing */
 WrStaticMesh *wr_static_mesh_quad_new();
 /* Creates a sphere mesh with a radius of 1.0f, centered on the origin. */
-WrStaticMesh *wr_static_mesh_unit_sphere_new(int subdivision);
+WrStaticMesh *wr_static_mesh_unit_sphere_new(int subdivision, bool ico, bool outline);
 /* Creates a capsule with given radius and height, centered on the origin with its main axis on +Y.
    Since a capsule cannot simply be scaled when its radius or height changes, they have to be passed as parameters. */
 WrStaticMesh *wr_static_mesh_capsule_new(int subdivision, float radius, float height, bool has_side, bool has_top,
@@ -46,6 +46,7 @@ void wr_static_mesh_get_bounding_sphere(WrStaticMesh *mesh, float *sphere);
    This function should be avoided in performance sensitive code as it involves heavy memory operations. */
 void wr_static_mesh_read_data(WrStaticMesh *mesh, float *coord_data, float *normal_data, float *tex_coord_data,
                               unsigned int *index_data);
+int wr_static_mesh_get_triangle_count(WrStaticMesh *mesh);
 int wr_static_mesh_get_vertex_count(WrStaticMesh *mesh);
 int wr_static_mesh_get_index_count(WrStaticMesh *mesh);
 

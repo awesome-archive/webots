@@ -1,9 +1,10 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 WorldInfo {
   info [
     "Example use of a color Camera device with auto-focusing capabilities."
   ]
   title "Camera With Auto-Focus"
+  coordinateSystem "NUE"
 }
 Viewpoint {
   orientation 0.5185539097945974 0.8041798496814592 0.2905109498849267 4.97139
@@ -16,7 +17,6 @@ TexturedBackgroundLight {
 RectangleArena {
   floorTileSize 0.25 0.25
   wallHeight 0.15
-  wallTileSize 0.1 0.1
   wallAppearance PBRAppearance {
     baseColorMap ImageTexture {
       url [

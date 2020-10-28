@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 
 WbWindowsRegistry::WbWindowsRegistry(const QString &key) {
   HKEY baseKey = 0;
-  QStringList keys = key.split("\\", QString::SkipEmptyParts);
+  QStringList keys = key.split("\\", Qt::SkipEmptyParts);
   assert(keys.length() > 0);
   QString baseString = keys.takeFirst();
   if (baseString.toUpper() == "HKEY_CLASSES_ROOT")
@@ -79,18 +79,18 @@ QStringList WbWindowsRegistry::subKeys() const {
   FILETIME lastWriteTime;                // last write time
 
   // Get the class name and the value count.
-  DWORD retCode = RegQueryInfoKey(mCurrentKey,          // key handle
-                                  className,            // buffer for class name
-                                  &nClassName,          // size of class string
-                                  NULL,                 // reserved
-                                  &nSubKeys,            // number of subkeys
-                                  &maxSubKey,           // longest subkey size
-                                  &maxClass,            // longest class string
-                                  &values,              // number of values for this key
-                                  &maxValue,            // longest value name
-                                  &maxValueData,        // longest value data
-                                  &securityDescriptor,  // security descriptor
-                                  &lastWriteTime        // last write time
+  RegQueryInfoKey(mCurrentKey,          // key handle
+                  className,            // buffer for class name
+                  &nClassName,          // size of class string
+                  NULL,                 // reserved
+                  &nSubKeys,            // number of subkeys
+                  &maxSubKey,           // longest subkey size
+                  &maxClass,            // longest class string
+                  &values,              // number of values for this key
+                  &maxValue,            // longest value name
+                  &maxValueData,        // longest value data
+                  &securityDescriptor,  // security descriptor
+                  &lastWriteTime        // last write time
   );
 
   // Enumerate the subkeys, until RegEnumKeyEx fails.
@@ -99,7 +99,7 @@ QStringList WbWindowsRegistry::subKeys() const {
     for (i = 0; i < nSubKeys; i++) {
       name = MAX_KEY_LENGTH;
       TCHAR subKeyName[MAX_KEY_LENGTH];
-      retCode = RegEnumKeyEx(mCurrentKey, i, subKeyName, &name, NULL, NULL, NULL, &lastWriteTime);
+      DWORD retCode = RegEnumKeyEx(mCurrentKey, i, subKeyName, &name, NULL, NULL, NULL, &lastWriteTime);
       if (retCode == ERROR_SUCCESS)
         keys << QString(subKeyName);
     }

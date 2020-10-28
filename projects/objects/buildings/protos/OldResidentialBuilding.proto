@@ -1,4 +1,4 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 # license: Creative Commons Attribution 4.0 International License.
 # license url: https://creativecommons.org/licenses/by/4.0/legalcode
 # tags: static
@@ -9,7 +9,7 @@ PROTO OldResidentialBuilding [
   field SFRotation rotation              0 1 0 0
   field SFString   name                  "residential building"
   field SFString{"red grey", "dark grey", "light grey", "red", "braun"}
-                   type                  "braun"                 # Defines the type which has a direct influence on the building texture. Availables types are `red grey`, `dark grey`, `light grey`, `red`, and `braun`.
+                   type                  "braun"                 # Defines the type which has a direct influence on the building texture.
   field SFBool     enableBoundingObject  TRUE                    # Defines whether the building should have a bounding object.
 ]
 {
@@ -155,11 +155,19 @@ PROTO OldResidentialBuilding [
               %{= '"textures/residential_building_textures/small_residential_building_stair_' ..  texture .. '_metalness.jpg"' }%
             ]
           }
+          %{ if type ~= 'light grey' then }%
           normalMap ImageTexture {
             url [
               %{= '"textures/residential_building_textures/small_residential_building_stair_' ..  texture .. '_normal.jpg"' }%
             ]
           }
+          %{ else }%
+          normalMap ImageTexture {
+            url [
+              %{= '"textures/residential_building_textures/small_residential_building_stair_medium_grey_normal.jpg"' }%
+            ]
+          }
+          %{ end }%
           occlusionMap ImageTexture {
             url [
               %{= '"textures/residential_building_textures/small_residential_building_stair_' ..  texture .. '_occlusion.jpg"' }%
@@ -249,11 +257,19 @@ PROTO OldResidentialBuilding [
               %{= '"textures/residential_building_textures/small_residential_building_windows_' ..  texture .. '_metalness.jpg"' }%
             ]
           }
+          %{ if type == 'light grey' then }%
+          normalMap ImageTexture {
+            url [
+              %{= '"textures/residential_building_textures/small_residential_building_windows_medium_grey_normal.jpg"' }%
+            ]
+          }
+          %{ elseif type ~= 'braun' and type ~= 'red grey' then }%
           normalMap ImageTexture {
             url [
               %{= '"textures/residential_building_textures/small_residential_building_windows_' ..  texture .. '_normal.jpg"' }%
             ]
           }
+          %{ end }%
           occlusionMap ImageTexture {
             url [
               %{= '"textures/residential_building_textures/small_residential_building_windows_' ..  texture .. '_occlusion.jpg"' }%

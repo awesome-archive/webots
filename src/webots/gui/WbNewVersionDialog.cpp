@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,13 @@
 #include "WbNewVersionDialog.hpp"
 
 #include "WbApplicationInfo.hpp"
+#include "WbDesktopServices.hpp"
 #include "WbPreferences.hpp"
 #include "WbStandardPaths.hpp"
 #include "WbVersion.hpp"
 
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QHBoxLayout>
@@ -46,48 +48,49 @@ bool WbNewVersionDialog::run() {
 WbNewVersionDialog::WbNewVersionDialog() {
   style()->polish(this);
 
-  const QString versionString = WbApplicationInfo::version().toString();
-  const WbVersion version = WbApplicationInfo::version();
+  const WbVersion &version = WbApplicationInfo::version();
+  const QString &versionString = version.toString(true, false, true);
   setWindowTitle(tr("Welcome to Webots %1").arg(versionString));
 
-  QVBoxLayout *vBoxlayout = new QVBoxLayout(this);
+  QVBoxLayout *vBoxLayout = new QVBoxLayout(this);
 
-  QLabel *label = new QLabel(
-    tr("Thank you for upgrading to Webots %1."
-       "<br>We have introduced some brand new themes to customize your experience with Webots."
-       "<br>Please select which theme you wish to use (don't worry, you will be able to change it later from the preferences)."
-       "<br><br>Read more about the new changes in Webots %1 <a style='color: #5DADE2;' "
-       "href='https://www.cyberbotics.com/doc/blog/Webots-%2-%3-release'>here</a>.")
-      .arg(versionString)
-      .arg(version.majorNumber())
-      .arg(QChar(version.minorNumber() + 'a')));
-  label->setOpenExternalLinks(true);
-  vBoxlayout->addWidget(label);
-  vBoxlayout->addSpacing(10);
+  QLabel *label = new QLabel(tr("More details about Webots %1 are listed <a style='color: #5DADE2;' "
+                                "href='https://cyberbotics.com/doc/blog/Webots-%2-%3-release'>here</a>.")
+                               .arg(versionString)
+                               .arg(version.majorNumber())
+                               .arg(QChar(version.minorNumber() + 'a')));
+  connect(label, &QLabel::linkActivated, &WbDesktopServices::openUrl);
+  vBoxLayout->addWidget(label);
+  vBoxLayout->addSpacing(10);
 
-  QVBoxLayout *groupBoxlayout = new QVBoxLayout();
+  QVBoxLayout *groupBoxLayout = new QVBoxLayout();
 
   // list of themes
   for (int i = 0; i < NUMBER_OF_THEMES; ++i) {
     if (i > 0)
-      groupBoxlayout->addSpacing(10);
+      groupBoxLayout->addSpacing(10);
     QHBoxLayout *themeLayout = new QHBoxLayout();
     mRadioButtons[i] = new QRadioButton('&' + gThemeNamesAndDescription[i][0], this);
     mRadioButtons[i]->setMinimumWidth(80);
     mRadioButtons[i]->setObjectName(gThemeNamesAndDescription[i][0].toLower());
-    if (i == 0)
+    if (i == 0 || WbPreferences::instance()
+                    ->value("General/theme")
+                    .toString()
+                    .contains(gThemeNamesAndDescription[i][0], Qt::CaseInsensitive))
       mRadioButtons[i]->setChecked(true);
-    connect(mRadioButtons[i], &QRadioButton::toggled, this, &WbNewVersionDialog::updatePreview);
     themeLayout->addWidget(mRadioButtons[i]);
     QLabel *themeDescription = new QLabel(gThemeNamesAndDescription[i][1]);
     themeDescription->setWordWrap(true);
     themeLayout->addWidget(themeDescription, 1);
-    groupBoxlayout->addLayout(themeLayout);
+    groupBoxLayout->addLayout(themeLayout);
   }
 
+  for (int i = 0; i < NUMBER_OF_THEMES; ++i)
+    connect(mRadioButtons[i], &QRadioButton::toggled, this, &WbNewVersionDialog::updatePreview);
+
   QGroupBox *groupBox = new QGroupBox(tr("Themes:"));
-  groupBox->setLayout(groupBoxlayout);
-  vBoxlayout->addWidget(groupBox);
+  groupBox->setLayout(groupBoxLayout);
+  vBoxLayout->addWidget(groupBox);
 
   // preview
   QGroupBox *previewBox = new QGroupBox(tr("Preview:"));
@@ -97,14 +100,39 @@ WbNewVersionDialog::WbNewVersionDialog() {
   previewLayout->addWidget(mPreviewLabel);
   previewLayout->addStretch();
   previewBox->setLayout(previewLayout);
-  vBoxlayout->addWidget(previewBox);
+  vBoxLayout->addWidget(previewBox);
+
+  // newsletter
+  QGroupBox *newsletterBox = new QGroupBox(tr("Webots newsletter:"));
+  QVBoxLayout *newsletterLayout = new QVBoxLayout();
+  label =
+    new QLabel(tr("Stay informed about the latest developments of Webots by subscribing to the <a style='color: #5DADE2;' "
+                  "href='https://cyberbotics.com/newsletter'>Webots newsletter</a>."));
+  connect(label, &QLabel::linkActivated, &WbDesktopServices::openUrl);
+  newsletterLayout->addWidget(label);
+  newsletterBox->setLayout(newsletterLayout);
+  vBoxLayout->addWidget(newsletterBox);
+
+  // telemetry
+  QGroupBox *telemetryBox = new QGroupBox(tr("Telemetry:"));
+  QVBoxLayout *telemetryLayout = new QVBoxLayout();
+  label = new QLabel(tr("We need your help to continue to improve Webots: more information <a style='color: #5DADE2;' "
+                        "href='https://cyberbotics.com/doc/guide/telemetry'>here</a>."));
+  connect(label, &QLabel::linkActivated, &WbDesktopServices::openUrl);
+  telemetryLayout->addWidget(label);
+  telemetryLayout->addStretch();
+  mTelemetryCheckBox = new QCheckBox(tr("Allow to send lightweight anonymous technical data to Webots developers."));
+  mTelemetryCheckBox->setChecked(true);
+  telemetryLayout->addWidget(mTelemetryCheckBox);
+  telemetryBox->setLayout(telemetryLayout);
+  vBoxLayout->addWidget(telemetryBox);
 
   // main button
-  mStartButton = new QPushButton(tr("Start Webots with the selected theme."));
-  vBoxlayout->addWidget(mStartButton);
+  QPushButton *startButton = new QPushButton(tr("Start Webots with the selected theme."));
+  vBoxLayout->addWidget(startButton);
 
-  setLayout(vBoxlayout);
-  connect(mStartButton, &QPushButton::clicked, this, &WbNewVersionDialog::selectTheme);
+  setLayout(vBoxLayout);
+  connect(startButton, &QPushButton::clicked, this, &WbNewVersionDialog::startButtonPressed);
   updatePreview();
 }
 
@@ -118,7 +146,7 @@ void WbNewVersionDialog::updatePreview() {
   }
 }
 
-void WbNewVersionDialog::selectTheme() {
+void WbNewVersionDialog::startButtonPressed() {
   QString theme;
   for (int i = 0; i < NUMBER_OF_THEMES; ++i) {
     if (mRadioButtons[i]->isChecked()) {
@@ -126,8 +154,8 @@ void WbNewVersionDialog::selectTheme() {
       break;
     }
   }
-
   WbPreferences::instance()->setValue("General/theme", theme);
+  WbPreferences::instance()->setValue("General/telemetry", mTelemetryCheckBox->isChecked());
   // force the sync in case we restart just after quitting the dialog (see #7662)
   WbPreferences::instance()->sync();
   done(QDialog::Accepted);

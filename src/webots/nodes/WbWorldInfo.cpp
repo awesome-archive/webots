@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 #include "WbWorldInfo.hpp"
 
+#include "WbApplicationInfo.hpp"
 #include "WbContactProperties.hpp"
 #include "WbDamping.hpp"
 #include "WbField.hpp"
@@ -23,18 +24,20 @@
 #include "WbMFString.hpp"
 #include "WbMathsUtilities.hpp"
 #include "WbOdeContext.hpp"
+#include "WbParser.hpp"
 #include "WbPreferences.hpp"
+#include "WbProtoTemplateEngine.hpp"
 #include "WbReceiver.hpp"
 #include "WbSFNode.hpp"
 #include "WbSFVector3.hpp"
+#include "WbTokenizer.hpp"
 #include "WbWorld.hpp"
 #include "WbWrenRenderingContext.hpp"
 
-void WbWorldInfo::init() {
+void WbWorldInfo::init(const WbVersion *version) {
   mInfo = findMFString("info");
   mTitle = findSFString("title");
   mWindow = findSFString("window");
-  mGravity = findSFVector3("gravity");
   mCfm = findSFDouble("CFM");
   mErp = findSFDouble("ERP");
   mPhysics = findSFString("physics");
@@ -46,7 +49,22 @@ void WbWorldInfo::init() {
   mPhysicsDisableAngularThreshold = findSFDouble("physicsDisableAngularThreshold");
   mDefaultDamping = findSFNode("defaultDamping");
   mInkEvaporation = findSFDouble("inkEvaporation");
-  mNorthDirection = findSFVector3("northDirection");
+  mGravity = findSFDouble("gravity");
+  mCoordinateSystem = findSFString("coordinateSystem");
+  WbField *northDirectionField = findField("northDirection");
+  if (version && *version < WbVersion(2020, 1, 0, true)) {
+    mGravity->setValue(WbParser::legacyGravity());
+    mCoordinateSystem->setValue("NUE");  // default value for Webots < R2020b
+    const WbSFVector3 *const northDirection = findSFVector3("northDirection");
+    if (northDirection->value() == WbVector3(1.0, 0.0, 0.0))
+      northDirectionField->reset();
+    else if (!northDirectionField->isDefault())
+      parsingWarn(tr("The 'northDirection' field is deprecated, according to the 'coordinateSystem' field, the north is "
+                     "aligned along the x-axis."));
+  } else if (!northDirectionField->isDefault())
+    parsingWarn(tr("The 'northDirection' field is deprecated, please use the 'coordinateSystem' field instead."));
+
+  WbProtoTemplateEngine::setCoordinateSystem(mCoordinateSystem->value());
   mGpsCoordinateSystem = findSFString("gpsCoordinateSystem");
   mGpsReference = findSFVector3("gpsReference");
   mLineScale = findSFDouble("lineScale");
@@ -56,12 +74,12 @@ void WbWorldInfo::init() {
   mPhysicsReceiver = NULL;
 
   if (findSFString("fast2d")->value() != "")
-    warn(tr("fast2d plugin are not supported anymore, if you don't want to simulate dynamic, you can use the built-in "
-            "kinematic mode of Webots."));
+    parsingWarn(tr("fast2d plugin are not supported anymore, if you don't want to simulate dynamic, you can use the built-in "
+                   "kinematic mode of Webots."));
 }
 
 WbWorldInfo::WbWorldInfo(WbTokenizer *tokenizer) : WbBaseNode("WorldInfo", tokenizer) {
-  init();
+  init(tokenizer ? &tokenizer->fileVersion() : &WbApplicationInfo::version());
 }
 
 WbWorldInfo::WbWorldInfo(const WbWorldInfo &other) : WbBaseNode(other) {
@@ -93,8 +111,8 @@ void WbWorldInfo::preFinalize() {
   updateLineScale();
   updateRandomSeed();
   updateDefaultDamping();
-  updateNorthDirection();
   updateGpsCoordinateSystem();
+  WbProtoTemplateEngine::setCoordinateSystem(mCoordinateSystem->value());
 
   const int size = mContactProperties->size();
   for (int i = 0; i < size; ++i) {
@@ -110,7 +128,7 @@ void WbWorldInfo::postFinalize() {
     defaultDamping()->postFinalize();
 
   connect(mTitle, &WbSFString::changed, this, &WbWorldInfo::titleChanged);
-  connect(mGravity, &WbSFVector3::changed, this, &WbWorldInfo::updateGravity);
+  connect(mGravity, &WbSFDouble::changed, this, &WbWorldInfo::updateGravity);
   connect(mCfm, &WbSFDouble::changed, this, &WbWorldInfo::updateCfm);
   connect(mErp, &WbSFDouble::changed, this, &WbWorldInfo::updateErp);
   connect(mBasicTimeStep, &WbSFDouble::changed, this, &WbWorldInfo::updateBasicTimeStep);
@@ -123,7 +141,9 @@ void WbWorldInfo::postFinalize() {
   connect(mPhysicsDisableLinearThreshold, &WbSFDouble::changed, this, &WbWorldInfo::physicsDisableChanged);
   connect(mPhysicsDisableAngularThreshold, &WbSFDouble::changed, this, &WbWorldInfo::physicsDisableChanged);
   connect(mDefaultDamping, &WbSFNode::changed, this, &WbWorldInfo::updateDefaultDamping);
-  connect(mNorthDirection, &WbSFVector3::changed, this, &WbWorldInfo::updateNorthDirection);
+  connect(mCoordinateSystem, &WbSFString::changed, this, &WbWorldInfo::updateCoordinateSystem);
+  connect(mCoordinateSystem, &WbSFString::changed, this, &WbWorldInfo::updateGravity);
+
   connect(mGpsCoordinateSystem, &WbSFString::changed, this, &WbWorldInfo::updateGpsCoordinateSystem);
   connect(mGpsReference, &WbSFString::changed, this, &WbWorldInfo::gpsReferenceChanged);
 
@@ -181,17 +201,17 @@ void WbWorldInfo::createOdeObjects() {
 }
 
 void WbWorldInfo::updateBasicTimeStep() {
-  WbFieldChecker::checkDoubleIsPositive(this, mBasicTimeStep, 32.0);
+  WbFieldChecker::resetDoubleIfNonPositive(this, mBasicTimeStep, 32.0);
 }
 
 void WbWorldInfo::updateFps() {
-  WbFieldChecker::checkDoubleIsPositive(this, mFps, 60.0);
+  WbFieldChecker::resetDoubleIfNonPositive(this, mFps, 60.0);
 }
 
 void WbWorldInfo::displayOptimalThreadCountWarning() {
   int threadPreferenceNumber = WbPreferences::instance()->value("General/numberOfThreads", 1).toInt();
   if (mOptimalThreadCount->value() > 1 and threadPreferenceNumber > 1)
-    warn(
+    parsingWarn(
       tr("Physics multi-threading is enabled. "
          "This can have a noticeable impact on the simulation speed (negative or positive depending on the simulated world). "
          "In case of multi-threading, simulation replicability is not guaranteed. "));
@@ -203,13 +223,13 @@ void WbWorldInfo::updateOptimalThreadCount() {
   // raise any warning
   int threadPreferenceNumber = WbPreferences::instance()->value("General/numberOfThreads", 1).toInt();
   if (mOptimalThreadCount->value() > threadPreferenceNumber)
-    warn(tr("A limit of '%1' threads is set in the preferences.").arg(threadPreferenceNumber));
-  else if (!WbFieldChecker::checkIntIsPositive(this, mOptimalThreadCount, 1))
+    parsingWarn(tr("A limit of '%1' threads is set in the preferences.").arg(threadPreferenceNumber));
+  else if (!WbFieldChecker::resetIntIfNonPositive(this, mOptimalThreadCount, 1))
     emit optimalThreadCountChanged();
 }
 
 void WbWorldInfo::updateLineScale() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mLineScale, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mLineScale, 0.0))
     return;
 
   if (areWrenObjectsInitialized())
@@ -221,7 +241,7 @@ void WbWorldInfo::applyLineScaleToWren() {
 }
 
 void WbWorldInfo::updateRandomSeed() {
-  WbFieldChecker::checkIntIsNonNegativeOrDisabled(this, mRandomSeed, 0, -1);
+  WbFieldChecker::resetIntIfNegativeAndNotDisabled(this, mRandomSeed, 0, -1);
   emit randomSeedChanged();
 }
 
@@ -236,13 +256,12 @@ void WbWorldInfo::updateGravity() {
 }
 
 void WbWorldInfo::applyToOdeGravity() {
-  const WbVector3 &gravity = mGravity->value();
-  WbOdeContext::instance()->setGravity(gravity.x(), gravity.y(), gravity.z());
+  WbOdeContext::instance()->setGravity(mGravityVector.x(), mGravityVector.y(), mGravityVector.z());
   emit globalPhysicsPropertiesChanged();
 }
 
 void WbWorldInfo::updateCfm() {
-  if (WbFieldChecker::checkDoubleIsPositive(this, mCfm, 0.00001))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mCfm, 0.00001))
     return;
 
   if (areOdeObjectsCreated())
@@ -255,7 +274,7 @@ void WbWorldInfo::applyToOdeCfm() {
 }
 
 void WbWorldInfo::updateErp() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mErp, 0.0, 1.0, 0.2))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mErp, 0.0, 1.0, 0.2))
     return;
 
   if (areOdeObjectsCreated())
@@ -292,28 +311,34 @@ void WbWorldInfo::applyToOdeGlobalDamping() {
 
 // Computes an orthonormal basis whose 'yaw unit vector' is the opposite of the normalized gravity vector
 void WbWorldInfo::updateGravityBasis() {
-  if (!gravity().isNull()) {
-    mGravityUnitVector = gravity().normalized();
-    WbMathsUtilities::orthoBasis(-gravity(), mGravityBasis);
-  } else {
-    mGravityUnitVector.setXyz(0.0, -1.0, 0.0);
-    mGravityBasis[X].setXyz(1.0, 0.0, 0.0);
-    mGravityBasis[Y].setXyz(0.0, 1.0, 0.0);
-    mGravityBasis[Z].setXyz(0.0, 0.0, 1.0);
+  if (mCoordinateSystem->value() == "ENU") {
+    mEastVector = WbVector3(1, 0, 0);
+    mNorthVector = WbVector3(0, 1, 0);
+    mUpVector = WbVector3(0, 0, 1);
+    mGravityBasis[X].setXyz(0, 1, 0);
+    mGravityBasis[Y].setXyz(0, 0, 1);
+    mGravityBasis[Z].setXyz(1, 0, 0);
+  } else {  // "NUE"
+    mNorthVector = WbVector3(1, 0, 0);
+    mUpVector = WbVector3(0, 1, 0);
+    mEastVector = WbVector3(0, 0, 1);
+    mGravityBasis[X].setXyz(1, 0, 0);
+    mGravityBasis[Y].setXyz(0, 1, 0);
+    mGravityBasis[Z].setXyz(0, 0, 1);
   }
+  mGravityUnitVector = -mUpVector;
+  mGravityVector = mGravityUnitVector * mGravity->value();
 }
 
-void WbWorldInfo::updateNorthDirection() {
-  if (mNorthDirection->value().isNull()) {
-    mNorthDirection->setValue(1, 0, 0);
-    warn(tr("'northDirection' must be a unit vector. Reset to default value (1, 0, 0)."));
-  }
+void WbWorldInfo::updateCoordinateSystem() {
+  warn(tr("Please save and revert the world so that the change of coordinate system is taken into account when reloading "
+          "procedural PROTO nodes."));
 }
 
 void WbWorldInfo::updateGpsCoordinateSystem() {
-  if (mGpsCoordinateSystem->value().compare("local") != 0 and mGpsCoordinateSystem->value().compare("WGS84") != 0) {
+  if (mGpsCoordinateSystem->value() != "local" && mGpsCoordinateSystem->value() != "WGS84") {
     mGpsCoordinateSystem->setValue("local");
-    warn(tr("'gpsCoordinateSystem' must either be 'local' or 'WGS84'. Reset to default value 'local'."));
+    parsingWarn(tr("'gpsCoordinateSystem' must either be 'local' or 'WGS84'. Reset to default value 'local'."));
   }
   emit gpsCoordinateSystemChanged();
 }
@@ -347,9 +372,6 @@ void WbWorldInfo::exportNodeFields(WbVrmlWriter &writer) const {
       }
       writer << "'";
     }
-
-    if (!findField("lineScale")->isDefault())
-      writer << " lineScale='" << mLineScale->value() << "'";
 
     if (!findField("window")->isDefault())
       writer << " window='" << mWindow->value() << "'";

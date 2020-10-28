@@ -7,7 +7,7 @@ The shape (defined by the 'crossSection' field) is extruded along the path defin
 
 %figure
 
-![Extrusion](images/objects/geometries/Extrusion/model.png)
+![Extrusion](images/objects/geometries/Extrusion/model.thumbnail.png)
 
 %end
 
@@ -29,7 +29,7 @@ Extrusion {
 }
 ```
 
-> **File location**: "WEBOTS\_HOME/projects/objects/geometries/protos/Extrusion.proto"
+> **File location**: "[WEBOTS\_HOME/projects/objects/geometries/protos/Extrusion.proto](https://github.com/cyberbotics/webots/tree/master/projects/objects/geometries/protos/Extrusion.proto)"
 
 > **License**: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 [More information.](https://cyberbotics.com/webots_assets_license)
@@ -50,6 +50,36 @@ Extrusion {
 
 - `splineSubdivision`: If bigger than 1, defines the B-Spline subdivion of the extrusion along it's path.
 
+## Rectangle
+
+Single/double sided and adjustable rectangle shape.
+
+%figure
+
+![Rectangle](images/objects/geometries/Rectangle/model.thumbnail.png)
+
+%end
+
+Derived from [IndexedFaceSet](../reference/indexedfaceset.md).
+
+```
+Rectangle {
+  SFVec2f size        0.1 0.1
+  SFBool  doubleSided TRUE
+}
+```
+
+> **File location**: "[WEBOTS\_HOME/projects/objects/geometries/protos/Rectangle.proto](https://github.com/cyberbotics/webots/tree/master/projects/objects/geometries/protos/Rectangle.proto)"
+
+> **License**: Apache License 2.0
+[More information.](http://www.apache.org/licenses/LICENSE-2.0)
+
+### Rectangle Field Summary
+
+- `size`: Defines the size of the rectangle shape.
+
+- `doubleSided`: Defines whether the shape has two sides or not.
+
 ## TexturedBox
 
 Box with customizable texture mapping.
@@ -65,7 +95,7 @@ A demo of these mappings is available in projects/samples/geometries/worlds/text
 
 %figure
 
-![TexturedBox](images/objects/geometries/TexturedBox/model.png)
+![TexturedBox](images/objects/geometries/TexturedBox/model.thumbnail.png)
 
 %end
 
@@ -84,7 +114,7 @@ TexturedBox {
 }
 ```
 
-> **File location**: "WEBOTS\_HOME/projects/objects/geometries/protos/TexturedBox.proto"
+> **File location**: "[WEBOTS\_HOME/projects/objects/geometries/protos/TexturedBox.proto](https://github.com/cyberbotics/webots/tree/master/projects/objects/geometries/protos/TexturedBox.proto)"
 
 > **License**: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 [More information.](https://cyberbotics.com/webots_assets_license)
@@ -93,7 +123,7 @@ TexturedBox {
 
 - `size`: Defines the size of the box.
 
-- `mapping`: Defines the texture mapping.
+- `mapping`: Defines the texture mapping. This field accepts the following values: `"cube"`, `"compact"`, `"flat"`, `"metric"`, `"default"` and `"none"`.
 
 - `front`: Defines whether the front face should be included.
 
@@ -126,7 +156,7 @@ A demo of these mappings is available in projects/samples/geometries/worlds/text
 
 %figure
 
-![TexturedParallelepiped](images/objects/geometries/TexturedParallelepiped/model.png)
+![TexturedParallelepiped](images/objects/geometries/TexturedParallelepiped/model.thumbnail.png)
 
 %end
 
@@ -146,7 +176,7 @@ TexturedParallelepiped {
 }
 ```
 
-> **File location**: "WEBOTS\_HOME/projects/objects/geometries/protos/TexturedParallelepiped.proto"
+> **File location**: "[WEBOTS\_HOME/projects/objects/geometries/protos/TexturedParallelepiped.proto](https://github.com/cyberbotics/webots/tree/master/projects/objects/geometries/protos/TexturedParallelepiped.proto)"
 
 > **License**: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 [More information.](https://cyberbotics.com/webots_assets_license)
@@ -157,7 +187,7 @@ TexturedParallelepiped {
 
 - `angles`: Defines the angles of the parallelepiped.
 
-- `mapping`: Defines the texture mapping.
+- `mapping`: Defines the texture mapping. This field accepts the following values: `"cube"`, `"compact"`, `"flat"`, `"metric"`, `"default"` and `"none"`.
 
 - `front`: Defines whether the front face should be included.
 

@@ -15,16 +15,16 @@ namespace webotsQtUtils {
     Q_OBJECT
 
   public:
-    CameraWidget(Device *device, QWidget *parent = NULL);
+    explicit CameraWidget(Device *device, QWidget *parent = NULL);
     virtual ~CameraWidget() {}
 
-    virtual void readSensors();
+    void readSensors() override;
 
   protected slots:
-    virtual void enable(bool enable);
+    void enable(bool enable) override;
 
   protected:
-    bool isEnabled() const;
+    bool isEnabled() const override;
 
     QLabel *mLabel;
     QHBoxLayout *mHBox;

@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public:
   // loads/unloads the shared library
   // returns true on success
   virtual bool load();
-  virtual bool unload();
+  bool unload();
 
   // returns true if the shared library is currentl loaded
   bool isLoaded() const { return mFunctions != NULL; }

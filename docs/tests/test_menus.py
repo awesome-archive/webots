@@ -4,6 +4,7 @@ from books import Books
 
 import os
 import re
+import sys
 
 
 class TestMenus(unittest.TestCase):
@@ -28,7 +29,8 @@ class TestMenus(unittest.TestCase):
     def test_menu_refer_valid_files(self):
         """The menu.md refer valid files."""
         for menu in self.menus:
-            with open(menu) as f:
+            args = {} if sys.version_info[0] < 3 else {'encoding': 'utf-8'}
+            with open(menu, **args) as f:
                 content = f.readlines()
             self.assertGreater(len(content), 0, msg='Menu file is empty')
             match_counter = 0
@@ -71,9 +73,9 @@ class TestMenus(unittest.TestCase):
         """All the book files are referred to by the menu files."""
         for menu in self.menus:
             book_path = os.path.dirname(menu)
-            book_name = os.path.basename(book_path)
             # list md files in bookPath
-            with open(menu, 'r') as menu_file:
+            args = {} if sys.version_info[0] < 3 else {'encoding': 'utf-8'}
+            with open(menu, 'r', **args) as menu_file:
                 menu_content = menu_file.read()
             for file_path in os.listdir(book_path):
                 if (file_path.endswith(".md") and

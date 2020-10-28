@@ -5,12 +5,8 @@ The [Supervisor API](#supervisor) can be used to access to extra functions that 
 
 > **Note**: Note that in some special cases the [Supervisor](#supervisor) functions might return wrong values and it might not be possible to retrieve fields and nodes.
 This occurs when closing a world and quitting its controllers, i.e. reloading the current world, opening a new world, or closing Webots.
-In this case the output will be a NULL pointer or a default value.
+In this case the return value will be a NULL pointer or a default value.
 For functions returning a string, an empty string is returned instead of a NULL pointer.
-
-<!-- -->
-
-> **Note** [C++, Java, Python]: It is a good practice to check for a NULL pointer after calling a [Supervisor](#supervisor) function.
 
 ### Supervisor Functions
 
@@ -22,7 +18,7 @@ As for a regular [Robot](robot.md) controller, the `wb_robot_init`, `wb_robot_st
 #### `wb_supervisor_node_get_from_id`
 #### `wb_supervisor_node_get_selected`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -92,7 +88,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 node = wb_supervisor_node_get_root()
 node = wb_supervisor_node_get_self()
 node = wb_supervisor_node_get_from_def('def')
@@ -108,7 +104,7 @@ node = wb_supervisor_node_get_selected()
 | --- | --- | --- | --- |
 | `/supervisor/get_root` | `service` | [`webots_ros::get_uint64`](ros-api.md#common-services) | |
 | `/supervisor/get_self` | `service` | [`webots_ros::get_uint64`](ros-api.md#common-services) | |
-| `/supervisor/get_from_def` | `service` | `webots_ros::supervisor_get_from_def` | `string name`<br/>`---`<br/>`uint64 node` |
+| `/supervisor/get_from_def` | `service` | `webots_ros::supervisor_get_from_def` | `string name`<br/>`uint64 proto`<br/>`---`<br/>`uint64 node` |
 | `/supervisor/get_from_id` | `service` | `webots_ros::supervisor_get_from_id` | `int32 id`<br/>`---`<br/>`uint64 node` |
 | `/supervisor/get_selected` | `service` | [`webots_ros::get_uint64`](ros-api.md#common-services) | |
 
@@ -123,6 +119,10 @@ node = wb_supervisor_node_get_selected()
 The `wb_supervisor_node_get_from_def` function returns a handle to a node in the world from its DEF name.
 The return value can be used for subsequent calls to functions which require a `WbNodeRef` parameter.
 If the requested node does not exist in the current world file or is an internal node of a PROTO, the function returns NULL.
+If a handle to an internal node of a PROTO should be retrieved, the `wb_supervisor_node_get_from_proto_def` should be used instead.
+
+Note that in case of [procedural PROTO nodes](procedural-proto-nodes.md) regeneration, nodes retrieved by `wb_supervisor_node_get_from_proto_def` might become invalid as well as all the descendant nodes and fields.
+In this case, after triggering the PROTO regeneration, the nodes and fields should be retrieved again using the [Supervisor](#supervisor) API functions.
 
 It is possible to use dots (.) as scoping operator in the DEF parameter.
 Dots can be used when looking for a specific node path in the node hierarchy.
@@ -154,8 +154,10 @@ If no node is currently selected, the function returns NULL.
 #### `wb_supervisor_node_get_def`
 #### `wb_supervisor_node_get_id`
 #### `wb_supervisor_node_get_parent_node`
+#### `wb_supervisor_node_is_proto`
+#### `wb_supervisor_node_get_from_proto_def`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -165,6 +167,8 @@ If no node is currently selected, the function returns NULL.
 const char *wb_supervisor_node_get_def(WbNodeRef node);
 int wb_supervisor_node_get_id(WbNodeRef node);
 WbNodeRef wb_supervisor_node_get_parent_node(WbNodeRef node);
+bool wb_supervisor_node_is_proto(WbNodeRef node);
+WbNodeRef wb_supervisor_node_get_from_proto_def(WbNodeRef node, const char *def);
 ```
 
 %tab-end
@@ -179,6 +183,8 @@ namespace webots {
     int getId() const;
     std::string getDef() const;
     Node *getParentNode() const;
+    bool isProto() const;
+    Node *getFromProtoDef(const std::string &name);
     // ...
   }
 }
@@ -195,6 +201,8 @@ class Node:
     def getId(self):
     def getDef(self):
     def getParentNode(self):
+    def isProto(self):
+    def getFromProtoDef(self, name):
     # ...
 ```
 
@@ -209,6 +217,8 @@ public class Node {
   public int getId();
   public String getDef();
   public Node getParentNode();
+  public boolean isProto();
+  public Node getFromProtoDef(String name);
   // ...
 }
 ```
@@ -217,10 +227,12 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 id = wb_supervisor_node_get_id(node)
 s = wb_supervisor_node_get_def(node)
 node = wb_supervisor_node_get_parent_node(node)
+b = wb_supervisor_node_is_proto(node)
+node = wb_supervisor_node_get_from_proto_def(node, 'def')
 ```
 
 %tab-end
@@ -232,6 +244,8 @@ node = wb_supervisor_node_get_parent_node(node)
 | `/supervisor/node/get_id` | `service` | `webots_ros::node_get_id` | `uint64 node`<br/>`---`<br/>`int32 id` |
 | `/supervisor/node/get_def` | `service` | `webots_ros::node_get_name` | `uint64 node`<br/>`---`<br/>`string name` |
 | `/supervisor/node/get_parent_node` | `service` | `webots_ros::node_get_parent_node` | `uint64 node`<br/>`---`<br/>`uint64 node` |
+| `/supervisor/node/is_proto` | `service` | `webots_ros::node_is_proto` | `uint64 node`<br/>`---`<br/>`bool value` |
+| `/supervisor/get_from_def` | `service` | `webots_ros::supervisor_get_from_def` | `string name`<br/>`uint64 proto`<br/>`---`<br/>`uint64 node` |
 
 %tab-end
 
@@ -248,13 +262,18 @@ The `wb_supervisor_node_get_id` function retrieves the unique identifier of the 
 
 The `wb_supervisor_node_get_parent_node` function retrieves the reference to the direct parent node of the node given in parameter.
 
+The `wb_supervisor_node_is_proto` function returns `true` if the node given in the argument is a [PROTO node](proto.md).
+
+The `wb_supervisor_node_get_from_proto_def` function returns a handle to a node defined in the [PROTO body](proto-definition.md) of the specified node from its DEF name.
+Note that this function works only for PROTO nodes.
+
 ---
 
 #### `wb_supervisor_node_get_type`
 #### `wb_supervisor_node_get_type_name`
 #### `wb_supervisor_node_get_base_type_name`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -272,7 +291,6 @@ typedef enum {
   WB_NODE_COLOR,
   WB_NODE_CONE,
   WB_NODE_COORDINATE,
-  WB_NODE_CUBEMAP,
   WB_NODE_CYLINDER,
   WB_NODE_DIRECTIONAL_LIGHT,
   WB_NODE_ELEVATION_GRID,
@@ -282,7 +300,9 @@ typedef enum {
   WB_NODE_INDEXED_FACE_SET,
   WB_NODE_INDEXED_LINE_SET,
   WB_NODE_MATERIAL,
+  WB_NODE_MESH,
   WB_NODE_MUSCLE,
+  WB_NODE_NORMAL,
   WB_NODE_PBR_APPEARANCE,
   WB_NODE_PLANE,
   WB_NODE_POINT_LIGHT,
@@ -366,9 +386,9 @@ namespace webots {
     typedef enum {
       NO_NODE,
       // 3D rendering
-      APPEARANCE, BACKGROUND, BOX, CAPSULE, COLOR, CONE, COORDINATE, CUBEMAP,
+      APPEARANCE, BACKGROUND, BOX, CAPSULE, COLOR, CONE, COORDINATE,
       CYLINDER, DIRECTIONAL_LIGHT, ELEVATION_GRID, FOG, GROUP, IMAGE_TEXTURE,
-      INDEXED_FACE_SET, INDEXED_LINE_SET, MATERIAL, MUSCLE, PBR_APPEARANCE,
+      INDEXED_FACE_SET, INDEXED_LINE_SET, MATERIAL, MESH, MUSCLE, NORMAL, PBR_APPEARANCE,
       PLANE, POINT_LIGHT, POINT_SET, SHAPE, SPHERE, SPOT_LIGHT, TEXTURE_COORDINATE,
       TEXTURE_TRANSFORM, TRANSFORM, VIEWPOINT,
       // robots
@@ -403,9 +423,9 @@ from controller import Node
 class Node:
     NO_NODE,
     # 3D rendering
-    APPEARANCE, BACKGROUND, BOX, CAPSULE, COLOR, CONE, COORDINATE, CUBEMAP,
+    APPEARANCE, BACKGROUND, BOX, CAPSULE, COLOR, CONE, COORDINATE,
     CYLINDER, DIRECTIONAL_LIGHT, ELEVATION_GRID, FOG, GROUP, IMAGE_TEXTURE,
-    INDEXED_FACE_SET, INDEXED_LINE_SET, MATERIAL, MUSCLE, PBR_APPEARANCE,
+    INDEXED_FACE_SET, INDEXED_LINE_SET, MATERIAL, MESH, MUSCLE, NORMAL, PBR_APPEARANCE,
     PLANE, POINT_LIGHT, POINT_SET, SHAPE, SPHERE, SPOT_LIGHT, TEXTURE_COORDINATE,
     TEXTURE_TRANSFORM, TRANSFORM, VIEWPOINT,
     # robots
@@ -438,9 +458,9 @@ public class Node {
   public final static int
     NO_NODE,
     // 3D rendering
-    APPEARANCE, BACKGROUND, BOX, CAPSULE, COLOR, CONE, COORDINATE, CUBEMAP,
+    APPEARANCE, BACKGROUND, BOX, CAPSULE, COLOR, CONE, COORDINATE,
     CYLINDER, DIRECTIONAL_LIGHT, ELEVATION_GRID, FOG, GROUP, IMAGE_TEXTURE,
-    INDEXED_FACE_SET, INDEXED_LINE_SET, MATERIAL, MUSCLE, PBR_APPEARANCE,
+    INDEXED_FACE_SET, INDEXED_LINE_SET, MATERIAL, MESH, MUSCLE, NORMAL, PBR_APPEARANCE,
     PLANE, POINT_LIGHT, POINT_SET, SHAPE, SPHERE, SPOT_LIGHT, TEXTURE_COORDINATE,
     TEXTURE_TRANSFORM, TRANSFORM, VIEWPOINT,
     // robots
@@ -467,16 +487,16 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_NODE_NO_NODE,
 % 3D rendering
 WB_NODE_APPEARANCE, WB_NODE_BACKGROUND, WB_NODE_BOX, WB_NODE_CAPSULE,
-WB_NODE_COLOR, WB_NODE_CONE, WB_NODE_COORDINATE, WB_NODE_CUBEMAP,
-WB_NODE_CYLINDER, WB_NODE_DIRECTIONAL_LIGHT, WB_NODE_ELEVATION_GRID,
-WB_NODE_FOG, WB_NODE_GROUP, WB_NODE_IMAGE_TEXTURE, WB_NODE_INDEXED_FACE_SET,
-WB_NODE_INDEXED_LINE_SET, WB_NODE_MATERIAL, WB_NODE_MUSCLE, WB_NODE_PBR_APPEARANCE,
-WB_NODE_PLANE, WB_NODE_POINT_LIGHT, WB_NODE_POINT_SET, WB_NODE_SHAPE,
-WB_NODE_SPHERE, WB_NODE_SPOT_LIGHT, WB_NODE_TEXTURE_COORDINATE,
+WB_NODE_COLOR, WB_NODE_CONE, WB_NODE_COORDINATE,
+WB_NODE_CYLINDER, WB_NODE_DIRECTIONAL_LIGHT, WB_NODE_ELEVATION_GRID, WB_NODE_FOG,
+WB_NODE_GROUP, WB_NODE_IMAGE_TEXTURE, WB_NODE_INDEXED_FACE_SET, WB_NODE_INDEXED_LINE_SET,
+WB_NODE_MATERIAL, WB_NODE_MESH, WB_NODE_MUSCLE, WB_NODE_NORMAL,
+WB_NODE_PBR_APPEARANCE, WB_NODE_PLANE, WB_NODE_POINT_LIGHT, WB_NODE_POINT_SET,
+WB_NODE_SHAPE, WB_NODE_SPHERE, WB_NODE_SPOT_LIGHT, WB_NODE_TEXTURE_COORDINATE,
 WB_NODE_TEXTURE_TRANSFORM, WB_NODE_TRANSFORM, WB_NODE_VIEWPOINT,
 % robots
 WB_NODE_ROBOT, WB_NODE_DIFFERENTIAL_WHEELS,
@@ -540,7 +560,7 @@ These integers can be directly compared with the output of the `Node::getType` f
 
 #### `wb_supervisor_node_remove`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -594,7 +614,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_node_remove(node)
 ```
 
@@ -615,12 +635,14 @@ wb_supervisor_node_remove(node)
 *Remove a specified node*
 
 The `wb_supervisor_node_remove` function removes the node specified as an argument from the Webots scene tree.
+If the node given in argument is the [Robot](robot.md) node itself, it is removed only at the end of the step.
 
 ---
 
 #### `wb_supervisor_node_get_field`
+#### `wb_supervisor_node_get_proto_field`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -628,6 +650,7 @@ The `wb_supervisor_node_remove` function removes the node specified as an argume
 #include <webots/supervisor.h>
 
 WbFieldRef wb_supervisor_node_get_field(WbNodeRef node, const char *field_name);
+WbFieldRef wb_supervisor_node_get_proto_field(WbNodeRef node, const char *field_name);
 ```
 
 %tab-end
@@ -640,6 +663,7 @@ WbFieldRef wb_supervisor_node_get_field(WbNodeRef node, const char *field_name);
 namespace webots {
   class Node {
     Field *getField(const std::string &fieldName) const;
+    Field *getProtoField(const std::string &fieldName) const;
     // ...
   }
 }
@@ -654,6 +678,7 @@ from controller import Node
 
 class Node:
     def getField(self, fieldName):
+    def getProtoField(self, fieldName):
     # ...
 ```
 
@@ -666,6 +691,7 @@ import com.cyberbotics.webots.controller.Node;
 
 public class Node {
   public Field getField(String fieldName);
+  public Field getProtoField(String fieldName);
   // ...
 }
 ```
@@ -674,8 +700,9 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 field = wb_supervisor_node_get_field(node, 'field_name')
+field = wb_supervisor_node_get_proto_field(node, 'field_name')
 ```
 
 %tab-end
@@ -684,7 +711,7 @@ field = wb_supervisor_node_get_field(node, 'field_name')
 
 | name | service/topic | data type | data type definition |
 | --- | --- | --- | --- |
-| `/supervisor/node/get_field` | `service` | `webots_ros::node_get_field` | `uint64 node`<br/>`string fieldName`<br/>`---`<br/>`uint64 field` |
+| `/supervisor/node/get_field` | `service` | `webots_ros::node_get_field` | `uint64 node`<br/>`string fieldName`<br/>`bool proto`<br/>`---`<br/>`uint64 field` |
 
 %tab-end
 
@@ -702,12 +729,16 @@ Otherwise, it returns a handler to a field.
 
 > **Note**: The `wb_supervisor_node_get_field` function will return a valid field handler if the field corresponding to the field name is an hidden field.
 
+If the field is an internal field of a PROTO, the `wb_supervisor_node_get_proto_field` function should be used instead.
+
+> **Note**: fields retrieved with the `wb_supervisor_node_get_proto_field` function are read-only. Which means that it is not possible to change them using any of the [`wb_supervisor_field_set_*`](#wb_supervisor_field_set_sf_bool) functions.
+
 ---
 
 #### `wb_supervisor_node_get_position`
 #### `wb_supervisor_node_get_orientation`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -765,7 +796,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 position = wb_supervisor_node_get_position(node)
 orientation = wb_supervisor_node_get_orientation(node)
 ```
@@ -816,7 +847,50 @@ p' = R * p + T
 
 Where *p* is a point whose coordinates are given with respect to the local coordinate system of a node, *R* the rotation matrix returned by the `wb_supervisor_node_get_orientation` function, *T* is the position returned by the `wb_supervisor_node_get_position` function and *p'* represents the same point but this time with coordinates expressed in the global (world) coordinate system.
 
-The "WEBOTS\_HOME/projects/robots/ipr/worlds/ipr\_cube.wbt" project shows how to use these functions to do this.
+%spoiler "**Python Example**: How to calculate relative positions and orientations?"
+
+The following Python example calculates the position and orientation of a node relatively to another node.
+It should be easily adaptable to any other language, as it uses simple matrix and vector calculations.
+
+```python
+from controller import Supervisor
+import numpy as np
+
+robot = Supervisor()
+ur10e = robot.getFromDef('ur10e')
+box = robot.getFromDef('box')
+
+# Get the transposed rotation matrix of the robot, so we can calculate poses of
+# everything relative to it.
+# Get orientation of the Node we want as our new reference frame and turn it into
+# a numpy array. Returns 1-dim list of len=9.
+rot_ur10e = np.array(ur10e.getOrientation())
+# reshape into a 3x3 rotation matrix
+rot_ur10e.reshape(3, 3)
+# Transpose the matrix, because we need world relative to the robot, not the
+# robot relative to world.
+rot_ur10e = np.transpose(rot_ur10e)
+
+# Get the translation between the robot and the world (basically where the origin
+# of our new relative frame is).
+# No need to use the reverse vector, as we will subtract instead of add it later.
+pos_ur10e = np.array(ur10e.getPosition())
+
+
+# Box position relative to world.
+box_pos_world = np.array(box.getPosition())
+# Calculate the relative translation between the box and the robot.
+box_pos_world = np.subtract(box_pos_world, pos_ur10e)
+# Matrix multiplication with rotation matrix: box posistion relative to robot.
+box_pos_robot = np.dot(rot_ur10e, box_pos_world)
+
+# Calculate the orientation of the box, relative to the robot, all in one line.
+box_rot_robot = np.dot(rot_ur10e, np.array(box.getOrientation()).reshape(3, 3))
+```
+
+%end
+
+The "[WEBOTS\_HOME/projects/robots/neuronics/ipr/worlds/ipr\_cube.wbt](https://github.com/cyberbotics/webots/tree/master/projects/robots/neuronics/ipr/worlds/ipr_cube.wbt)" simulation shows how to use these functions to achieve this.
 
 > **Note**: The returned pointers are valid during one time step only as memory will be deallocated at the next time step.
 
@@ -824,7 +898,7 @@ The "WEBOTS\_HOME/projects/robots/ipr/worlds/ipr\_cube.wbt" project shows how to
 
 #### `wb_supervisor_node_get_center_of_mass`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -878,7 +952,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 com = wb_supervisor_node_get_center_of_mass(node)
 ```
 
@@ -903,7 +977,7 @@ The `node` argument must be a [Solid](solid.md) node (or a derived node), otherw
 This function returns a vector containing exactly 3 values.
 If the `node` argument has a `NULL` `physics` node, the return value is always the zero vector.
 
-The "WEBOTS\_HOME/projects/samples/.wbt" project shows how to use this function.
+The "[WEBOTS\_HOME/projects/samples/howto/worlds/center\_of\_mass.wbt](https://github.com/cyberbotics/webots/tree/master/projects/samples/howto/worlds/center_of_mass.wbt)" simulation shows how to use this function.
 
 > **Note**: The returned pointer is valid during one time step only as memory will be deallocated at the next time step.
 
@@ -912,7 +986,7 @@ The "WEBOTS\_HOME/projects/samples/.wbt" project shows how to use this function.
 #### `wb_supervisor_node_get_contact_point`
 #### `wb_supervisor_node_get_number_of_contact_points`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -970,7 +1044,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 contact_point = wb_supervisor_node_get_contact_point(node, index)
 number_of_contacts = wb_supervisor_node_get_number_of_contact_points(node)
 ```
@@ -1002,7 +1076,7 @@ The `node` argument must be a [Solid](solid.md) node (or a derived node), which 
 The `wb_supervisor_node_get_number_of_contact_points` function returns the number of contact points of the given `Solid`.
 The `node` argument must be a [Solid](solid.md) node (or a derived node), which moreover has no `Solid` parent, otherwise the function will print a warning message and return `-1`.
 
-The "WEBOTS\_HOME/projects/samples/howto/worlds/cylinder\_stack.wbt" project shows how to use this function.
+The "[WEBOTS\_HOME/projects/samples/howto/worlds/cylinder\_stack.wbt](https://github.com/cyberbotics/webots/tree/master/projects/samples/howto/worlds/cylinder_stack.wbt)" project shows how to use this function.
 
 > **Note**: The returned pointer is valid during one time step only as memory will be deallocated at the next time step.
 
@@ -1010,7 +1084,7 @@ The "WEBOTS\_HOME/projects/samples/howto/worlds/cylinder\_stack.wbt" project sho
 
 #### `wb_supervisor_node_get_static_balance`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1064,7 +1138,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 balance = wb_supervisor_node_get_static_balance(node)
 ```
 
@@ -1095,7 +1169,7 @@ The test consists in checking whether the projection of the center of mass onto 
 #### `wb_supervisor_node_get_velocity`
 #### `wb_supervisor_node_set_velocity`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1153,7 +1227,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 velocity = wb_supervisor_node_get_velocity(node)
 wb_supervisor_node_set_velocity(node, velocity)
 ```
@@ -1175,13 +1249,13 @@ wb_supervisor_node_set_velocity(node, velocity)
 
 *get/set the angular and linear velocities of a Solid node.*
 
-The `wb_supervisor_node_get_velocity` function returns the velocity (both linear and angular) of a node.
+The `wb_supervisor_node_get_velocity` function returns the absolute velocity (both linear and angular) of a node expressed in the global (world) coordinate system.
 The `node` argument must be a [Solid](solid.md) node (or a derived node), otherwise the function will print a warning message and return 6 `NaN` (Not a Number) values.
 This function returns a vector containing exactly 6 values.
 The first three are respectively the linear velocities in the x, y and z direction.
 The last three are respectively the angular velocities around the x, y and z axes.
 
-The `wb_supervisor_node_set_velocity` function set the velocity (both linear and angular) of a node.
+The `wb_supervisor_node_set_velocity` function sets the absolute velocity (both linear and angular) of a node expressed in the global (world) coordinate system.
 The `node` argument must be a [Solid](solid.md) node (or a derived node), otherwise the function will print a warning message and have no effect.
 The `velocity` argument must be a vector containing exactly 6 values.
 The first three are respectively the linear velocities in the x, y and z direction.
@@ -1191,7 +1265,7 @@ The last three are respectively the angular velocities around the x, y and z axe
 
 #### `wb_supervisor_node_reset_physics`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1245,7 +1319,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_node_reset_physics(node)
 ```
 
@@ -1275,7 +1349,7 @@ To stop the inertia of all available solids please refer to [this section](#wb_s
 
 #### `wb_supervisor_node_restart_controller`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1329,7 +1403,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_node_restart_controller(node)
 ```
 
@@ -1357,7 +1431,7 @@ Note that if a robot window is specified for the [Robot](robot.md) node, the rob
 
 #### `wb_supervisor_node_move_viewpoint`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1411,7 +1485,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_node_move_viewpoint(node)
 ```
 
@@ -1438,7 +1512,7 @@ Calling this function is equivalent to using the 'Move Viewpoint to Object' menu
 
 #### `wb_supervisor_node_set_visibility`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1492,7 +1566,7 @@ public class Node {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_node_set_visibility(node, from, visible)
 ```
 
@@ -1523,9 +1597,105 @@ It is relevant to show a node only if it was previously hidden using this functi
 
 ---
 
+#### `wb_supervisor_node_add_force`
+#### `wb_supervisor_node_add_force_with_offset`
+#### `wb_supervisor_node_add_torque`
+
+%tab-component "language"
+
+%tab "C"
+
+```c
+#include <webots/supervisor.h>
+
+void wb_supervisor_node_add_force(WbNodeRef node, const double force[3], bool relative);
+void wb_supervisor_node_add_force_with_offset(WbNodeRef node, const double force[3], const double offset[3], bool relative);
+void wb_supervisor_node_add_torque(WbNodeRef node, const double torque[3], bool relative);
+```
+
+%tab-end
+
+%tab "C++"
+
+```cpp
+#include <webots/Node.hpp>
+
+namespace webots {
+  class Node {
+    void addForce(const double force[3], bool relative);
+    void addForceWithOffset(const double force[3], const double offset[3], bool relative);
+    void addTorque(const double torque[3], bool relative);
+    // ...
+  }
+}
+```
+
+%tab-end
+
+%tab "Python"
+
+```python
+from controller import Node
+
+class Node:
+    def addForce(self, force, relative)
+    def addForceWithOffset(self, force, offset, relative)
+    def addTorque(self, torque, relative)
+    # ...
+```
+
+%tab-end
+
+%tab "Java"
+
+```java
+import com.cyberbotics.webots.controller.Node;
+
+public class Node {
+  public void addForce(double force[3], boolean relative);
+  public void addForceWithOffset(double force[3], double offset[3], boolean relative);
+  public void addTorque(double torque[3], boolean relative);
+  // ...
+}
+```
+
+%tab-end
+
+%tab "MATLAB"
+
+```MATLAB
+void wb_supervisor_node_add_force(node, force, relative)
+void wb_supervisor_node_add_force_with_offset(node, force, offset, relative)
+void wb_supervisor_node_add_torque(node, torque, relative)
+```
+
+%tab-end
+
+%tab "ROS"
+
+| name | service/topic | data type | data type definition |
+| --- | --- | --- | --- |
+| `/supervisor/node/add_force` | `service` | `webots_ros::node_add_force_or_torque` | `uint64 node`<br/>[`geometry_msgs/Twist`](http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html) force<br/>`uint8 relative`<br/>`---`<br/>`int32 success` |
+| `/supervisor/node/add_force_with_offset` | `service` | `webots_ros::node_add_force_with_offset` | `uint64 node`<br/>[`geometry_msgs/Twist`](http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html) force<br/>[`geometry_msgs/Twist`](http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html) offset<br/>`uint8 relative`<br/>`---`<br/>`int32 success` |
+| `/supervisor/node/add_torque` | `service` | `webots_ros::node_add_force_or_torque` | `uint64 node`<br/>[`geometry_msgs/Twist`](http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html) force<br/>`uint8 relative`<br/>`---`<br/>`int32 success` |
+
+%tab-end
+
+%end
+
+##### Description
+
+*add force or torque to a Solid node.*
+
+The `wb_supervisor_node_add_force` function adds a force to the [Solid](solid.md) node at its center of mass, the `relative` argument defines if the force is expressed in world coordinate system or relatively to the node.
+The `wb_supervisor_node_add_force_with_offset` function adds a force to the [Solid](solid.md) node at the location (expressed in the node coordinate system) defined by the `offset` argument.
+The `wb_supervisor_node_add_torque` function adds a torque to the [Solid](solid.md) node.
+
+---
+
 #### `wb_supervisor_set_label`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1581,7 +1751,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_set_label(id, 'text', x, y, size, [r g b], transparency)
 ```
 
@@ -1659,7 +1829,7 @@ For example the vector `[1 0 1]` represents the magenta color.
 
 #### `wb_supervisor_simulation_quit`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1713,7 +1883,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_simulation_quit(status)
 ```
 
@@ -1799,7 +1969,7 @@ int main(int argc, char *argv[]) {
 #### `wb_supervisor_simulation_get_mode`
 #### `wb_supervisor_simulation_set_mode`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1872,7 +2042,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_SUPERVISOR_SIMULATION_MODE_PAUSE, WB_SUPERVISOR_SIMULATION_MODE_REAL_TIME, WB_SUPERVISOR_SIMULATION_MODE_RUN, WB_SUPERVISOR_SIMULATION_MODE_FAST
 
 mode = wb_supervisor_simulation_get_mode()
@@ -1922,7 +2092,7 @@ The current simulation mode can also be modified by the Webots user, when he's c
 
 #### `wb_supervisor_simulation_reset`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1976,7 +2146,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_simulation_reset()
 ```
 
@@ -1996,16 +2166,15 @@ wb_supervisor_simulation_reset()
 
 *reset the simulation*
 
-The `wb_supervisor_simulation_reset` function sends a request to the simulator process, asking it to reset the simulation immediately.
-The reset process is explained in detail in the [User Guide](https://www.cyberbotics.com/doc/guide/the-user-interface#file-menu).
-As a result of the reset, all the supervisor and robot controller processes are terminated and restarted.
+The `wb_supervisor_simulation_reset` function sends a request to the simulator process, asking it to reset the simulation at the end of the step.
+The reset process is explained in detail in the [User Guide](https://www.cyberbotics.com/doc/guide/the-user-interface#file-menu), the only difference is that the supervisor and robot controllers are not restarted, if needed, they have to be restarted with the `wb_supervisor_node_restart_controller` function.
 You may wish to save some data in a file from your supervisor and robot controller programs in order to reload it when they restart.
 
 ---
 
 #### `wb_supervisor_simulation_reset_physics`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -2059,7 +2228,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_simulation_reset_physics()
 ```
 
@@ -2091,7 +2260,7 @@ To stop the inertia of a single [Solid](solid.md) node please refer to [this sec
 #### `wb_supervisor_world_save`
 #### `wb_supervisor_world_reload`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -2155,7 +2324,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_world_load('filename')
 success = wb_supervisor_world_save()
 success = wb_supervisor_world_save('filename')
@@ -2203,7 +2372,7 @@ You may wish to save some data in a file from your supervisor and robot controll
 
 #### `wb_supervisor_export_image`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -2257,7 +2426,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_export_image('filename', quality)
 ```
 
@@ -2296,7 +2465,7 @@ In this example, the [Supervisor](#supervisor) controller takes a snapshot image
 #### `wb_supervisor_movie_is_ready`
 #### `wb_supervisor_movie_failed`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -2362,7 +2531,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_movie_start_recording('filename', width, height, codec, quality,
 acceleration, caption)
 wb_supervisor_movie_stop_recording()
@@ -2404,20 +2573,20 @@ The `acceleration` specifies the acceleration factor of the created movie with r
 Default value is 1, i.e. no acceleration.
 If `caption` parameters is set to true, a default caption is printed on the top right corner of the movie showing the current `acceleration` value.
 
-The `wb_supervisor_movie_is_ready` function returns `TRUE` if the application is ready to start recording a movie, i.e. if another recording process is not already running.
+The `wb_supervisor_movie_is_ready` function returns `true` if the application is ready to start recording a movie, i.e. if another recording process is not already running.
 So it could be used to check if the encoding process is completed and the file has been created.
-Note that if the recording process failed, this function will return `TRUE`.
+Note that if the recording process failed, this function will return `true`.
 In order to detect a failure the `wb_supervisor_movie_failed` function has to be called.
 
-The `wb_supervisor_movie_failed` function returns `TRUE` if the recording process failed.
-After starting a new recording process the returned value is reset to `FALSE`.
+The `wb_supervisor_movie_failed` function returns `true` if the recording process failed.
+After starting a new recording process the returned value is reset to `false`.
 
 ---
 
 #### `wb_supervisor_animation_start_recording`
 #### `wb_supervisor_animation_stop_recording`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -2475,7 +2644,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 success = wb_supervisor_animation_start_recording('filename')
 success = wb_supervisor_animation_stop_recording()
 ```
@@ -2513,7 +2682,7 @@ Both `wb_supervisor_animation_start_recording` and `wb_supervisor_animation_stop
 #### `wb_supervisor_field_get_type_name`
 #### `wb_supervisor_field_get_count`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -2542,7 +2711,8 @@ namespace webots {
   class Field {
     typedef enum {
       SF_BOOL, SF_INT32, SF_FLOAT, SF_VEC2F, SF_VEC3F, SF_ROTATION, SF_COLOR, SF_STRING,
-      SF_NODE, MF, MF_INT32, MF_FLOAT, MF_VEC2F, MF_VEC3F, MF_COLOR, MF_STRING, MF_NODE
+      SF_NODE, MF, MF_BOOL, MF_INT32, MF_FLOAT, MF_VEC2F, MF_VEC3F, MF_ROTATION, MF_COLOR,
+      MF_STRING, MF_NODE
     } Type;
 
     Type getType() const;
@@ -2562,7 +2732,8 @@ from controller import Field
 
 class Field:
     SF_BOOL, SF_INT32, SF_FLOAT, SF_VEC2F, SF_VEC3F, SF_ROTATION, SF_COLOR, SF_STRING,
-    SF_NODE, MF, MF_INT32, MF_FLOAT, MF_VEC2F, MF_VEC3F, MF_COLOR, MF_STRING, MF_NODE
+    SF_NODE, MF, MF_BOOL, MF_INT32, MF_FLOAT, MF_VEC2F, MF_VEC3F, MF_ROTATION, MF_COLOR,
+    MF_STRING, MF_NODE
 
     def getType(self):
     def getTypeName(self):
@@ -2579,8 +2750,8 @@ import com.cyberbotics.webots.controller.Field;
 
 public class Field {
   public final static int SF_BOOL, SF_INT32, SF_FLOAT, SF_VEC2F, SF_VEC3F, SF_ROTATION,
-    SF_COLOR, SF_STRING, SF_NODE, MF, MF_INT32, MF_FLOAT, MF_VEC2F, MF_VEC3F, MF_COLOR,
-    MF_STRING, MF_NODE;
+    SF_COLOR, SF_STRING, SF_NODE, MF, MF_BOOL, MF_INT32, MF_FLOAT, MF_VEC2F, MF_VEC3F,
+    MF_ROTATION, MF_COLOR, MF_STRING, MF_NODE;
 
   public int getType();
   public String getTypeName();
@@ -2593,10 +2764,10 @@ public class Field {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_SF_BOOL, WB_SF_INT32, WB_SF_FLOAT, WB_SF_VEC2F, WB_SF_VEC3F, WB_SF_ROTATION, WB_SF_COLOR,
-WB_SF_STRING, WB_SF_NODE, WB_MF, WB_MF_INT32, WB_MF_FLOAT, B_MF_VEC2F, WB_MF_VEC3F,
-WB_MF_COLOR, WB_MF_STRING, WB_MF_NODE
+WB_SF_STRING, WB_SF_NODE, WB_MF, WB_BOOL, WB_MF_INT32, WB_MF_FLOAT, B_MF_VEC2F, WB_MF_VEC3F,
+WB_ROTATION, WB_MF_COLOR, WB_MF_STRING, WB_MF_NODE
 
 type = wb_supervisor_field_get_type(field)
 name = wb_supervisor_field_get_type_name(field)
@@ -2624,6 +2795,7 @@ count = wb_supervisor_field_get_count(field)
 The `wb_supervisor_field_get_type` function returns the data type of a field found previously from the `wb_supervisor_node_get_field` function, as a symbolic value.
 If the argument is NULL, the function returns 0.
 Field types are defined in "webots/supervisor.h" and include for example: `WB_SF_FLOAT`, `WB_MF_NODE`, `WB_SF_STRING`, etc.
+The `WB_MF` value doesn't represent a type but it is a *bit mask* value that can be used to check if the type represents a single field (SF) or a multiple field (MF).
 
 The `wb_supervisor_field_get_type_name` function returns a text string corresponding to the data type of a field found previously from the `wb_supervisor_node_get_field` function.
 Field type names are defined in the VRML97 specifications and include for example: `"SFFloat"`, `"MFNode"`, `"SFString"`, etc.
@@ -2633,7 +2805,7 @@ The `wb_supervisor_field_get_count` function returns the number of items of a mu
 If a single field (SF) or NULL is passed as an argument to this function, it returns -1.
 Hence, this function can also be used to test if a field is MF (like `WB_MF_INT32`) or SF (like `WB_SF_BOOL`).
 
-> **Note** [C++, Java, Python]: In the oriented-object APIs, the WB\_*F\_* constants are available as static integers of the `Field` class (for example, Field::SF\_BOOL).
+> **Note** [C++, Java, Python]: In the oriented-object APIs, the SF\_* and MF\_* constants are available as static integers of the `Field` class (for example, Field::SF\_BOOL).
 These integers can be directly compared with the output of the `Field::getType` function.
 
 ---
@@ -2657,7 +2829,7 @@ These integers can be directly compared with the output of the `Field::getType` 
 #### `wb_supervisor_field_get_mf_string`
 #### `wb_supervisor_field_get_mf_node`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -2779,23 +2951,23 @@ public class Field {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 b = wb_supervisor_field_get_sf_bool(field)
 i = wb_supervisor_field_get_sf_int32(field)
 f = wb_supervisor_field_get_sf_float(field)
-[x y] = wb_supervisor_field_get_sf_vec2f(field)
-[x y z] = wb_supervisor_field_get_sf_vec3f(field)
-[x y z alpha] = wb_supervisor_field_get_sf_rotation(field)
-[r g b] = wb_supervisor_field_get_sf_color(field)
+x_y_array = wb_supervisor_field_get_sf_vec2f(field)
+x_y_z_array = wb_supervisor_field_get_sf_vec3f(field)
+x_y_z_alpha_array = wb_supervisor_field_get_sf_rotation(field)
+r_g_b_array = wb_supervisor_field_get_sf_color(field)
 s = wb_supervisor_field_get_sf_string(field)
 node = wb_supervisor_field_get_sf_node(field)
 b = wb_supervisor_field_get_mf_bool(field, index)
 i = wb_supervisor_field_get_mf_int32(field, index)
 f = wb_supervisor_field_get_mf_float(field, index)
-[x y] = wb_supervisor_field_get_mf_vec2f(field, index)
-[x y z] = wb_supervisor_field_get_mf_vec3f(field, index)
-[x y z a] = wb_supervisor_field_get_mf_rotation(field, index)
-[r g b] = wb_supervisor_field_get_mf_color(field, index)
+x_y_array = wb_supervisor_field_get_mf_vec2f(field, index)
+x_y_z_array = wb_supervisor_field_get_mf_vec3f(field, index)
+x_y_z_a_array = wb_supervisor_field_get_mf_rotation(field, index)
+r_g_b_array = wb_supervisor_field_get_mf_color(field, index)
 s = wb_supervisor_field_get_mf_string(field, index)
 node = wb_supervisor_field_get_mf_node(field, index)
 ```
@@ -2831,7 +3003,11 @@ Default values are defined as `0` and `0.0` for integer and double values, `fals
 
 The `wb_supervisor_field_get_mf_*` functions work the same way as the `wb_supervisor_field_get_sf_*` functions but with multiple `field` argument.
 They take an additional `index` argument which refers to the index of the item in the multiple field (MF).
-The type of the field has to match the name of the function used and the index should be comprised between 0 and the total number of item minus one, otherwise the return value is undefined (and a warning message is displayed).
+
+The type of the field has to match with the name of the function.
+The index should be comprised between minus the total number of items and the total number of items minus one.
+Using a negative index starts the count from the last element of the field until the first one.
+Index -1 represents the last item and the first item is represented by index 0 (or minus number of items).
 
 > **Note**: If a `wb_supervisor_field_set_*` function is executed just before a corresponding `wb_supervisor_field_get_*` function, in the same time step, the controller library will not send the query to Webots, but answer directly with the value that has just been set before.
 
@@ -2854,7 +3030,7 @@ The type of the field has to match the name of the function used and the index s
 #### `wb_supervisor_field_set_mf_color`
 #### `wb_supervisor_field_set_mf_string`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -2968,7 +3144,7 @@ public class Field {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_field_set_sf_bool(field, value)
 wb_supervisor_field_set_sf_int32(field, value)
 wb_supervisor_field_set_sf_float(field, value)
@@ -3015,9 +3191,11 @@ The type of the field has to match with the name of the function used, otherwise
 
 The `wb_supervisor_field_set_mf_*` functions work the same way as the `wb_supervisor_field_set_sf_*` functions but with a multiple `field` (MF) argument.
 They take an additional `index` argument which refers to the index of the item in the multiple field.
-The type of the field has to match with the name of the function used and the index should be comprised between minus the total number of items and the total number of items minus one, otherwise the value of the field remains unchanged (and a warning message is displayed).
+
+The type of the field has to match with the name of the function.
+The index should be comprised between minus the total number of items and the total number of items minus one.
 Using a negative index starts the count from the last element of the field until the first one.
-Index -1 represents the last item and the first item is represented by index 0 or minus number of items.
+Index -1 represents the last item and the first item is represented by index 0 (or minus number of items).
 
 The set operations are received by Webots from possibly several supervisors running concurrently.
 In order to ensure reproducible simulation results, they are executed only once all set operations are received, just before advancing the simulation time.
@@ -3025,6 +3203,15 @@ The order of execution of the set operations is defined by the order of the [Rob
 As a consequence, if a supervisor sets the translation field of a node and immediately retrieves the absolute position of the same node using the `wb_supervisor_node_get_position` function, it will actually get the previous position of the node.
 This is because the execution of the set operation is postponed to the beginning of the next simulation step.
 In order to retrieve the new position of the node, a `wb_robot_step` function call with a non-zero argument should be executed before calling the `wb_supervisor_node_get_position` function.
+
+An exception to this rule applies if one of the following functions is executed:
+- [`wb_supervisor_field_insert_mf_*`](#wb_supervisor_field_insert_mf_bool)
+- [`wb_supervisor_field_import_mf_*`](#wb_supervisor_field_import_mf_node)
+- [`wb_supervisor_field_import_sf_*`](#wb_supervisor_field_import_sf_node)
+- [`wb_supervisor_field_remove_mf`](#wb_supervisor_field_remove_mf)
+- [`wb_supervisor_field_remove_sf`](#wb_supervisor_field_remove_sf)
+
+In this case, the set operations queued in the current step of this controller only are executed just before the insert, import or remove operation.
 
 > **Note**: Since Webots 7.4.4, the inertia of a solid is no longer automatically reset when changing its translation or rotation using `wb_supervisor_field_set_sf_vec2f` and `wb_supervisor_field_set_sf_rotation` functions.
 If needed, the user has to explicitly call [this section](#wb_supervisor_node_reset_physics) function.
@@ -3045,8 +3232,9 @@ The "soccer.wbt" world, located in the "projects/samples/demos/worlds" directory
 #### `wb_supervisor_field_insert_mf_color`
 #### `wb_supervisor_field_insert_mf_string`
 #### `wb_supervisor_field_remove_mf`
+#### `wb_supervisor_field_remove_sf`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -3063,6 +3251,7 @@ void wb_supervisor_field_insert_mf_color(WbFieldRef field, int index, const doub
 void wb_supervisor_field_insert_mf_string(WbFieldRef field, int index, const char *value);
 
 void wb_supervisor_field_remove_mf(WbFieldRef field, int index);
+void wb_supervisor_field_remove_sf(WbFieldRef field);
 ```
 
 %tab-end
@@ -3090,6 +3279,8 @@ namespace webots {
     void insertMFRotation(int index, const double values[4]);
     void insertMFColor(int index, const double values[3]);
     void insertMFString(int index, const std::string &value);
+    void removeMF(int index);
+    void removeSF();
     // ...
   }
 }
@@ -3112,6 +3303,7 @@ class Field:
     def insertMFColor(self, index, values):
     def insertMFString(self, index, value):
     def removeMF(self, index):
+    def removeSF(self):
     # ...
 ```
 
@@ -3132,6 +3324,7 @@ public class Field {
   public void insertMFColor(int index, double values[3]);
   public void insertMFString(int index, String value);
   public void removeMF(int index);
+  public void removeSF();
   // ...
 }
 ```
@@ -3140,7 +3333,7 @@ public class Field {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_field_insert_mf_bool(field, index, value)
 wb_supervisor_field_insert_mf_int32(field, index, value)
 wb_supervisor_field_insert_mf_float(field, index, value)
@@ -3150,6 +3343,7 @@ wb_supervisor_field_insert_mf_rotation(field, index, [x y z a])
 wb_supervisor_field_insert_mf_color(field, index, [r g b])
 wb_supervisor_field_insert_mf_string(field, index, 'value')
 wb_supervisor_field_remove_mf(field, index)
+wb_supervisor_field_remove_sf(field)
 ```
 
 %tab-end
@@ -3189,14 +3383,17 @@ Here are a few examples for the `index` parameter:
 - -2: insert at the second index from the end of the field.
 - -3: insert at the third index from the end.
 
-The `wb_supervisor_field_remove_mf` function removes an item from a specified multiple `field` (MF).
+The `wb_supervisor_field_remove_sf/mf` functions remove an item from a specified `field` (MF or SF).
+If the item is the [Robot](robot.md) node itself, it is removed only at the end of the step.
 
 ---
 
 #### `wb_supervisor_field_import_mf_node`
 #### `wb_supervisor_field_import_mf_node_from_string`
+#### `wb_supervisor_field_import_sf_node`
+#### `wb_supervisor_field_import_sf_node_from_string`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -3205,6 +3402,9 @@ The `wb_supervisor_field_remove_mf` function removes an item from a specified mu
 
 void wb_supervisor_field_import_mf_node(WbFieldRef field, int position, const char *filename);
 void wb_supervisor_field_import_mf_node_from_string(WbFieldRef field, int position, const char *node_string);
+
+void wb_supervisor_field_import_sf_node(WbFieldRef field, const char *filename);
+void wb_supervisor_field_import_sf_node_from_string(WbFieldRef field, const char *node_string);
 ```
 
 %tab-end
@@ -3218,6 +3418,8 @@ namespace webots {
   class Field {
     void importMFNode(int position, const std::string &filename);
     void importMFNodeFromString(int position, const std::string &nodeString);
+    void importSFNode(const std::string &filename);
+    void importSFNodeFromString(const std::string &nodeString);
     // ...
   }
 }
@@ -3233,6 +3435,8 @@ from controller import Field
 class Field:
     def importMFNode(self, position, filename):
     def importMFNodeFromString(self, position, nodeString):
+    def importSFNode(self, filename):
+    def importSFNodeFromString(self, nodeString):
     # ...
 ```
 
@@ -3246,6 +3450,8 @@ import com.cyberbotics.webots.controller.Field;
 public class Field {
   public void importMFNode(int position, String filename);
   public void importMFNodeFromString(int position, String nodeString);
+  public void importSFNode(String filename);
+  public void importSFNodeFromString(String nodeString);
   // ...
 }
 ```
@@ -3254,9 +3460,11 @@ public class Field {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_supervisor_field_import_mf_node(field, position, 'filename')
 wb_supervisor_field_import_mf_node_from_string(field, position, 'node_string')
+wb_supervisor_field_import_sf_node(field, 'filename')
+wb_supervisor_field_import_sf_node_from_string(field, 'node_string')
 ```
 
 %tab-end
@@ -3274,9 +3482,9 @@ wb_supervisor_field_import_mf_node_from_string(field, position, 'node_string')
 
 ##### Description
 
-*import a node into an MF\_NODE field (typically a "children" field)*
+*import a node into an MF\_NODE or SF\_NODE field (typically a "children" field)*
 
-The `wb_supervisor_field_import_mf_node` function imports a Webots node into an MF\_NODE.
+The `wb_supervisor_field_import_mf_node` and `wb_supervisor_field_import_sf_node` functions import a Webots node into an MF\_NODE or SF\_NODE field.
 This node should be defined in a `.wbo` file referenced by the `filename` parameter.
 Such a file can be produced easily from Webots by selecting a node in the scene tree window and using the `Export` button.
 
@@ -3297,7 +3505,7 @@ In the later case, it is relative to the location of the supervisor controller.
 This function is typically used in order to add a node into a "children" field.
 Note that a node can be imported into the scene tree by calling this function with the "children" field of the root node.
 
-The `wb_supervisor_field_import_mf_node_from_string` function is very similar to the `wb_supervisor_field_import_mf_node` function, except that the node is constructed from the `node_string` string.
+The `wb_supervisor_field_import_sf/mf_node_from_string` functions are very similar to the `wb_supervisor_field_import_sf/mf_node` function, except that the node is constructed from the `node_string` string.
 For example, if you want to create a new robot with a specific controller:
 
 ```c
@@ -3328,7 +3536,7 @@ For example, a device imported into a Robot node doesn't reset the Robot, so the
 #### `wb_supervisor_virtual_reality_headset_get_position`
 #### `wb_supervisor_virtual_reality_headset_get_orientation`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -3390,7 +3598,7 @@ public class Supervisor extends Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 used = wb_supervisor_virtual_reality_headset_is_used()
 position = wb_supervisor_virtual_reality_headset_get_position()
 orientation = wb_supervisor_virtual_reality_headset_get_orientation()

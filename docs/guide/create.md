@@ -1,6 +1,6 @@
 ## iRobot's Create
 
-%robot create images/robots/create/model.png
+%robot create images/robots/create/model.thumbnail.png
 
 The [iRobot Create](http://www.irobot.com/About-iRobot/STEM/Create-2.aspx) robot is a customizable frame based on the famous Roomba vacuum cleaning platform, and is produced by iRobot.
 
@@ -18,7 +18,7 @@ Create {
   SFRotation rotation        0 1 0 0
   SFString   name            "Create"
   SFString   controller      "create_avoid_obstacles"
-  SFString   controllerArgs  ""
+  MFString   controllerArgs  []
   SFString   customData      ""
   SFBool     supervisor      FALSE
   SFBool     synchronization TRUE
@@ -38,7 +38,7 @@ You will find the following sample in this folder: "WEBOTS\_HOME/projects/robots
 
 #### create.wbt
 
-![create.wbt.png](images/robots/create/create.wbt.png) This simulation shows the Create robot which cleans a small apartment.
+![create.wbt.png](images/robots/create/create.wbt.thumbnail.jpg) This simulation shows the Create robot which cleans a small apartment.
 The robot moves straight ahead.
 When hitting an obstacle or detecting a virtual wall, the robot turns randomly.
 The dust on the ground is a texture of a [Display](../reference/display.md) device managed by a [Supervisor](../reference/supervisor.md) controller.

@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "WbJoint.hpp"
 #include "WbJointParameters.hpp"
 #include "WbMathsUtilities.hpp"
+#include "WbPropeller.hpp"
 #include "WbSolid.hpp"
 
 #include <ode/ode.h>
@@ -62,14 +63,36 @@ void WbRotationalMotor::turnOffMotor() {
     if (this == j->motor()) {
       const WbJointParameters *const p = j->parameters();
       dJointSetHinge2Param(jID, dParamFMax, p ? p->staticFriction() : 0.0);
-    } else {
+    } else if (this == j->motor2()) {
       const WbJointParameters *const p2 = j->parameters2();
       dJointSetHinge2Param(jID, dParamFMax2, p2 ? p2->staticFriction() : 0.0);
-    }
-  }
+    } else
+      assert(false);
+  } else if (j->nodeType() == WB_NODE_BALL_JOINT) {
+    if (this == j->motor()) {
+      const WbJointParameters *const p = j->parameters();
+      dJointSetAMotorParam(jID, dParamFMax, p ? p->staticFriction() : 0.0);
+    } else if (this == j->motor2()) {
+      const WbJointParameters *const p2 = j->parameters2();
+      dJointSetAMotorParam(jID, dParamFMax2, p2 ? p2->staticFriction() : 0.0);
+    } else if (this == j->motor3()) {
+      const WbJointParameters *const p3 = j->parameters3();
+      dJointSetAMotorParam(jID, dParamFMax3, p3 ? p3->staticFriction() : 0.0);
+    } else
+      assert(false);
+  } else
+    assert(false);
 }
 
 double WbRotationalMotor::computeFeedback() const {
+  const WbPropeller *propeller = dynamic_cast<WbPropeller *>(parentNode());
+  if (propeller)
+    // RotationalMotor usually returns only torque feedback,
+    // but the propeller case is different since the motor produces both a torque and a force (thrust).
+    // We therefore estimate the feedback by the sum of the force and torque,
+    // so that the consumption computation takes both into account.
+    return fabs(propeller->currentThrust()) + fabs(propeller->currentTorque());
+
   const WbJoint *j = joint();
   if (j == NULL) {  // function available for motorized joints only
     warn(tr("Feedback is available for motorized joints only"));

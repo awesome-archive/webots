@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -85,36 +85,36 @@ void WbGroup::postFinalize() {
   connect(mChildren, &WbMFNode::changed, this, &WbGroup::childrenChanged);
   connect(mChildren, &WbMFNode::itemInserted, this, &WbGroup::insertChildPrivate);
   // if parent is a slot, it needs to be notified when a new node is inserted
-  WbSlot *ps = dynamic_cast<WbSlot *>(parent());
+  WbSlot *ps = dynamic_cast<WbSlot *>(parentNode());
   if (ps)
     connect(this, &WbGroup::notifyParentSlot, ps, &WbSlot::endPointInserted);
 
-  const WbGroup *const parentNode = dynamic_cast<const WbGroup *const>(parent());
-  if (parentNode && parentNode->mHasNoSolidAncestor) {
+  const WbGroup *const parent = dynamic_cast<const WbGroup *const>(parentNode());
+  if (parent && parent->mHasNoSolidAncestor) {
     connect(mChildren, &WbMFNode::changed, this, &WbGroup::topLevelListsUpdateRequested);
-    connect(this, &WbGroup::topLevelListsUpdateRequested, parentNode, &WbGroup::topLevelListsUpdateRequested);
+    connect(this, &WbGroup::topLevelListsUpdateRequested, parent, &WbGroup::topLevelListsUpdateRequested);
   } else if (mHasNoSolidAncestor)
     connect(mChildren, &WbMFNode::changed, this, &WbGroup::topLevelListsUpdateRequested);
 }
 
 void WbGroup::insertChild(int index, WbNode *child) {
-  child->setParent(this);
+  child->setParentNode(this);
   mChildren->insertItem(index, child);
 }
 
 void WbGroup::setChild(int index, WbNode *child) {
-  child->setParent(this);
+  child->setParentNode(this);
   mChildren->setItem(index, child);
 }
 
 void WbGroup::addChild(WbNode *child) {
-  child->setParent(this);
+  child->setParentNode(this);
   mChildren->addItem(child);
 }
 
 bool WbGroup::removeChild(WbNode *node) {
   if (mChildren->removeNode(node)) {
-    node->setParent(NULL);
+    node->setParentNode(NULL);
     return true;
   } else
     return false;
@@ -124,7 +124,7 @@ void WbGroup::clear() {
   WbMFNode::Iterator it(*mChildren);
   while (it.hasNext()) {
     WbNode *const n = it.next();
-    n->setParent(NULL);
+    n->setParentNode(NULL);
   }
   mChildren->clear();
 }
@@ -227,9 +227,9 @@ bool WbGroup::isAValidBoundingObject(bool checkOde, bool warning) const {
 }
 
 void WbGroup::descendantNodeInserted(WbBaseNode *decendant) {
-  if (parent()) {
-    WbGroup *pg = dynamic_cast<WbGroup *>(parent());
-    WbSlot *ps = dynamic_cast<WbSlot *>(parent());
+  if (parentNode()) {
+    WbGroup *pg = dynamic_cast<WbGroup *>(parentNode());
+    WbSlot *ps = dynamic_cast<WbSlot *>(parentNode());
     if (pg)
       pg->descendantNodeInserted(decendant);
     if (ps)
@@ -351,11 +351,11 @@ void WbGroup::writeParameters(WbVrmlWriter &writer) const {
       }
       const PositionMap *const m = hkp->positions();
       if (m) {
-        const PositionMap::const_iterator end = m->constEnd();
-        for (PositionMap::const_iterator i = m->constBegin(); i != end; ++i) {
-          const WbVector3 *const p = i.value();
+        const PositionMap::const_iterator hkpEnd = m->constEnd();
+        for (PositionMap::const_iterator it = m->constBegin(); it != hkpEnd; ++it) {
+          const WbVector3 *const p = it.value();
           assert(p);
-          const int jointIndex = i.key();
+          const int jointIndex = it.key();
           for (int j = 0; j < 2; ++j) {
             const double pj = (*p)[j];
             if (!std::isnan(pj)) {

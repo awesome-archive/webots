@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,8 +48,6 @@ namespace wren {
 
     mFrameBuffer = frameBuffer;
     if (mFrameBuffer) {
-      setSize(mFrameBuffer->width(), mFrameBuffer->height());
-
       for (auto postProcessingEffect : mPostProcessingEffects) {
         postProcessingEffect->firstPass()->setInputTexture(0, mFrameBuffer->outputTexture(0));
         postProcessingEffect->setResultFrameBuffer(mFrameBuffer);
@@ -186,6 +184,9 @@ namespace wren {
     if (mPolygonMode != WR_VIEWPORT_POLYGON_MODE_FILL)
       return;
 
+    if (mCamera->flipY())
+      glstate::setFrontFace(GL_CCW);
+
     if (mAmbientOcclusionEffect) {
       if (mFrameBuffer) {
         mAmbientOcclusionEffect->setInputFrameBuffer(mFrameBuffer);
@@ -198,6 +199,9 @@ namespace wren {
 
       mAmbientOcclusionEffect->apply();
     }
+
+    if (mCamera->flipY())
+      glstate::setFrontFace(GL_CW);
   }
 
   void Viewport::applyAntiAliasing() {
@@ -255,6 +259,7 @@ namespace wren {
     mVisibilityMask(0xFFFFFFFF),
     mWidth(1),
     mHeight(1),
+    mPixelRatio(1),
     mCamera(NULL),
     mFrameBuffer(NULL),
     mAreShadowsEnabled(true),
@@ -299,6 +304,10 @@ void wr_viewport_set_visibility_mask(WrViewport *viewport, int mask) {
 
 void wr_viewport_set_size(WrViewport *viewport, int width, int height) {
   reinterpret_cast<wren::Viewport *>(viewport)->setSize(width, height);
+}
+
+void wr_viewport_set_pixel_ratio(WrViewport *viewport, int ratio) {
+  reinterpret_cast<wren::Viewport *>(viewport)->setPixelRatio(ratio);
 }
 
 void wr_viewport_set_camera(WrViewport *viewport, WrCamera *camera) {

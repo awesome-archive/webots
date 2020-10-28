@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,16 +21,12 @@ struct WrPostProcessingEffectPass;
 
 class WbWrenBloom : public WbWrenAbstractPostProcessingEffect {
 public:
-  static void setScreenRatio(float ratio) { cScreenRatio = ratio; }
-
   WbWrenBloom();
 
   void setup(WrViewport *viewport) override;
   void setThreshold(float threshold);
 
 private:
-  static float cScreenRatio;
-
   void applyParametersToWren() override;
 
   float mThreshold;

@@ -66,6 +66,7 @@ This module is very useful to manipulate images, it can be used, for example, to
 | temporary\_files\_path  | absolute path to the temporary folder currently used by Webots (this is the location where the PROTO file is generated)                                                                                                                   |
 | os                      | OS string ("windows", "linux" or "mac")                                                                                                                                                                                                   |
 | id                      | id of the node. This id is equivalent to the one returned by the [wb\_supervisor\_node\_get\_id](supervisor.md#wb_supervisor_node_get_from_def) function and may be used for example to initialize the seed of a random number generator. |
+| coordinate_system       | value of the [WorldInfo](worldinfo.md).`coordinateSystem` ("ENU" or "NUE").                                                                                                                                                               |
 
 %end
 
@@ -102,7 +103,7 @@ Then, if the same procedural PROTO is used several times in a world and all the 
 
 ```
 
-#VRML_SIM R2018a utf8
+#VRML_SIM R2019a utf8
 # tags: static
 
 PROTO SimpleStairs [

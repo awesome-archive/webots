@@ -71,8 +71,7 @@ class MovingTarget():
                 if line.startswith('#') or line.isspace():
                     # Ignore comments.
                     continue
-                if len(splitTrajectories) == 0 or \
-                   pointIndex > MovingTarget.TRAJECTORIES_POINTS:
+                if not splitTrajectories or pointIndex > MovingTarget.TRAJECTORIES_POINTS:
                     # Begin a new trajectory.
                     splitTrajectories.append([])
                     pointIndex = 0
@@ -217,7 +216,12 @@ robot.wwiSendText("stop")
 timestep = int(robot.getBasicTimeStep())
 while robot.step(timestep) != -1:
     message = robot.wwiReceiveText()
-    if message and message.startswith("record:"):
-        record = robotbenchmarkRecord(message, "visual_tracking", hitRate)
-        robot.wwiSendText(record)
-        break
+    if message:
+        if message.startswith("record:"):
+            record = robotbenchmarkRecord(message, "visual_tracking", hitRate)
+            robot.wwiSendText(record)
+            break
+        elif message == "exit":
+            break
+
+robot.simulationSetMode(Supervisor.SIMULATION_MODE_PAUSE)

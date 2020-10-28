@@ -1,6 +1,6 @@
 ## The Scene Tree
 
-As seen in the previous section, to access to the Scene Tree Window you can either choose `Scene Tree` in the `Tools` menu, or press the `Show Scene Tree` button in the main toolbar.
+As seen in the previous section, to access the Scene Tree Window you can either choose `Scene Tree` in the `Tools` menu, or press the `Show Scene Tree` button in the main toolbar.
 The scene tree contains the information that describes a simulated world, including robots and environment, and its graphical representation.
 The scene tree of Webots is structured like a VRML97 file.
 It is composed of a list of nodes, each containing fields.
@@ -10,7 +10,7 @@ This section describes the user interface of the Scene Tree, and gives an overvi
 
 %figure "Scene Tree Window"
 
-![scene_tree1.png](images/scene_tree1.png)
+![scene_tree1.png](images/scene_tree1.thumbnail.jpg)
 
 %end
 

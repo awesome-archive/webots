@@ -1,6 +1,6 @@
 ## Lego's Mindstorms
 
-%robot mindstorms images/robots/mindstorms/model.png
+%robot mindstorms images/robots/mindstorms/model.thumbnail.png
 
 Robot models based on [Lego's Mindstorms](https://www.lego.com/en-us/mindstorms) can be created in Webots.
 
@@ -14,7 +14,7 @@ MindstormsRover {
   SFRotation rotation        0 1 0 0
   SFString   name            "MindstormsRover"
   SFString   controller      "Rover"
-  SFString   controllerArgs  ""
+  MFString   controllerArgs  []
   SFString   customData      ""
   SFBool     supervisor      FALSE
   SFBool     synchronization TRUE
@@ -34,7 +34,7 @@ You will find the following sample in this folder: "WEBOTS\_HOME/projects/robots
 
 #### rover.wbt
 
-![rover.wbt.png](images/robots/mindstorms/rover.wbt.png) In this example you can see the Mindstorms Rover robot following a black line drawn on the ground.
+![rover.wbt.png](images/robots/mindstorms/rover.wbt.thumbnail.jpg) In this example you can see the Mindstorms Rover robot following a black line drawn on the ground.
 In the middle of this line there is an obstacle which the robot navigates around after detecting a collision with it.
 The robot will then recover its path.
 As this robot is a *Mindstorms* robot, its world file and its controller are in the "mindstorms" directory.

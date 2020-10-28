@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ public:
   WbRgb(double r, double g, double b) : mRed(r), mGreen(g), mBlue(b) {}
   WbRgb(uint8_t r, uint8_t g, uint8_t b) : mRed(r / 255.0), mGreen(g / 255.0), mBlue(b / 255.0) {}
   WbRgb(const WbRgb &c) : mRed(c.mRed), mGreen(c.mGreen), mBlue(c.mBlue) {}
-  WbRgb(const QString &string) {
+  explicit WbRgb(const QString &string) {
     const QStringList splittedText = string.split(' ');
     assert(splittedText.count() == 3);
     mRed = splittedText[0].toDouble();

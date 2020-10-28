@@ -1,9 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2020b utf8
 WorldInfo {
   info [
-    "Illustartion of signalStrengthNoise and directionNoise of the Receiver."
+    "Demonstration of the signalStrengthNoise and directionNoise of the Receiver node."
+    ""
+    "The real position of the emitter robot obtained from a noise-free GPS is compared to the position computed from the direction and signal strenght information."
+    "Changing the 'signalStrengthNoise' or 'directionNoise' of the Receiver node should affect the results."
   ]
   title "Receiver Noise"
+  coordinateSystem "NUE"
 }
 Viewpoint {
   orientation 0.7688865250351047 0.593461633400465 0.23794285301536885 5.33352

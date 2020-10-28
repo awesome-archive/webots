@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbLightSensor.hpp"
+
 #include "WbFieldChecker.hpp"
 #include "WbLight.hpp"
 #include "WbLookupTable.hpp"
@@ -28,7 +29,7 @@
 #include "WbWrenRenderingContext.hpp"
 #include "WbWrenShaders.hpp"
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../Controller/api/messages.h"
 
 #include <wren/config.h>
 #include <wren/material.h>
@@ -124,6 +125,8 @@ void WbLightSensor::init() {
   mMaterial = NULL;
   mRenderable = NULL;
   mMesh = NULL;
+
+  mNeedToReconfigure = false;
 }
 
 WbLightSensor::WbLightSensor(WbTokenizer *tokenizer) : WbSolidDevice("LightSensor", tokenizer) {
@@ -169,11 +172,11 @@ void WbLightSensor::postFinalize() {
 void WbLightSensor::handleMessage(QDataStream &stream) {
   unsigned char command;
   short refreshRate;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SET_SAMPLING_PERIOD:
-      stream >> (short &)refreshRate;
+      stream >> refreshRate;
       mSensor->setRefreshRate(refreshRate);
       break;
     default:
@@ -184,14 +187,31 @@ void WbLightSensor::handleMessage(QDataStream &stream) {
 void WbLightSensor::writeAnswer(QDataStream &stream) {
   if (refreshSensorIfNeeded() || mSensor->hasPendingValue()) {
     stream << tag();
+    stream << (unsigned char)C_LIGHT_SENSOR_DATA;
     stream << mValue;
 
     mSensor->resetPendingValue();
   }
+
+  if (mNeedToReconfigure)
+    addConfigure(stream);
 }
 
-void WbLightSensor::writeConfigure(QDataStream &) {
+void WbLightSensor::addConfigure(QDataStream &stream) {
+  stream << (short unsigned int)tag();
+  stream << (unsigned char)C_CONFIGURE;
+  stream << (int)mLookupTable->size();
+  for (int i = 0; i < mLookupTable->size(); i++) {
+    stream << (double)mLookupTable->item(i).x();
+    stream << (double)mLookupTable->item(i).y();
+    stream << (double)mLookupTable->item(i).z();
+  }
+  mNeedToReconfigure = false;
+}
+
+void WbLightSensor::writeConfigure(QDataStream &stream) {
   mSensor->connectToRobotSignal(robot());
+  addConfigure(stream);
 }
 
 void WbLightSensor::updateLookupTable() {
@@ -199,10 +219,12 @@ void WbLightSensor::updateLookupTable() {
   delete mLut;
   mLut = new WbLookupTable(*mLookupTable);
   mValue = mLut->minValue();
+
+  mNeedToReconfigure = true;
 }
 
 void WbLightSensor::updateResolution() {
-  WbFieldChecker::checkDoubleIsPositiveOrDisabled(this, mResolution, -1.0, -1.0);
+  WbFieldChecker::resetDoubleIfNonPositiveAndNotDisabled(this, mResolution, -1.0, -1.0);
 }
 
 void WbLightSensor::prePhysicsStep(double ms) {
@@ -230,7 +252,7 @@ void WbLightSensor::prePhysicsStep(double ms) {
 }
 
 void WbLightSensor::updateRaysSetupIfNeeded() {
-  updateTransformAfterPhysicsStep();
+  updateTransformForPhysicsStep();
   foreach (LightRay *ray, mRayList)
     ray->recomputeRayDirection();
 }

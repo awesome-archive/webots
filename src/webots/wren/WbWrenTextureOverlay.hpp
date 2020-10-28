@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ public:
 
   static void updateOverlayDimensions();
   static void setElementsVisible(OverlayType type, bool visible);
-  static void setScreenRatio(float screenRatio);
 
   WbWrenTextureOverlay(void *data, int width, int height, TextureType textureType, OverlayType overlayType,
                        WrTexture *texture = NULL, double maxRange = 1.0, bool rangeCamera = false,
@@ -108,16 +107,11 @@ private:
   int width() const;
   int height() const;
 
-  // Accessors for mWrenTexture
-  bool isTransparent() const;
-
   WrTexture2d *createIconTexture(QString filePath);
   void copyDataToTexture(void *data, TextureType type, int x, int y, int width, int height);
 
   // Cleanup methods
   void deleteWren();
-
-  static float cScreenRatio;
 
   TextureType mTextureType;
   OverlayType mOverlayType;

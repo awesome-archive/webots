@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -90,8 +90,8 @@ namespace wren {
 
     int computeNodeCount() const;
     static void printSceneTree();
-    void render();
-    void renderToViewports(std::vector<Viewport *> viewports);
+    void render(bool culling);
+    void renderToViewports(std::vector<Viewport *> viewports, bool culling);
 
     void addFrameListener(void (*listener)()) { mListeners.push_back(listener); }
     void removeFrameListener(void (*listener)());
@@ -105,7 +105,7 @@ namespace wren {
     ~Scene();
 
     void prepareRender();
-    void renderToViewport();
+    void renderToViewport(bool culling);
     void updateFogUniformBuffer();
 
     RenderQueueIterator partitionByVisibility(RenderQueueIterator first, RenderQueueIterator last);

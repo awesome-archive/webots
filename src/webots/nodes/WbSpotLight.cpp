@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,10 +48,11 @@ void WbSpotLight::init() {
 
 WbSpotLight::WbSpotLight(WbTokenizer *tokenizer) : WbLight("SpotLight", tokenizer) {
   init();
-  if (tokenizer == NULL)
+  if (tokenizer == NULL) {
     mDirection->setValueNoSignal(0, 1, -1);
-  if (tokenizer == NULL)
     mAttenuation->setValueNoSignal(0.0, 0.0, 1.0);
+    mBeamWidth->setValueNoSignal(0.7);
+  }
 }
 
 WbSpotLight::WbSpotLight(const WbSpotLight &other) : WbLight(other) {
@@ -124,8 +125,12 @@ void WbSpotLight::updateOptionalRendering(int option) {
 }
 
 void WbSpotLight::updateAttenuation() {
-  if (WbFieldChecker::checkVector3IsNonNegative(this, mAttenuation, WbVector3()))
+  if (WbFieldChecker::resetVector3IfNegative(this, mAttenuation, WbVector3()))
     return;
+
+  if (mAttenuation->value().x() > 0.0 || mAttenuation->value().y() > 0.0)
+    parsingWarn(tr("A quadratic 'attenuation' should be preferred to have a realistic simulation of light. "
+                   "Only the third component of the 'attenuation' field should be greater than 0."));
 
   checkAmbientAndAttenuationExclusivity();
 
@@ -140,7 +145,7 @@ void WbSpotLight::updateLocation() {
 }
 
 void WbSpotLight::updateRadius() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mRadius, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mRadius, 0.0))
     return;
 
   if (areWrenObjectsInitialized())
@@ -173,25 +178,22 @@ void WbSpotLight::updateDirection() {
 }
 
 void WbSpotLight::updateCutOffAngle() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mCutOffAngle, 0.0, M_PI_2, M_PI_2))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mCutOffAngle, 0.0, M_PI_2, M_PI_2))
     return;
 
-  if (mCutOffAngle->value() < mBeamWidth->value()) {
-    mBeamWidth->blockSignals(true);
-    mBeamWidth->setValue(mCutOffAngle->value());
-    mBeamWidth->blockSignals(false);
-  }
+  if (mCutOffAngle->value() < mBeamWidth->value())
+    mBeamWidth->setValueNoSignal(mCutOffAngle->value());
 
   if (areWrenObjectsInitialized())
     applyLightBeamWidthAndCutOffAngleToWren();
 }
 
 void WbSpotLight::updateBeamWidth() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mBeamWidth, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mBeamWidth, 0.0))
     return;
   else if (mBeamWidth->value() > mCutOffAngle->value()) {
-    warn(tr("Invalid 'beamWidth' changed to %1. The value should be less than or equal to 'cutOffAngle'.")
-           .arg(mCutOffAngle->value()));
+    parsingWarn(tr("Invalid 'beamWidth' changed to %1. The value should be less than or equal to 'cutOffAngle'.")
+                  .arg(mCutOffAngle->value()));
     mBeamWidth->setValue(mCutOffAngle->value());
     return;
   }
@@ -202,8 +204,9 @@ void WbSpotLight::updateBeamWidth() {
 
 void WbSpotLight::checkAmbientAndAttenuationExclusivity() {
   if (mAttenuation->value() != WbVector3(1.0, 0.0, 0.0) && ambientIntensity() != 0.0) {
-    warn(tr("'ambientIntensity' and 'attenuation' cannot differ from their default values at the same time. 'ambientIntensity' "
-            "was changed to 0."));
+    parsingWarn(
+      tr("'ambientIntensity' and 'attenuation' cannot differ from their default values at the same time. 'ambientIntensity' "
+         "was changed to 0."));
     setAmbientIntensity(0.0);
   }
 }
@@ -237,7 +240,8 @@ void WbSpotLight::applyLightVisibilityToWren() {
   const int maxCount = wr_config_get_max_active_spot_light_count();
   const int activeCount = wr_scene_get_active_spot_light_count(wr_scene_get_instance());
   if (activeCount == maxCount)
-    warn(tr("Maximum number of active spotlights (%1) has been reached, newly added lights won't be rendered.").arg(maxCount));
+    parsingWarn(
+      tr("Maximum number of active spotlights (%1) has been reached, newly added lights won't be rendered.").arg(maxCount));
 }
 
 void WbSpotLight::applyLightShadowsToWren() {

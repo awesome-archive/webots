@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbLed.hpp"
+
 #include "WbAppearance.hpp"
 #include "WbField.hpp"
 #include "WbGroup.hpp"
@@ -22,7 +23,7 @@
 #include "WbPbrAppearance.hpp"
 #include "WbShape.hpp"
 
-#include "../../lib/Controller/api/messages.h"  // contains the definitions for the macros C_SET_LED
+#include "../../Controller/api/messages.h"  // contains the definitions for the macros C_SET_LED
 
 #include <QtCore/QDataStream>
 #include <cassert>
@@ -88,7 +89,7 @@ void WbLed::updateChildren() {
 
   findMaterialsAndLights(this);
   if (mGradual->isTrue() && colorsCount() > 1)
-    warn(tr("Too many colors defined for a gradual LED."));
+    parsingWarn(tr("Too many colors defined for a gradual LED."));
 
   // update color of lights and materials
   setMaterialsAndLightsColor();
@@ -117,14 +118,14 @@ void WbLed::findMaterialsAndLights(const WbGroup *group) {
           mMaterials.append(material);
 
         connect(appearance, &WbAppearance::fieldChanged, this, &WbLed::updateIfNeeded, Qt::UniqueConnection);
-        connect(appearance->parent(), &WbShape::fieldChanged, this, &WbLed::updateIfNeeded, Qt::UniqueConnection);
+        connect(appearance->parentNode(), &WbShape::fieldChanged, this, &WbLed::updateIfNeeded, Qt::UniqueConnection);
       } else {
         WbPbrAppearance *pbrAppearance = dynamic_cast<WbShape *>(n)->pbrAppearance();
         if (pbrAppearance) {
           mPbrAppearances.append(pbrAppearance);
 
           connect(pbrAppearance, &WbPbrAppearance::fieldChanged, this, &WbLed::updateIfNeeded, Qt::UniqueConnection);
-          connect(pbrAppearance->parent(), &WbShape::fieldChanged, this, &WbLed::updateIfNeeded, Qt::UniqueConnection);
+          connect(pbrAppearance->parentNode(), &WbShape::fieldChanged, this, &WbLed::updateIfNeeded, Qt::UniqueConnection);
         }
       }
     } else if (light)
@@ -136,9 +137,9 @@ void WbLed::findMaterialsAndLights(const WbGroup *group) {
   }
 
   if (group == this && !isAnyMaterialOrLightFound())
-    warn(tr("No PBRAppearance, Material and no Light found. "
-            "The first child of a LED should be either a Shape, a Light "
-            "or a Group containing Shape and Light nodes."));
+    parsingWarn(tr("No PBRAppearance, Material and no Light found. "
+                   "The first child of a LED should be either a Shape, a Light "
+                   "or a Group containing Shape and Light nodes."));
 }
 
 bool WbLed::isAnyMaterialOrLightFound() {
@@ -148,11 +149,11 @@ bool WbLed::isAnyMaterialOrLightFound() {
 void WbLed::handleMessage(QDataStream &stream) {
   unsigned char byte;
   int v;
-  stream >> (unsigned char &)byte;
+  stream >> byte;
 
   switch (byte) {
     case C_LED_SET:
-      stream >> (int &)v;
+      stream >> v;
       if (isAnyMaterialOrLightFound())
         setValue(v);
       break;

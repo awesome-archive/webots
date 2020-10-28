@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -54,6 +54,8 @@
 
 #include <QtCore/QStringList>
 
+bool WbMatter::cShowMatterCenter = false;
+
 void WbMatter::init() {
   // Flags
   mBoundingObjectHasChanged = false;
@@ -101,6 +103,7 @@ void WbMatter::disconnectFromBoundingObjectUpdates(const WbNode *node) const {
     return;
 
   const WbGroup *const group = dynamic_cast<const WbGroup *>(node);
+  // cppcheck-suppress knownConditionTrueFalse
   if (group) {
     for (int i = 0; i < group->childCount(); ++i)
       disconnectFromBoundingObjectUpdates(group->child(i));
@@ -247,6 +250,7 @@ dGeomID WbMatter::odeGeom() const {
   WbGeometry *g = NULL;
 
   const WbTransform *const t = dynamic_cast<WbTransform *>(bo);
+  // cppcheck-suppress knownConditionTrueFalse
   if (t)
     g = t->geometry();
   else {
@@ -288,12 +292,12 @@ dGeomID WbMatter::createOdeGeomFromTransform(dSpaceID space, WbTransform *transf
 
   const int n = transform->childCount();
   if (n == 0) {
-    info(tr("A child to the Transform placed in 'boundingObject' is expected."));
+    parsingInfo(tr("A child to the Transform placed in 'boundingObject' is expected."));
     return NULL;
   }
 
   if (n != 1)
-    transform->warn(
+    transform->parsingWarn(
       tr("A Transform node inside a 'boundingObject' can only contain one child. Remaining children are ignored."));
 
   WbBaseNode *const transformChild = transform->child(0);
@@ -310,8 +314,9 @@ dGeomID WbMatter::createOdeGeomFromTransform(dSpaceID space, WbTransform *transf
             Qt::UniqueConnection);
     shape->connectGeometryField();
   } else if (dynamic_cast<WbGeometry *>(transformChild) == NULL) {
-    transform->warn(tr("A Transform node inside a 'boundingObject' can only contain one Shape or one Geometry node. The child "
-                       "node is ignored."));
+    transform->parsingWarn(
+      tr("A Transform node inside a 'boundingObject' can only contain one Shape or one Geometry node. The child "
+         "node is ignored."));
   }
 
   WbGeometry *const geometry = transform->geometry();
@@ -319,6 +324,7 @@ dGeomID WbMatter::createOdeGeomFromTransform(dSpaceID space, WbTransform *transf
     return NULL;
 
   const WbIndexedFaceSet *const ifs = dynamic_cast<WbIndexedFaceSet *>(geometry);
+  // cppcheck-suppress knownConditionTrueFalse
   if (ifs)
     connect(ifs, &WbIndexedFaceSet::validIndexedFaceSetInserted, transform, &WbTransform::geometryInTransformInserted,
             Qt::UniqueConnection);
@@ -396,7 +402,7 @@ dGeomID WbMatter::createOdeGeomFromGroup(dSpaceID space, WbGroup *group) {  // g
   group->setOdeData(simpleSpace);
 
   if (group->childCount() == 0) {
-    info(tr("A child in the Group placed in 'boundingObject' is missing."));
+    parsingInfo(tr("A child in the Group placed in 'boundingObject' is missing."));
     return (dGeomID)simpleSpace;
   }
 
@@ -447,6 +453,7 @@ dGeomID WbMatter::createOdeGeomFromNode(dSpaceID space, WbBaseNode *node) {
     return NULL;
 
   WbTransform *const transform = dynamic_cast<WbTransform *>(node);
+  // cppcheck-suppress knownConditionTrueFalse
   if (transform)
     return createOdeGeomFromTransform(space, transform);
 
@@ -470,6 +477,7 @@ dGeomID WbMatter::createOdeGeomFromNode(dSpaceID space, WbBaseNode *node) {
     return NULL;  // the boundingObject is neither a WbGroup, WbShape nor a WbGeometry => ignored (maybe empty Shape)
 
   const WbIndexedFaceSet *const ifs = dynamic_cast<WbIndexedFaceSet *>(geometry);
+  // cppcheck-suppress knownConditionTrueFalse
   if (ifs)
     connect(ifs, &WbIndexedFaceSet::validIndexedFaceSetInserted, this, &WbMatter::insertValidGeometryInBoundingObject,
             Qt::UniqueConnection);
@@ -519,7 +527,7 @@ void WbMatter::updateName() {
   QString nameValue = mName->value();
   if (nameValue.isEmpty()) {
     const QString &defaultName = dynamic_cast<const WbSFString *>(findField("name")->defaultValue())->value();
-    warn(tr("'name' cannot be empty. Default node name '%1' is automatically set.").arg(defaultName));
+    parsingWarn(tr("'name' cannot be empty. Default node name '%1' is automatically set.").arg(defaultName));
     mName->blockSignals(true);
     mName->setValue(defaultName);
     mName->blockSignals(false);
@@ -546,7 +554,7 @@ bool WbMatter::checkScaleAtLoad(bool warning) {
   }
 
   if (b && warning)
-    warn(tr("The 'scale' field components of a Solid must be the same: y and z are reset to x."));
+    parsingWarn(tr("The 'scale' field components of a Solid must be the same: y and z are reset to x."));
 
   return b;
 }
@@ -694,14 +702,16 @@ WbBaseNode *WbMatter::boundingObject() const {
 }
 
 // Selection management
-void WbMatter::select(bool s) {
-  if (mSelected == s)
+void WbMatter::select(bool selected) {
+  if (mSelected == selected)
     return;
 
-  mSelected = s;
-  propagateSelection(s);
-  applyVisibilityFlagsToWren(s);
-  applyChangesToWren();
+  mSelected = selected;
+  propagateSelection(selected);
+  if (!mSelected || cShowMatterCenter) {
+    applyVisibilityFlagsToWren(selected);
+    applyChangesToWren();
+  }
 }
 
 // Method that checks the validity of a boundingObject

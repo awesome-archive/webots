@@ -1,4 +1,4 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+# Copyright 1996-2020 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ class TestSuite (Supervisor):
         self.isParserTest = "parser" in self.getCustomData()
         isDefaultWorld = "empty" in self.getCustomData()
         if isDefaultWorld:
-            self.cwdPrefix = '../../../../tests/parser/'
+            self.cwdPrefix = '../../../parser/'
         else:
             self.cwdPrefix = '../../'
         self.lastSimulation = False
@@ -175,9 +175,11 @@ class TestSuite (Supervisor):
         found = False
         for line in content:
             line.strip()
-            if len(line) != 0:
+            if line:
                 [world, expected] = shlex.split(line)
-                if os.path.normpath(world) == self.currentSimulationFilename:
+                localWorldPath = self.currentSimulationFilename.replace(os.path.dirname(os.path.abspath(self.cwdPrefix)), '')
+                localWorldPath = localWorldPath.strip(os.sep)
+                if os.path.normpath(world) == localWorldPath:
                     found = True
                     if expected != 'VOID':
                         self.expectedString = expected
@@ -223,9 +225,7 @@ class TestSuite (Supervisor):
             self.simulationQuit(0)
         else:
             newIndex = self.indexFileManager.incrementIndex()
-            nextSimulationFilename = self.cwdPrefix + '../' + \
-                self.simulationFileManager.filenameAtLine(newIndex)
-            self.worldLoad(nextSimulationFilename)
+            self.worldLoad(self.simulationFileManager.filenameAtLine(newIndex))
 
     def run(self):
         """Supervisor run function."""
@@ -239,8 +239,8 @@ class TestSuite (Supervisor):
             receiver = self.getReceiver("ts_receiver")
             receiver.enable(basicTimeStep)
 
-        # 10 seconds before executing the next world
-        timeout = time.time() + 10
+        # 30 seconds before executing the next world
+        timeout = time.time() + 30
 
         running_controllers_pid = []
         test_started = False

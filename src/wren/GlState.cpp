@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,6 +88,7 @@ namespace wren {
     std::map<unsigned int, float> cTextureAnisotropy;
     std::map<unsigned int, int> cTextureMinFilter;
     std::map<unsigned int, int> cTextureMagFilter;
+    static int cGpuMemory = 0;
     static int cMaxCombinedTextureUnits = 0;
     static int cMaxFrameBufferDrawBuffers = 0;
     static float cMaxTextureAnisotropy = 1.0f;
@@ -119,6 +120,17 @@ namespace wren {
       cVersion = reinterpret_cast<const char *>(glGetString(GL_VERSION));
       cGlslVersion = reinterpret_cast<const char *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
 
+      if (GLAD_GL_NVX_gpu_memory_info)
+        glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &cGpuMemory);
+      else {
+        // Try to use GL_TEXTURE_FREE_MEMORY_ATI:
+        // it seems to be working even if the corresponding GLAD_GL_ATI_meminfo is not available
+        int array[4];
+        array[0] = -1;
+        glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, array);
+        cGpuMemory = array[0];
+        checkError(GL_INVALID_ENUM);  // check errors skipping any possible GL_INVALID_ENUM error
+      }
       // setup uniform buffers
       size_t count = GlslLayout::gUniformBufferNames.size();
       cUniformBuffers.reserve(count);
@@ -133,7 +145,7 @@ namespace wren {
       checkError();
 
       cIsGlInitialized = true;
-    }
+    }  // namespace glstate
 
     bool isInitialized() { return cIsGlInitialized; }
 
@@ -703,6 +715,8 @@ namespace wren {
 
     const char *glslVersion() { return cGlslVersion; }
 
+    int gpuMemory() { return cGpuMemory; }
+
     int maxCombinedTextureUnits() { return cMaxCombinedTextureUnits; }
 
     int maxFrameBufferDrawBuffers() { return cMaxFrameBufferDrawBuffers; }
@@ -717,14 +731,11 @@ namespace wren {
       return cUniformBuffers[buffer].get();
     }
 
-    bool checkError() {
-      bool hasError = false;
-      unsigned int error;
-
+    void checkError(int ignore) {
+      int error;
       do {
         error = glGetError();
-        if (error != GL_NO_ERROR) {
-          hasError = true;
+        if (error != GL_NO_ERROR && error != ignore) {
           std::cerr << "OpenGL error: ";
           switch (error) {
             case GL_INVALID_ENUM:
@@ -748,8 +759,6 @@ namespace wren {
           std::cerr << std::endl;
         }
       } while (error != GL_NO_ERROR);
-
-      return hasError;
     }
 
   }  // namespace glstate
@@ -778,6 +787,10 @@ const char *wr_gl_state_get_version() {
 
 const char *wr_gl_state_get_glsl_version() {
   return wren::glstate::glslVersion();
+}
+
+int wr_gl_state_get_gpu_memory() {
+  return wren::glstate::gpuMemory();
 }
 
 bool wr_gl_state_is_anisotropic_texture_filtering_supported() {

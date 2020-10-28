@@ -6,8 +6,8 @@ var portInput = null;
 var connectButton = null;
 var mobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 if (mobileDevice) {
-  var head = document.getElementsByTagName('head')[0];
-  var jqueryTouch = document.createElement('script');
+  let head = document.getElementsByTagName('head')[0];
+  let jqueryTouch = document.createElement('script');
   jqueryTouch.setAttribute('type', 'text/javascript');
   jqueryTouch.setAttribute('src', 'https://www.cyberbotics.com/jquery-ui/1.11.4/jquery.ui.touch-punch.min.js');
   head.appendChild(jqueryTouch);
@@ -15,7 +15,7 @@ if (mobileDevice) {
   var mobileCss = document.createElement('link');
   mobileCss.setAttribute('rel', 'stylesheet');
   mobileCss.setAttribute('type', 'text/css');
-  mobileCss.setAttribute('href', 'https://www.cyberbotics.com/wwi/R2019a/wwi_mobile.css');
+  mobileCss.setAttribute('href', 'https://www.cyberbotics.com/wwi/R2020b/wwi_mobile.css');
   head.appendChild(mobileCss);
 }
 
@@ -31,11 +31,17 @@ function init() {
 }
 
 function connect() {
-  var playerDiv = document.getElementById('playerDiv');
-  playerDiv.style.height = '100%';
+  // This `streaming viewer` setups a broadcast streaming where the simulation is shown but it is not possible to control it.
+  // For any other use, please refer to the documentation:
+  // https://www.cyberbotics.com/doc/guide/web-simulation#how-to-embed-a-web-scene-in-your-website
+  let playerDiv = document.getElementById('playerDiv');
   view = new webots.View(playerDiv, mobileDevice);
+  view.broadcast = true; // disable controlling the simulation
+  view.setTimeout(-1); // disable timeout that stops the simulation after a given time
   view.broadcast = true;
-  view.open('ws://' + ipInput.value + ':' + portInput.value);
+  let modeSelect = document.getElementById('mode');
+  let streamingMode = modeSelect.options[modeSelect.selectedIndex].value;
+  view.open('ws://' + ipInput.value + ':' + portInput.value, streamingMode);
   connectButton.value = 'Disconnect';
   connectButton.onclick = disconnect;
   ipInput.disabled = true;
@@ -45,9 +51,8 @@ function connect() {
 function disconnect() {
   view.close();
   view = null;
-  var playerDiv = document.getElementById('playerDiv');
+  let playerDiv = document.getElementById('playerDiv');
   playerDiv.innerHTML = null;
-  playerDiv.style.height = '0px';
   connectButton.value = 'Connect';
   connectButton.onclick = connect;
   ipInput.disabled = false;

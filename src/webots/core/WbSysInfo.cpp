@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,10 +25,6 @@
 #include <math.h>
 #include <unistd.h>
 #include <QtCore/QFile>
-
-extern "C" {
-#include <pci/pci.h>
-}
 #endif
 
 #ifdef _WIN32
@@ -47,7 +43,7 @@ typedef void(WINAPI *PGNSI)(LPSYSTEM_INFO);
 #include <sys/sysctl.h>
 #endif
 
-#ifndef __APPLE__
+#ifdef __WIN32
 static quint32 gDeviceId = 0;
 static quint32 gVendorId = 0;
 
@@ -56,7 +52,6 @@ static void updateGpuIds(QOpenGLFunctions *gl) {
   if (!firstCall)
     return;
   firstCall = false;
-#ifdef _WIN32
   D3DADAPTER_IDENTIFIER9 adapterinfo;
   LPDIRECT3D9 d3d_Object;
 
@@ -65,92 +60,20 @@ static void updateGpuIds(QOpenGLFunctions *gl) {
   gDeviceId = adapterinfo.DeviceId;
   gVendorId = adapterinfo.VendorId;
   d3d_Object->Release();
-
-#elif defined(__linux__)
-  // inspired from https://github.com/adobe/chromium/blob/master/content/gpu/gpu_info_collector_linux.cc
-  struct pci_access *pacc;
-  struct pci_dev *dev;
-
-  pacc = pci_alloc();
-  pci_init(pacc);
-  pci_scan_bus(pacc);
-
-  // find the DISPLAY VGA devices in the PCI list
-  QList<struct pci_dev *> gpuList;
-  for (dev = pacc->devices; dev; dev = dev->next) {
-    pci_fill_info(dev, PCI_FILL_IDENT | PCI_FILL_CLASS);
-    if (dev->device_class == 0x0300)  // DISPLAY_VGA
-      gpuList << dev;
-  }
-
-  // determine the active GPU
-  struct pci_dev *activeGPU = NULL;
-  if (gpuList.size() == 1)
-    activeGPU = gpuList[0];
-  else {
-    // If more than one graphics card are identified, find the one that matches
-    // GL_VENDOR and GL_RENDERER info.
-    QString glVendor((const char *)gl->glGetString(GL_VENDOR));
-    QString glRenderer((const char *)gl->glGetString(GL_RENDERER));
-    QList<struct pci_dev *> candidates;
-    const int buffer_size = 256;
-    char *buffer = new char[buffer_size];
-    foreach (struct pci_dev *dev, gpuList) {
-      if (pci_lookup_name(pacc, buffer, buffer_size, PCI_LOOKUP_VENDOR, dev->vendor_id) != buffer)
-        continue;
-      QString vendor(buffer);
-
-      if (!glVendor.startsWith(vendor, Qt::CaseInsensitive))
-        continue;
-
-      if (pci_lookup_name(pacc, buffer, buffer_size, PCI_LOOKUP_DEVICE, dev->vendor_id, dev->device_id) != buffer)
-        continue;
-      QString device(buffer);
-
-      int begin = device.indexOf('[');
-      int end = device.lastIndexOf(']');
-
-      if (begin != -1 && end != -1 && begin < end)
-        device = device.mid(begin + 1, end - begin - 1);
-
-      if (glRenderer.startsWith(device, Qt::CaseInsensitive)) {
-        activeGPU = dev;
-        break;
-      }
-
-      // Fallback case:
-      // If a device's vendor name matches GL_VENDOR string but the device's
-      // renderer name doesn't match GL_RENDERER, we want to consider the
-      // possibility that libpci may not return the exact same name as GL_RENDERER string.
-      candidates.append(dev);
-    }
-    delete[] buffer;
-    if (activeGPU == NULL && candidates.size() == 1)
-      activeGPU = candidates[0];
-  }
-
-  if (activeGPU) {
-    gDeviceId = activeGPU->device_id;
-    gVendorId = activeGPU->vendor_id;
-  }
-
-  pci_cleanup(pacc);
-
-#else
-  assert(0);  // To be implemented
-#endif
 }
-
 #endif
 
-static QString gOpenGLRenderer;
+const void WbSysInfo::initializeOpenGlInfo() {
+  openGLRenderer();
+  openGLVendor();
+  openGLVersion();
+}
 
 const QString &WbSysInfo::openGLRenderer() {
-  return gOpenGLRenderer;
-}
-
-void WbSysInfo::setOpenGLRenderer(const QString &r) {
-  gOpenGLRenderer = r;
+  static QString openGLRender;
+  if (openGLRender.isEmpty())
+    openGLRender = (const char *)glGetString(GL_RENDERER);
+  return openGLRender;
 }
 
 const QString &WbSysInfo::openGLVendor() {
@@ -223,9 +146,7 @@ const QString &WbSysInfo::sysInfo() {
     sysInfo.append("Intel Itanium-based");
   else
     sysInfo.append("unknown architecture");
-#endif
-
-#ifndef _WIN32
+#else
   struct utsname buf;
   uname(&buf);
   sysInfo.append(buf.sysname);
@@ -442,6 +363,7 @@ bool WbSysInfo::isVirtualMachine() {
 #ifdef _WIN32
   unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0;
   __get_cpuid(0x1, &eax, &ebx, &ecx, &edx);
+  // cppcheck-suppress shiftTooManyBitsSigned
   if (ecx & (1 << 31)) {
     virtualMachine = 1;
     return true;
@@ -477,7 +399,7 @@ bool WbSysInfo::isVirtualMachine() {
   return false;
 }
 
-#ifndef __APPLE__
+#ifdef _WIN32
 quint32 WbSysInfo::gpuDeviceId(QOpenGLFunctions *gl) {
   updateGpuIds(gl);
   return gDeviceId;
@@ -548,6 +470,32 @@ int WbSysInfo::intelGPUGeneration(QOpenGLFunctions *gl) {
     return 5;
 
   return 0;
+}
+
+bool WbSysInfo::isAmdLowEndGpu(QOpenGLFunctions *gl) {
+  // https://pci-ids.ucw.cz/read/PC/1002
+  quint32 id = gpuDeviceId(gl);
+  if (
+    // R3
+    id == 0x9830 || id == 0x9836 || id == 0x9838 || id == 0x9850 || id == 0x9854 || id == 0x98e4 ||
+    // R4
+    id == 0x130b || id == 0x131b || id == 0x9851 ||
+    // R5
+    id == 0x130e || id == 0x1315 || id == 0x1316 || id == 0x1318 || id == 0x6607 || id == 0x6660 || id == 0x6664 ||
+    id == 0x6665 || id == 0x6667 || id == 0x666f || id == 0x6771 || id == 0x6778 || id == 0x6779 || id == 0x68fa ||
+    id == 0x6901 || id == 0x6907 || id == 0x9874 || id == 0xaa98 ||
+    // R6
+    id == 0x1309 || id == 0x130a || id == 0x130d || id == 0x131d || id == 0x9855 ||
+    // R7
+    id == 0x130c || id == 0x130f || id == 0x1313 || id == 0x131c || id == 0x6604 || id == 0x6605 || id == 0x6610 ||
+    id == 0x6611 || id == 0x6613 || id == 0x6658 || id == 0x665c || id == 0x665d || id == 0x665f || id == 0x6810 ||
+    id == 0x6819 || id == 0x682b || id == 0x683d || id == 0x683f || id == 0x6900 ||
+    // R9
+    id == 0x6646 || id == 0x6647 || id == 0x6798 || id == 0x679a || id == 0x67b0 || id == 0x67b1 || id == 0x67b9 ||
+    id == 0x6820 || id == 0x6821 || id == 0x6823 || id == 0x6835 || id == 0x6921 || id == 0x6938 || id == 0x6939 ||
+    id == 0x7300 || id == 0xaac8 || id == 0xaad8 || id == 0xaae8)
+    return true;
+  return false;
 }
 
 #endif

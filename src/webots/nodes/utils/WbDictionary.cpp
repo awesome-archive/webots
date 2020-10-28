@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ void WbDictionary::update(bool load) {
 
 bool WbDictionary::updateDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode *mfNode, int index) {
   const QString &defName = node->defName();
-  const QString useName = node->useName();
+  const QString &useName = node->useName();
   const bool useCase = !useName.isEmpty();
   const int useNestingDegree = mNestedDictionaries.size() - 1;
 
@@ -83,7 +83,7 @@ bool WbDictionary::updateDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode *mfNo
 
   if (!useCase && isAValidUseableNode) {
     assert(!mNestedDictionaries.isEmpty());
-    mNestedDictionaries.last().insertMulti(defName, node);
+    mNestedDictionaries.last().insert(defName, node);
   } else if (useCase) {
     if (isAValidUseableNode) {
       const WbNode::NodeUse nodeUse = node->nodeUse();
@@ -97,8 +97,8 @@ bool WbDictionary::updateDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode *mfNo
       for (int defIndex = 0; (!match) && defIndex < numberOfDefs; ++defIndex) {
         definitionNode = static_cast<WbBaseNode *>(defNodes[defIndex]);
         QString error;
-        assert(node->parentField() && node->parent());
-        typeMatch = WbNodeUtilities::isAllowedToInsert(node->parentField(), definitionNode->nodeModelName(), node->parent(),
+        assert(node->parentField() && node->parentNode());
+        typeMatch = WbNodeUtilities::isAllowedToInsert(node->parentField(), definitionNode->nodeModelName(), node->parentNode(),
                                                        error, nodeUse, QString(), QStringList(definitionNode->nodeModelName()));
         match = typeMatch && !definitionNode->isAnAncestorOf(node);
       }
@@ -108,14 +108,14 @@ bool WbDictionary::updateDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode *mfNo
         definitionNode = NULL;
         const WbNode *const upperUseNode = mNestedUseNodes.last();
         WbNode *const upperDefinition = upperUseNode->defNode();
-        const int index = WbNode::subNodeIndex(node, upperUseNode);
-        matchingNode = WbNode::findNodeFromSubNodeIndex(index, upperDefinition);
+        const int childIndex = WbNode::subNodeIndex(node, upperUseNode);
+        matchingNode = WbNode::findNodeFromSubNodeIndex(childIndex, upperDefinition);
         if (matchingNode && matchingNode->isUseNode()) {
           definitionNode = static_cast<WbBaseNode *>(matchingNode->defNode());
           QString error;
-          assert(node->parentField() && node->parent());
+          assert(node->parentField() && node->parentNode());
           typeMatch =
-            WbNodeUtilities::isAllowedToInsert(node->parentField(), definitionNode->nodeModelName(), node->parent(), error,
+            WbNodeUtilities::isAllowedToInsert(node->parentField(), definitionNode->nodeModelName(), node->parentNode(), error,
                                                nodeUse, QString(), QStringList(definitionNode->nodeModelName()));
         }
       }
@@ -125,11 +125,11 @@ bool WbDictionary::updateDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode *mfNo
           QString deviceModelName;
           if (node->isInBoundingObject() != definitionNode->isInBoundingObject() &&
               !checkBoundingObjectConstraints(definitionNode, warning)) {
-            node->parent()->warn(QObject::tr("Deleted invalid USE %1 node: %3").arg(useName).arg(warning));
+            node->parentNode()->parsingWarn(QObject::tr("Deleted invalid USE %1 node: %3").arg(useName).arg(warning));
             WbNodeOperations::instance()->deleteNode(node);
             return false;
-          } else if (!checkChargerAndLedConstraints(node->parent(), definitionNode, deviceModelName, index == 0)) {
-            node->warn(
+          } else if (!checkChargerAndLedConstraints(node->parentNode(), definitionNode, deviceModelName, index == 0)) {
+            node->parsingWarn(
               QObject::tr("Non-admissible USE %1 node inside first child of %2 node.\n"
                           "Invalid USE nodes that refer to DEF nodes defined outside the %2 node are turned into DEF nodes "
                           "otherwise the emissive color cannot be updated correctly.")
@@ -138,10 +138,10 @@ bool WbDictionary::updateDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode *mfNo
             makeDefNodeAndUpdateDictionary(node, true);
           } else {
             if (!mLoad) {
-              WbNode *const parent = node->parent();
-              WbNode::setGlobalParent(parent);
+              WbNode *const parent = node->parentNode();
+              WbNode::setGlobalParentNode(parent);
               WbBaseNode *const newUseNode = static_cast<WbBaseNode *>(definitionNode->cloneDefNode());
-              WbNode::setGlobalParent(NULL);
+              WbNode::setGlobalParentNode(NULL);
               newUseNode->setUseName(useName);  // Deactivates the creation of children items triggered by insertion
               if (sfNode)
                 sfNode->setValue(newUseNode);
@@ -161,8 +161,8 @@ bool WbDictionary::updateDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode *mfNo
 
       if (matchingNode && matchingNode->isDefNode()) {
         if (!mLoad) {
-          WbNode *const parent = node->parent();
-          WbNode::setGlobalParent(parent);
+          WbNode *const parent = node->parentNode();
+          WbNode::setGlobalParentNode(parent);
           WbBaseNode *const newDefNode = static_cast<WbBaseNode *>(matchingNode->cloneAndReferenceProtoInstance());
           newDefNode->setUseName(useName);  // Deactivates the creation of children items triggered by insertion
           if (sfNode)
@@ -179,17 +179,16 @@ bool WbDictionary::updateDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode *mfNo
       if (!definitionNode || !typeMatch) {
         if (useNestingDegree == 1) {
           if (!typeMatch)
-            node->warn(
+            node->parsingWarn(
               QObject::tr("Previous DEF node cannot be used to replace the current USE node; USE node turned into DEF node."));
           else
-            node->warn(QObject::tr("No previous DEF nodes match; USE node turned into DEF node."));
+            node->parsingWarn(QObject::tr("No previous DEF nodes match; USE node turned into DEF node."));
         }
         makeDefNodeAndUpdateDictionary(node, true);
       }
 
     } else {
-      if (!isAValidUseableNode)
-        node->warn(warning + " " + QObject::tr("Non-admissible USE node turned into DEF node."));
+      node->parsingWarn(warning + " " + QObject::tr("Non-admissible USE node turned into DEF node."));
       makeDefNodeAndUpdateDictionary(node, true);
     }
     return true;
@@ -277,9 +276,9 @@ void WbDictionary::updateProtosDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode
     if (!defName.isEmpty() && isAValidUseableNode) {
       if (node->isProtoInstance())
         lookupDegree--;
-      mNestedDictionaries[lookupDegree].insertMulti(defName, node);
+      mNestedDictionaries[lookupDegree].insert(defName, node);
     } else {
-      const QString useName = node->useName();
+      const QString &useName = node->useName();
       const bool useCase = !useName.isEmpty();
       lookupDegree--;
       if (useCase && lookupDegree >= 0 && isAValidUseableNode) {
@@ -296,8 +295,8 @@ void WbDictionary::updateProtosDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode
           const WbNode *const upperUseNode = mNestedUseNodes.last();
           WbNode *upperDefinition = upperUseNode->defNode();
           if (mNestedProtos.last()->isAnAncestorOf(upperDefinition)) {
-            int index = WbNode::subNodeIndex(node, upperUseNode);
-            WbNode *matchingUse = WbNode::findNodeFromSubNodeIndex(index, upperDefinition);
+            int childIndex = WbNode::subNodeIndex(node, upperUseNode);
+            WbNode *matchingUse = WbNode::findNodeFromSubNodeIndex(childIndex, upperDefinition);
             definitionNode = static_cast<WbBaseNode *>(matchingUse->defNode());
           }
         }
@@ -307,14 +306,16 @@ void WbDictionary::updateProtosDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode
             node->makeUseNode(definitionNode);
           mNestedUseNodes.append(node);
         } else {
-          node->warn(QObject::tr("No previous DEF nodes match; USE node turned into DEF node. Please check that the fields are "
-                                 "listed in the same order as in the base node definition."));
+          node->parsingWarn(
+            QObject::tr("No previous DEF nodes match; USE node turned into DEF node. Please check that the fields are "
+                        "listed in the same order as in the base node definition."));
           makeDefNodeAndUpdateDictionary(node, false);
         }
       } else if (useCase && lookupDegree >= 0) {
         if (!isAValidUseableNode)
-          node->warn(warning + " " +
-                     QObject::tr("Please replace this non-admissible USE node by an expanded DEF node in your proto file."));
+          node->parsingWarn(
+            warning + " " +
+            QObject::tr("Please replace this non-admissible USE node by an expanded DEF node in your proto file."));
         makeDefNodeAndUpdateDictionary(node, false);
       }
     }
@@ -402,12 +403,12 @@ void WbDictionary::updateProtosDef(WbBaseNode *&node, WbSFNode *sfNode, WbMFNode
 }
 
 void WbDictionary::makeDefNodeAndUpdateDictionary(WbBaseNode *node, bool updateSceneDictionary) {
-  const QString useName = node->useName();
+  const QString &useName = node->useName();
   node->makeDefNode();
   node->updateContextDependentObjects();
   assert(mNestedDictionaries.size() >= 2);
   mNestedDictionaries.removeLast();  // remove USE node local dictionary
-  mNestedDictionaries.last().insertMulti(useName, node);
+  mNestedDictionaries.last().insert(useName, node);
   if (updateSceneDictionary && mNestedDictionaries.size() == 1)
     mSceneDictionary.append(QPair<WbNode *, QString>(node, node->defName()));
 }
@@ -570,13 +571,13 @@ void WbDictionary::updateForInsertion(const WbNode *const node, bool suitableOnl
       const WbMFNode *const mfnode = dynamic_cast<WbMFNode *>(fields[i]->value());
       if (mfnode) {
         const int size = mfnode->size();
-        for (int i = 0; !mStopUpdate && i < size; ++i) {
-          if (isInsertionField && i >= mTargetIndex) {
+        for (int j = 0; !mStopUpdate && j < size; ++j) {
+          if (isInsertionField && j >= mTargetIndex) {
             mStopUpdate = true;
             return;
           }
 
-          const WbNode *const n = mfnode->item(i);
+          const WbNode *const n = mfnode->item(j);
           if (n && !n->isUseNode())
             updateForInsertion(n, suitableOnly, defNodes);
         }

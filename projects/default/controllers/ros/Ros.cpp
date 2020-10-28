@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -81,10 +81,9 @@ Ros::~Ros() {
   mNamePublisher.shutdown();
   mTimeStepService.shutdown();
   mWaitForUserInputEventService.shutdown();
-  mGetControllerNameService.shutdown();
-  mGetControllerArgumentsService.shutdown();
   mGetTimeService.shutdown();
   mGetModelService.shutdown();
+  mGetUrdfService.shutdown();
   mGetDataService.shutdown();
   mSetDataService.shutdown();
   mGetModeService.shutdown();
@@ -167,12 +166,9 @@ void Ros::launchRos(int argc, char **argv) {
   mTimeStepService = mNodeHandle->advertiseService(mRobotName + "/robot/time_step", &Ros::timeStepCallback, this);
   mWaitForUserInputEventService =
     mNodeHandle->advertiseService(mRobotName + "/robot/wait_for_user_input_event", &Ros::waitForUserInputEventCallback, this);
-  mGetControllerNameService =
-    mNodeHandle->advertiseService(mRobotName + "/robot/get_controller_name", &Ros::getControllerNameCallback, this);
-  mGetControllerArgumentsService =
-    mNodeHandle->advertiseService(mRobotName + "/robot/get_controller_arguments", &Ros::getControllerArgumentsCallback, this);
   mGetTimeService = mNodeHandle->advertiseService(mRobotName + "/robot/get_time", &Ros::getTimeCallback, this);
   mGetModelService = mNodeHandle->advertiseService(mRobotName + "/robot/get_model", &Ros::getModelCallback, this);
+  mGetUrdfService = mNodeHandle->advertiseService(mRobotName + "/robot/get_urdf", &Ros::getUrdfCallback, this);
   mGetDataService = mNodeHandle->advertiseService(mRobotName + "/robot/get_data", &Ros::getDataCallback, this);
   mSetDataService = mNodeHandle->advertiseService(mRobotName + "/robot/set_data", &Ros::setDataCallback, this);
   mGetCustomDataService =
@@ -273,14 +269,16 @@ void Ros::fixName() {
 void Ros::setRosDevices(const char **hiddenDevices, int numberHiddenDevices) {
   int nDevices = mRobot->getNumberOfDevices();
   for (int i = 0; i < nDevices; i++) {
-    bool hidden = false;
     Device *tempDevice = mRobot->getDeviceByIndex(i);
-    for (int j = 0; j < numberHiddenDevices; ++j) {
-      if (strcmp(hiddenDevices[j], tempDevice->getName().c_str()) == 0)
-        hidden = true;
+    if (hiddenDevices) {
+      bool hidden = false;
+      for (int j = 0; j < numberHiddenDevices; ++j) {
+        if (strcmp(hiddenDevices[j], tempDevice->getName().c_str()) == 0)
+          hidden = true;
+      }
+      if (hidden)
+        continue;
     }
-    if (hidden)
-      continue;
 
     const unsigned int previousDevicesCount = mDeviceList.size();
     switch (tempDevice->getNodeType()) {
@@ -300,7 +298,8 @@ void Ros::setRosDevices(const char **hiddenDevices, int numberHiddenDevices) {
         mDeviceList.push_back(static_cast<RosDevice *>(mSensorList.back()));
         break;
       case Node::CONNECTOR:
-        mDeviceList.push_back(static_cast<RosDevice *>(new RosConnector(dynamic_cast<Connector *>(tempDevice), this)));
+        mSensorList.push_back(static_cast<RosSensor *>(new RosConnector(dynamic_cast<Connector *>(tempDevice), this)));
+        mDeviceList.push_back(static_cast<RosDevice *>(mSensorList.back()));
         break;
       case Node::DISPLAY:
         mDeviceList.push_back(static_cast<RosDevice *>(new RosDisplay(dynamic_cast<Display *>(tempDevice), this)));
@@ -394,6 +393,7 @@ void Ros::setRosDevices(const char **hiddenDevices, int numberHiddenDevices) {
 }
 
 // timestep callback allowing a ros node to run the simulation step by step
+// cppcheck-suppress constParameter
 bool Ros::timeStepCallback(webots_ros::set_int::Request &req, webots_ros::set_int::Response &res) {
   if (req.value >= 1 && (req.value % static_cast<int>(mRobot->getBasicTimeStep()) == 0)) {
     mStep++;
@@ -425,6 +425,17 @@ bool Ros::getDeviceListCallback(webots_ros::robot_get_device_list::Request &req,
   return true;
 }
 
+void Ros::publishClockIfNeeded() {
+  if (mShouldPublishClock) {
+    rosgraph_msgs::Clock simulationClock;
+    double time = mRobot->getTime();
+    simulationClock.clock.sec = (int)time;
+    // round prevents precision issues that can cause problems with ROS timers
+    simulationClock.clock.nsec = round(1000 * (time - simulationClock.clock.sec)) * 1.0e+6;
+    mClockPublisher.publish(simulationClock);
+  }
+}
+
 void Ros::run(int argc, char **argv) {
   launchRos(argc, argv);
   ros::Rate loopRate(1000);  // Hz
@@ -434,14 +445,7 @@ void Ros::run(int argc, char **argv) {
       mEnd = true;
     }
     ros::spinOnce();
-    // publish clock if needed
-    if (mShouldPublishClock) {
-      rosgraph_msgs::Clock simulationClock;
-      double time = mRobot->getTime();
-      simulationClock.clock.sec = (int)time;
-      simulationClock.clock.nsec = (time - simulationClock.clock.sec) * 1.0e+9;
-      mClockPublisher.publish(simulationClock);
-    }
+    publishClockIfNeeded();
     for (unsigned int i = 0; i < mSensorList.size(); i++)
       mSensorList[i]->publishValues(mStep * mStepSize);
 
@@ -450,6 +454,7 @@ void Ros::run(int argc, char **argv) {
       while (mStep == oldStep && !mEnd && ros::ok()) {
         ros::spinOnce();
         loopRate.sleep();
+        publishClockIfNeeded();
       }
     } else if (step(mRobot->getBasicTimeStep()) == -1)
       mEnd = true;
@@ -462,18 +467,6 @@ bool Ros::waitForUserInputEventCallback(webots_ros::robot_wait_for_user_input_ev
   return true;
 }
 
-bool Ros::getControllerNameCallback(webots_ros::get_string::Request &req, webots_ros::get_string::Response &res) {
-  assert(mRobot);
-  res.value = mRobot->getControllerName();
-  return true;
-}
-
-bool Ros::getControllerArgumentsCallback(webots_ros::get_string::Request &req, webots_ros::get_string::Response &res) {
-  assert(mRobot);
-  res.value = mRobot->getControllerArguments();
-  return true;
-}
-
 bool Ros::getTimeCallback(webots_ros::get_float::Request &req, webots_ros::get_float::Response &res) {
   assert(mRobot);
   res.value = mRobot->getTime();
@@ -483,6 +476,12 @@ bool Ros::getTimeCallback(webots_ros::get_float::Request &req, webots_ros::get_f
 bool Ros::getModelCallback(webots_ros::get_string::Request &req, webots_ros::get_string::Response &res) {
   assert(mRobot);
   res.value = mRobot->getModel();
+  return true;
+}
+
+bool Ros::getUrdfCallback(webots_ros::get_urdf::Request &req, webots_ros::get_urdf::Response &res) {
+  assert(mRobot);
+  res.value = mRobot->getUrdf(req.prefix);
   return true;
 }
 
@@ -560,7 +559,7 @@ bool Ros::getTypeCallback(webots_ros::get_int::Request &req, webots_ros::get_int
 }
 
 bool Ros::setModeCallback(webots_ros::robot_set_mode::Request &req, webots_ros::robot_set_mode::Response &res) {
-  void *arg;
+  char *arg;
   char buffer[req.arg.size()];
   for (unsigned int i = 0; i < req.arg.size(); i++)
     buffer[i] = req.arg[i];

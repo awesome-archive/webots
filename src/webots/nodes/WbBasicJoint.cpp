@@ -1,4 +1,4 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2020 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,7 +88,6 @@ void WbBasicJoint::preFinalize() {
   updateParameters();
   updateEndPointZeroTranslationAndRotation();
 
-  // the following code could be simplified
   WbBaseNode *const p = dynamic_cast<WbBaseNode *>(mParameters->value());
   WbBaseNode *const e = dynamic_cast<WbBaseNode *>(mEndPoint->value());
   if (p && !p->isPreFinalizedCalled())
@@ -106,7 +105,6 @@ void WbBasicJoint::setMatrixNeedUpdate() {
 void WbBasicJoint::postFinalize() {
   WbBaseNode::postFinalize();
 
-  // the following code could be simplified
   WbBaseNode *const p = dynamic_cast<WbBaseNode *>(mParameters->value());
   WbBaseNode *const e = dynamic_cast<WbBaseNode *>(mEndPoint->value());
   if (p && !p->isPostFinalizedCalled())
@@ -126,8 +124,8 @@ void WbBasicJoint::postFinalize() {
   if (protoParameterNode()) {
     const QVector<WbNode *> nodes = protoParameterNode()->protoParameterNodeInstances();
     if (nodes.size() > 1 && nodes.at(0) == this)
-      warn(tr("Joint node defined in PROTO field is used multiple times. "
-              "Webots doesn't fully support this because the multiple node instances cannot be identical."));
+      parsingWarn(tr("Joint node defined in PROTO field is used multiple times. "
+                     "Webots doesn't fully support this because the multiple node instances cannot be identical."));
   }
 }
 
@@ -139,11 +137,10 @@ void WbBasicJoint::createOdeObjects() {
 }
 
 bool WbBasicJoint::setJoint() {
-  WbSolidReference *const r = solidReference();
-  if (r)
-    r->updateName();
+  WbSolidReference *const sr = solidReference();
+  if (sr)
+    sr->updateName();
   const WbSolid *const s = solidEndPoint();
-  const WbSolidReference *const sr = solidReference();
   const bool invalidEndPoint = s == NULL && (sr == NULL || !sr->pointsToStaticEnvironment());
   if (invalidEndPoint || upperSolid() == NULL || (s && s->physics() == NULL) || (s && s->solidMerger().isNull())) {
     if (mJoint) {
@@ -313,7 +310,7 @@ WbSolidReference *WbBasicJoint::solidReference() const {
 }
 
 WbSolid *WbBasicJoint::solidParent() const {
-  return dynamic_cast<WbSolid *>(parent());
+  return dynamic_cast<WbSolid *>(parentNode());
 }
 
 WbVector3 WbBasicJoint::anchor() const {
@@ -447,7 +444,7 @@ void WbBasicJoint::write(WbVrmlWriter &writer) const {
     s->blockSignals(false);
   }
 
-  if (writer.isWebots())
+  if (writer.isWebots() || writer.isUrdf())
     WbBaseNode::write(writer);
   else {
     // we should not export any SolidReference Solid here,
@@ -479,6 +476,8 @@ void WbBasicJoint::write(WbVrmlWriter &writer) const {
 }
 
 WbBoundingSphere *WbBasicJoint::boundingSphere() const {
+  if (solidReference())
+    return NULL;
   const WbSolid *const solid = solidEndPoint();
   if (solid)
     return solid->boundingSphere();

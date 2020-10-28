@@ -1,6 +1,6 @@
 ## BioRob GhostDog
 
-%robot ghostdog images/robots/ghostdog/model.png
+%robot ghostdog images/robots/ghostdog/model.thumbnail.png
 
 The "GhostDog" robot is a dog-like robot developed by the [EPFL BioRob laboratory](https://biorob.epfl.ch/).
 
@@ -19,7 +19,7 @@ GhostDog {
   SFRotation rotation        0 1 0 0
   SFString   name            "GhostDog"
   SFString   controller      "ghostdog"
-  SFString   controllerArgs  ""
+  MFString   controllerArgs  []
   SFString   customData      ""
   SFBool     supervisor      FALSE
   SFBool     synchronization TRUE
@@ -39,5 +39,5 @@ You will find the following sample in this folder: "WEBOTS\_HOME/projects/robots
 
 #### ghostdog.wbt
 
-![ghostdog.png](images/robots/ghostdog/ghostdog.wbt.png) This example shows the GhostDog robot which gallops.
+![ghostdog.png](images/robots/ghostdog/ghostdog.wbt.thumbnail.jpg) This example shows the GhostDog robot which gallops.
 The keyboard can be used to control the robot's direction and to change the amplitude of the galloping motion.
