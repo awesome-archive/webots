@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -74,43 +74,43 @@ bool WbVariant::operator!=(const WbVariant &other) const {
 }
 
 WbVariant::WbVariant(bool b) : mType(-1), mOwnsNode(false) {
-  setBool(b);
+  WbVariant::setBool(b);
 }
 
 WbVariant::WbVariant(int i) : mType(-1), mOwnsNode(false) {
-  setInt(i);
+  WbVariant::setInt(i);
 }
 
 WbVariant::WbVariant(double d) : mType(-1), mOwnsNode(false) {
-  setDouble(d);
+  WbVariant::setDouble(d);
 }
 
 WbVariant::WbVariant(const QString &s) : mType(-1), mOwnsNode(false) {
-  setString(s);
+  WbVariant::setString(s);
 }
 
 WbVariant::WbVariant(const WbVector2 &v) : mType(-1), mOwnsNode(false) {
-  setVector2(v);
+  WbVariant::setVector2(v);
 }
 
 WbVariant::WbVariant(const WbVector3 &v) : mType(-1), mOwnsNode(false) {
-  setVector3(v);
+  WbVariant::setVector3(v);
 }
 
 WbVariant::WbVariant(const WbRgb &c) : mType(-1), mOwnsNode(false) {
-  setColor(c);
+  WbVariant::setColor(c);
 }
 
 WbVariant::WbVariant(const WbRotation &r) : mType(-1), mOwnsNode(false) {
-  setRotation(r);
+  WbVariant::setRotation(r);
 }
 
 WbVariant::WbVariant(WbNode *n) : mType(-1), mOwnsNode(false) {
-  setNode(n);
+  WbVariant::setNode(n);
 }
 
 WbVariant::~WbVariant() {
-  clear();
+  WbVariant::clear();
 }
 
 void WbVariant::clear() {
@@ -142,7 +142,7 @@ void WbVariant::clear() {
   mType = -1;
 }
 
-const QString WbVariant::toStringRepresentation(WbPrecision::Level level) const {
+const QString WbVariant::toSimplifiedStringRepresentation(WbPrecision::Level level) const {
   switch (mType) {
     case WB_SF_BOOL:
       return mBool ? "TRUE" : "FALSE";

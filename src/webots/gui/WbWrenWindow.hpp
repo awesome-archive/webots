@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,8 +20,10 @@
 //
 
 #include <QtCore/QMutex>
-#include <QtGui/QOpenGLFunctions_3_3_Core>
 #include <QtGui/QWindow>
+#include <QtOpenGL/QOpenGLFunctions_3_3_Core>
+
+class WbMultimediaStreamingServer;
 
 struct WrTextureRtt;
 struct WrFrameBuffer;
@@ -31,7 +33,8 @@ class WbWrenWindow : public QWindow {
 
 public:
   static WbWrenWindow *instance();
-  static void flipImageBuffer(unsigned char *buffer, int width, int height, int channels);
+  static void flipAndScaleDownImageBuffer(const unsigned char *source, unsigned char *destination, int sourceWidth,
+                                          int sourceHeight, int scaleDownFactor);
 
   explicit WbWrenWindow();
   virtual ~WbWrenWindow();
@@ -46,30 +49,29 @@ public:
   void initVideoPBO();
   void completeVideoPBOProcessing(bool canceled);
   void requestGrabWindowBuffer();
-  void lockPBOMutex(int index) { mPBOMutexes[index].lock(); }
-  void unlockPBOMutex(int index) { mPBOMutexes[index].unlock(); }
 
   void updateWrenViewportDimensions();
 
   void blitMainFrameBufferToScreen();
 
+  void setVideoStreamingServer(WbMultimediaStreamingServer *streamingServer);
+
 public slots:
   virtual void renderLater();
 
 signals:
-  void videoImageReady(unsigned char *frame, int PBOIndex);
+  void videoImageReady(unsigned char *frame);
   void resized();
 
 protected:
   virtual void initialize();
-  virtual void renderNow();
+  virtual void renderNow(bool culling = true, bool offScreen = false);
   virtual void resizeWren(int width, int height);
   bool event(QEvent *event) override;
 
 private:
   static WbWrenWindow *cInstance;
 
-  void feedMultimediaStreamer();
   void processVideoPBO();
   void updateFrameBuffer();
   void readPixels(int width, int height, unsigned int format, void *buffer);
@@ -79,7 +81,6 @@ private:
   int mSnapshotBufferWidth;
   int mSnapshotBufferHeight;
   GLuint mVideoPBOIds[2];
-  QMutex mPBOMutexes[2];
   int mVideoWidth;
   int mVideoHeight;
   int mVideoPBOIndex;
@@ -89,6 +90,11 @@ private:
   WrTextureRtt *mWrenMainFrameBufferTexture;
   WrTextureRtt *mWrenNormalFrameBufferTexture;
   WrTextureRtt *mWrenDepthFrameBufferTexture;
+
+  WbMultimediaStreamingServer *mVideoStreamingServer;
+
+private slots:
+  void feedMultimediaStreamer();
 };
 
 #endif

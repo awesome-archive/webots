@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,7 +33,6 @@ public:
 
   static void updateOverlayDimensions();
   static void setElementsVisible(OverlayType type, bool visible);
-  static void setScreenRatio(float screenRatio);
 
   WbWrenTextureOverlay(void *data, int width, int height, TextureType textureType, OverlayType overlayType,
                        WrTexture *texture = NULL, double maxRange = 1.0, bool rangeCamera = false,
@@ -56,11 +55,14 @@ public:
   WrTexture *texture() const { return mWrenTexture; }
   WrTexture *foregroundTexture() const { return mWrenForegroundTexture; }
   void setBackgroundTexture(WrTexture *backgroundTexture);
-  void unsetBackgroundTexture();
+  void unsetBackgroundTexture() { setBackgroundTexture(NULL); }
+  void setMaskTexture(WrTexture *texture);
+  void unsetMaskTexture() { setMaskTexture(NULL); }
   WrTexture2d *createForegroundTexture();
   void deleteForegroundTexture(bool restoreMainTexture = false);
   int textureGLId() const;
   int backgroundTextureGLId() const;
+  int maskTextureGLId() const;
   int foregroundTextureGLId() const;
   bool isInside(int x, int y) const;
   bool isInsideResizeArea(int x, int y) const;
@@ -108,16 +110,11 @@ private:
   int width() const;
   int height() const;
 
-  // Accessors for mWrenTexture
-  bool isTransparent() const;
-
   WrTexture2d *createIconTexture(QString filePath);
   void copyDataToTexture(void *data, TextureType type, int x, int y, int width, int height);
 
   // Cleanup methods
   void deleteWren();
-
-  static float cScreenRatio;
 
   TextureType mTextureType;
   OverlayType mOverlayType;
@@ -134,6 +131,7 @@ private:
 
   WrTexture *mWrenTexture;
   WrTexture *mWrenBackgroundTexture;  // never owned by overlay
+  WrTexture *mWrenMaskTexture;        // never owned by overlay
   WrTexture *mWrenForegroundTexture;  // always owned by overlay
   WrTexture2d *mWrenCloseIconTexture;
   WrTexture2d *mWrenResizeIconTexture;

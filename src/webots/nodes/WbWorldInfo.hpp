@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +25,7 @@
 class WbReceiver;
 class WbDamping;
 class WbContactProperties;
+class WbVersion;
 
 class WbWorldInfo : public WbBaseNode {
   Q_OBJECT
@@ -34,19 +35,20 @@ public:
   explicit WbWorldInfo(WbTokenizer *tokenizer = NULL);
   WbWorldInfo(const WbWorldInfo &other);
   explicit WbWorldInfo(const WbNode &other);
-  virtual ~WbWorldInfo();
+  virtual ~WbWorldInfo() override;
 
   // reimplemented public functions
   int nodeType() const override { return WB_NODE_WORLD_INFO; }
+  void downloadAssets() override;
   void preFinalize() override;
   void postFinalize() override;
-  void reset() override;
+  void reset(const QString &id) override;
 
   // field accessors
   const WbMFString &info() const { return *mInfo; }
   const QString &title() const { return mTitle->value(); }
   const QString &window() const { return mWindow->value(); }
-  const WbVector3 &gravity() const { return mGravity->value(); }
+  double gravity() const { return mGravity->value(); }
   double cfm() const { return mCfm->value(); }
   double erp() const { return mErp->value(); }
   const QString &physics() const { return mPhysics->value(); }
@@ -58,7 +60,9 @@ public:
   double physicsDisableAngularThreshold() const { return mPhysicsDisableAngularThreshold->value(); }
   WbDamping *defaultDamping() const;
   double lineScale() const;
-  const WbVector3 &northDirection() const { return mNorthDirection->value(); }
+  double dragForceScale() const { return mDragForceScale->value(); };
+  double dragTorqueScale() const { return mDragTorqueScale->value(); };
+  const QString &coordinateSystem() const { return mCoordinateSystem->value(); }
   const QString &gpsCoordinateSystem() const { return mGpsCoordinateSystem->value(); }
   const WbVector3 &gpsReference() const { return mGpsReference->value(); }
   int randomSeed() const { return mRandomSeed->value(); }
@@ -72,10 +76,13 @@ public:
 
   // other accessors
 
-  // returns a unit vector with same direction and orientation as gravity
+  const WbVector3 &eastVector() const { return mEastVector; }
+  const WbVector3 &northVector() const { return mNorthVector; }
+  const WbVector3 &upVector() const { return mUpVector; }
+  // returns the gravity vector (oriented along the down axis)
+  const WbVector3 &gravityVector() const { return mGravityVector; }
+  // returns a unit vector with the direction and orientation of the gravity
   const WbVector3 &gravityUnitVector() const { return mGravityUnitVector; }
-  // returns an orthonormal basis (b[X], b[Y] = -gravity().normalized(), b[Z])
-  const WbVector3 *gravityBasis() const { return mGravityBasis; }
 
   const WbReceiver *physicsReceiver() const { return mPhysicsReceiver; }
 
@@ -94,14 +101,13 @@ signals:
 private:
   WbWorldInfo &operator=(const WbWorldInfo &);  // non copyable
   WbNode *clone() const override { return new WbWorldInfo(*this); }
-  void exportNodeFields(WbVrmlWriter &writer) const override;
-  void init();
+  void init(const WbVersion *version = NULL);
 
   // User accessible fields
   WbMFString *mInfo;
   WbSFString *mTitle;
   WbSFString *mWindow;
-  WbSFVector3 *mGravity;
+  WbSFDouble *mGravity;
   WbSFDouble *mCfm;
   WbSFDouble *mErp;
   WbSFString *mPhysics;
@@ -113,10 +119,12 @@ private:
   WbSFDouble *mPhysicsDisableAngularThreshold;
   WbSFNode *mDefaultDamping;
   WbSFDouble *mInkEvaporation;
-  WbSFVector3 *mNorthDirection;
+  WbSFString *mCoordinateSystem;
   WbSFString *mGpsCoordinateSystem;
   WbSFVector3 *mGpsReference;
   WbSFDouble *mLineScale;
+  WbSFDouble *mDragForceScale;
+  WbSFDouble *mDragTorqueScale;
   WbSFInt *mRandomSeed;
   WbMFNode *mContactProperties;
 
@@ -124,8 +132,11 @@ private:
   WbReceiver *mPhysicsReceiver;
 
   // Gravity variables
+  WbVector3 mEastVector;
+  WbVector3 mNorthVector;
+  WbVector3 mUpVector;
+  WbVector3 mGravityVector;
   WbVector3 mGravityUnitVector;
-  WbVector3 mGravityBasis[3];  // An orthonormal basis (b[X], b[Y] = -gravity().normalized(), b[Z])
 
   // Apply methods
   void applyLineScaleToWren();
@@ -142,12 +153,14 @@ private slots:
   void updateFps();
   void updateOptimalThreadCount();
   void updateLineScale();
+  void updateDragForceScale();
+  void updateDragTorqueScale();
   void updateRandomSeed();
   void updateGravity();
   void updateCfm();
   void updateErp();
   void updateDefaultDamping();
-  void updateNorthDirection();
+  void updateCoordinateSystem();
   void updateGpsCoordinateSystem();
   void updateContactProperties();
   void displayOptimalThreadCountWarning();

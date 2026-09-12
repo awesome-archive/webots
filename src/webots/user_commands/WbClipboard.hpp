@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,7 @@ class QClipboard;
 class WbClipboard : public WbVariant {
 public:
   static WbClipboard *instance();
+  static void deleteInstance();
   WbClipboard &operator=(const WbVariant &other);
 
   // redefine WbVariant setters
@@ -55,8 +56,10 @@ public:
   struct WbClipboardNodeInfo {
     QString modelName;
     QString nodeModelName;
+    QStringList protoParentList;
     QString slotType;
     bool hasADeviceDescendant;
+    bool hasAConnectorDescendant;
   };
   const struct WbClipboardNodeInfo *nodeInfo() { return mNodeInfo; }
 
@@ -67,7 +70,6 @@ public:
 
 private:
   explicit WbClipboard();
-  ~WbClipboard(){};
 
   WbNode *toNode() const override { return NULL; }
   WbClipboardNodeInfo *mNodeInfo;

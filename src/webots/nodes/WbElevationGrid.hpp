@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,9 +15,7 @@
 #ifndef WB_ELEVATION_GRID_HPP
 #define WB_ELEVATION_GRID_HPP
 
-#include "WbColor.hpp"
 #include "WbGeometry.hpp"
-#include "WbMFColor.hpp"
 #include "WbMFDouble.hpp"
 #include "WbSFDouble.hpp"
 #include "WbSFInt.hpp"
@@ -35,26 +33,19 @@ public:
   explicit WbElevationGrid(WbTokenizer *tokenizer = NULL);
   WbElevationGrid(const WbElevationGrid &other);
   explicit WbElevationGrid(const WbNode &other);
-  virtual ~WbElevationGrid();
+  virtual ~WbElevationGrid() override;
 
   // field accessors
   // getters
-  WbColor *color() const { return static_cast<WbColor *>(mColor->value()); }
-  int colorSize() const {
-    if (color())
-      return color()->color().size();
-    return 0;
-  }
-
   double xSpacing() const { return mXSpacing->value(); }
-  double zSpacing() const { return mZSpacing->value(); }
+  double ySpacing() const { return mYSpacing->value(); }
   int xDimension() const { return mXDimension->value(); }
-  int zDimension() const { return mZDimension->value(); }
+  int yDimension() const { return mYDimension->value(); }
   int height(int index) const { return mHeight->item(index); }
   double heightRange() const { return mMaxHeight - mMinHeight; }
   // setters
   void setXspacing(double x) { mXSpacing->setValue(x); }
-  void setZspacing(double z) { mZSpacing->setValue(z); }
+  void setYspacing(double y) { mYSpacing->setValue(y); }
   void setHeightScaleFactor(double ratio) { mHeight->multiplyAllItems(ratio); }
 
   // reimplemented public functions
@@ -64,13 +55,9 @@ public:
   dGeomID createOdeGeom(dSpaceID space) override;
   void createWrenObjects() override;
   void createResizeManipulator() override;
-  bool hasDefaultMaterial() override;
   bool isAValidBoundingObject(bool checkOde = false, bool warning = true) const override;
   bool isSuitableForInsertionInBoundingObject(bool warning = false) const override;
   void rescale(const WbVector3 &scale) override;
-  void reset() override;
-
-  int colorBufferSize() const;
 
   // ray tracing
   void recomputeBoundingSphere() const override;
@@ -83,15 +70,13 @@ public:
   // resize manipulator
   void setResizeManipulatorDimensions() override;
 
+  QStringList fieldsToSynchronizeWithW3d() const override;
+
 signals:
   void validElevationGridInserted();
-  void vertexColorChanged();
 
 protected:
   bool areSizeFieldsVisibleAndNotRegenerator() const override;
-
-  void exportNodeFields(WbVrmlWriter &writer) const override;
-  void exportNodeSubNodes(WbVrmlWriter &writer) const override;
 
 private:
   WbElevationGrid &operator=(const WbElevationGrid &);  // non copyable
@@ -99,13 +84,11 @@ private:
   void init();
 
   // user accessible fields
-  WbSFNode *mColor;
   WbMFDouble *mHeight;
-  WbSFBool *mColorPerVertex;
   WbSFInt *mXDimension;
   WbSFDouble *mXSpacing;
-  WbSFInt *mZDimension;
-  WbSFDouble *mZSpacing;
+  WbSFInt *mYDimension;
+  WbSFDouble *mYSpacing;
   WbSFDouble *mThickness;
 
   // other variables
@@ -115,7 +98,7 @@ private:
   double *mData;
   void checkHeight();
   double width() const { return mXSpacing->value() * (mXDimension->value() - 1); }
-  double depth() const { return mZSpacing->value() * (mZDimension->value() - 1); }
+  double depth() const { return mYSpacing->value() * (mYDimension->value() - 1); }
   double height() const { return mMaxHeight - mMinHeight; }
 
   bool sanitizeFields();
@@ -136,13 +119,11 @@ private:
   void computeMinMax(const WbVector3 &point, WbVector3 &min, WbVector3 &max) const;
 
 private slots:
-  void updateColor();
-  void updateColorPerVertex();
   void updateHeight();
   void updateXDimension();
   void updateXSpacing();
-  void updateZDimension();
-  void updateZSpacing();
+  void updateYDimension();
+  void updateYSpacing();
   void updateThickness();
   void updateLineScale();
 };

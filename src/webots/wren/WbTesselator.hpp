@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,15 +20,14 @@
 //
 
 #include <QtCore/QList>
-#include <QtCore/QPair>
 #include <QtCore/QString>
+#include <QtCore/QVector>
 
 class WbVector3;
 
 class WbTesselator {
 public:
-  static QString tesselate(const QList<QPair<int, int>> &indexes, const QList<WbVector3> &vertices,
-                           QList<QPair<int, int>> &results);
+  static QString tesselate(const QList<QVector<int>> &indexes, const QList<WbVector3> &vertices, QList<QVector<int>> &results);
 
 private:
   WbTesselator() {}

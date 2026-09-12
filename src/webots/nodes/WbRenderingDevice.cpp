@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -40,18 +40,6 @@ void WbRenderingDevice::init() {
   // Fields initialization
   mWidth = findSFInt("width");
   mHeight = findSFInt("height");
-
-  // backward compatibility of the deprecated fields
-  mWindowPositionField = findSFVector2("windowPosition");
-  if (mWindowPositionField && mWindowPositionField->value() != WbVector2()) {
-    warn(tr("'windowPosition' is deprecated.") + "\n" +
-         tr("The position of the overlay will be automatically stored after moving it from the 3D view."));
-  }
-  mPixelSizeField = findSFDouble("pixelSize");
-  if (mPixelSizeField && mPixelSizeField->value() != 1.0) {
-    warn(tr("'pixelSize' is deprecated.") + "\n" +
-         tr("The size of the overlay will be automatically stored after resizing it from the 3D view."));
-  }
 }
 
 WbRenderingDevice::WbRenderingDevice(const QString &modelName, WbTokenizer *tokenizer) : WbSolidDevice(modelName, tokenizer) {
@@ -104,6 +92,8 @@ int WbRenderingDevice::height() const {
 }
 
 void WbRenderingDevice::setup() {
+  if (mHasBeenSetup)
+    return;
   if (mWidth)
     mSetupWidth = mWidth->value();
   if (mHeight)
@@ -113,7 +103,7 @@ void WbRenderingDevice::setup() {
 
 void WbRenderingDevice::updateWidth() {
   if (mWidth && mWidth->value() < 1) {
-    warn(tr("Invalid 'width': changed to 1."));
+    parsingWarn(tr("Invalid 'width': changed to 1."));
     mWidth->setValue(1);
     return;
   }
@@ -125,7 +115,7 @@ void WbRenderingDevice::updateWidth() {
 
 void WbRenderingDevice::updateHeight() {
   if (mHeight && mHeight->value() < 1) {
-    warn(tr("Invalid 'height': changed to 1."));
+    parsingWarn(tr("Invalid 'height': changed to 1."));
     mHeight->setValue(1);
     return;
   }
@@ -133,19 +123,6 @@ void WbRenderingDevice::updateHeight() {
   // warn in case of height modification after the setup
   if (mHasBeenSetup)
     warn(tr("'height' has been modified. This modification will be taken into account after saving and reloading the world."));
-}
-
-// backward compatibility
-void WbRenderingDevice::applyWorldSettings() {
-  if (mPixelSizeField) {
-    mOverlay->resize(mPixelSizeField->value());
-    mPixelSizeField = NULL;
-  }
-  if (mWindowPositionField) {
-    WbVector2 position = mWindowPositionField->value();
-    mOverlay->updatePercentagePosition(position.x(), position.y());
-    mWindowPositionField = NULL;
-  }
 }
 
 void WbRenderingDevice::setPixelSize(double pixelSize) {
@@ -164,9 +141,6 @@ void WbRenderingDevice::moveWindow(int dx, int dy) {
 double WbRenderingDevice::pixelSize() const {
   if (mOverlay)
     return mOverlay->pixelSize();
-  else if (mPixelSizeField)
-    // backward compatibility
-    return mPixelSizeField->value();
   return 1.0;
 }
 
@@ -176,10 +150,10 @@ WbRenderingDevice *WbRenderingDevice::fromMousePosition(int x, int y) {
   int size = cRenderingDevices.size();
 
   for (int i = 0; i < size; i++) {
-    const WbWrenTextureOverlay *overlay = cRenderingDevices.at(i)->overlay();
-    if (overlay && overlay->isVisible()) {
-      int currentZorder = overlay->zOrder();
-      if (overlay->isInside(x, y) && currentZorder > maxZorder) {
+    const WbWrenTextureOverlay *textureOverlay = cRenderingDevices.at(i)->overlay();
+    if (textureOverlay && textureOverlay->isVisible()) {
+      int currentZorder = textureOverlay->zOrder();
+      if (textureOverlay->isInside(x, y) && currentZorder > maxZorder) {
         iMax = i;
         maxZorder = currentZorder;
       }
@@ -244,6 +218,13 @@ int WbRenderingDevice::backgroundTextureGLId() const {
   return 0;
 }
 
+int WbRenderingDevice::maskTextureGLId() const {
+  assert(mOverlay);
+  if (mOverlay)
+    return mOverlay->maskTextureGLId();
+  return 0;
+}
+
 int WbRenderingDevice::foregroundTextureGLId() const {
   assert(mOverlay);
   if (mOverlay)
@@ -264,9 +245,11 @@ bool WbRenderingDevice::areOverlaysEnabled() const {
   if (WbVirtualRealityHeadset::isInUse())
     return false;
 #endif
+  // cppcheck-suppress knownConditionTrueFalse
   if (nodeType() == WB_NODE_CAMERA)
     return !WbPreferences::instance()->value("View3d/hideAllCameraOverlays").toBool();
-  else if (nodeType() == WB_NODE_RANGE_FINDER)
+  // cppcheck-suppress knownConditionTrueFalse
+  if (nodeType() == WB_NODE_RANGE_FINDER)
     return !WbPreferences::instance()->value("View3d/hideAllRangeFinderOverlays").toBool();
   return !WbPreferences::instance()->value("View3d/hideAllDisplayOverlays").toBool();
 }

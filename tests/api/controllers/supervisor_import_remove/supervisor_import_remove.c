@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
   wb_distance_sensor_enable(ds0, TIME_STEP);
   wb_distance_sensor_enable(ds1, TIME_STEP);
 
-  wb_robot_step(TIME_STEP);
+  wb_robot_step(4 * TIME_STEP);  // let time for the other controller to run
 
   wb_supervisor_node_remove(wb_supervisor_node_get_from_def("WORLDINFO"));
 
@@ -69,7 +69,11 @@ int main(int argc, char **argv) {
   ts_assert_int_equal(wb_supervisor_field_get_count(root_children_field), initial_root_children_count + 1,
                       "The number of children of the root node is not correct after the insertion of SPHERE2.");
 
-  wb_robot_step(TIME_STEP);
+  wb_robot_step(2 * TIME_STEP);
+
+  // Try to remove root
+  // this is an invalid action: nothing should be applied and Webots should not crash
+  wb_supervisor_node_remove(wb_supervisor_node_get_root());
 
   value0 = wb_distance_sensor_get_value(ds0);
   ts_assert_double_is_bigger(750, value0, "SPHERE2 is not detected");
@@ -78,6 +82,13 @@ int main(int argc, char **argv) {
   ts_assert_pointer_not_null(sphere2_node, "Invalid reference to node 'SPHERE2'");
   wb_supervisor_node_remove(sphere2_node);
 
+  ts_assert_int_equal(wb_supervisor_field_get_count(root_children_field), initial_root_children_count,
+                      "The number of children of the root node is not correct after the deletion of SPHERE2.");
+
+  wb_robot_step(TIME_STEP);
+
+  // Remove an already deleted node: invalid action
+  wb_supervisor_node_remove(sphere2_node);
   ts_assert_int_equal(wb_supervisor_field_get_count(root_children_field), initial_root_children_count,
                       "The number of children of the root node is not correct after the deletion of SPHERE2.");
 
@@ -119,9 +130,6 @@ int main(int argc, char **argv) {
   wb_supervisor_field_import_mf_node_from_string(import_children_field, -1,
                                                  "Shape { geometry DEF MY_GEOM Box { size 0.1 0.1 0.1 } }");
 
-  // test import of invalid file -> check that Webots doesn't crash
-  wb_supervisor_field_import_mf_node(import_children_field, -1, "NotExistingObject.wbo");
-
   wb_robot_step(TIME_STEP);
 
   root_children_count = wb_supervisor_field_get_count(root_children_field);
@@ -130,10 +138,57 @@ int main(int argc, char **argv) {
   ts_assert_int_equal(wb_supervisor_field_get_count(root_children_field), root_children_count + 2,
                       "The number of children of the root node should increase by two when importing two nodes.");
 
-  wb_supervisor_field_import_mf_node(root_children_field, -1, "vrml_import.wrl");
+  // test internal update of libController node_list on node delete
+  wb_supervisor_field_import_mf_node_from_string(root_children_field, -1, "DEF SPHERE4 Solid {}");
+  WbNodeRef sphere4 = wb_supervisor_field_get_mf_node(root_children_field, -1);
+  wb_supervisor_field_import_mf_node_from_string(root_children_field, -1, "DEF SPHERE5 Solid {}");
+  WbNodeRef sphere5 = wb_supervisor_field_get_mf_node(root_children_field, -1);
+  wb_robot_step(TIME_STEP);
+  wb_supervisor_node_remove(sphere4);
+  wb_robot_step(TIME_STEP);
+  ts_assert_boolean_equal(wb_supervisor_field_get_mf_node(root_children_field, -1) == sphere5,
+                          "WbNodeRef instance of SPHERE 5 should not change after deleting SPHERE 4.");
 
-  ts_assert_int_equal(wb_supervisor_field_get_count(root_children_field), root_children_count + 3,
-                      "The number of children of the root node should increase by 1 when importing the *.wrl file.");
+  WbNodeRef shape_node = wb_supervisor_node_get_from_def("SHAPE");
+  WbFieldRef geometry_field = wb_supervisor_node_get_field(shape_node, "geometry");
+
+  wb_supervisor_field_import_sf_node_from_string(geometry_field, "DEF SPHERE_GEOM Sphere { radius 0.1 }");
+  const double new_translation[] = {0.15, 0.0, 0.0};
+  wb_supervisor_field_set_sf_vec3f(wb_supervisor_node_get_field(wb_supervisor_node_get_parent_node(shape_node), "translation"),
+                                   new_translation);
+  wb_robot_step(TIME_STEP);
+
+  value0 = wb_distance_sensor_get_value(ds0);
+  ts_assert_double_is_bigger(750, value0, "Sphere not imported.");
+  wb_supervisor_field_remove_sf(geometry_field);
+
+  wb_robot_step(TIME_STEP);
+
+  // this import should fail because field is not empty
+  wb_supervisor_field_import_sf_node_from_string(geometry_field, "DEF SPHERE_GEOM Sphere { radius 15 }");
+  value0 = wb_distance_sensor_get_value(ds0);
+  ts_assert_double_is_bigger(value0, 750, "Import on non-empty SFNode wrongly succeeded.");
+  wb_supervisor_field_remove_sf(geometry_field);
+
+  wb_robot_step(TIME_STEP);
+  value0 = wb_distance_sensor_get_value(ds0);
+  ts_assert_double_is_bigger(value0, 750, "Sphere not removed.");
+
+  // test subnodes are correctly removed from Supervisor API's internal node list
+  wb_supervisor_field_import_mf_node_from_string(root_children_field, -1,
+                                                 "DEF PARENT Group { children [ Shape { geometry DEF CHILD Cylinder {} } ] }");
+  wb_robot_step(TIME_STEP);
+  WbNodeRef parent_node = wb_supervisor_node_get_from_def("PARENT");
+  ts_assert_pointer_not_null(parent_node, "Invalid reference to node 'PARENT'.");
+  WbNodeRef child_node = wb_supervisor_node_get_from_def("CHILD");
+  ts_assert_pointer_not_null(child_node, "Invalid reference to node 'CHILD'.");
+  ts_assert_int_not_equal(wb_supervisor_node_get_id(child_node), -1, "'CHILD' is not valid after import.");
+  wb_robot_step(TIME_STEP);
+  wb_supervisor_node_remove(parent_node);
+  wb_robot_step(TIME_STEP);
+  ts_assert_int_equal(wb_supervisor_node_get_id(child_node), -1, "'CHILD' is still valid after delete.");
+  child_node = wb_supervisor_node_get_from_def("CHILD");
+  ts_assert_pointer_null(child_node, "Invalid reference to node 'CHILD'.");
 
   ts_send_success();
   return EXIT_SUCCESS;

@@ -26,7 +26,7 @@ namespace webotsQtUtils {
     QString toTimeString() const;
     Status status() const;
 
-    void createAndAppendState(Motor *Motor);
+    void createAndAppendState(Motor *motor);
     void deleteStateAt(int index);
     void swapStateWithNext(int index);
 
@@ -61,6 +61,7 @@ namespace webotsQtUtils {
     void stateDeleted(int index);
 
   private:
+    Pose &operator=(const Pose &);  // non copyable
     MotorTargetState *createOrRetrieve(Motor *motor);
     void clear();
     int computeStateToIndex(MotorTargetState *s) const;

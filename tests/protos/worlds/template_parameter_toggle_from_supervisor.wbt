@@ -1,8 +1,14 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/protos/protos/TemplateSimpleSolidWithPhysicsToggle.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.923133 -0.366749 -0.115418 5.78631
+  orientation 0.9231326864054177 -0.3667488754128609 -0.11541796079171744 5.78631
   position 1.04345 2.52937 4.30892
 }
 Background {
@@ -33,6 +39,9 @@ Robot {
     }
   ]
   controller "template_parameter_toggle_from_supervisor"
+  controllerArgs [
+    "template_parameter_toggle_from_supervisor"
+  ]
   supervisor TRUE
 }
 DEF TEMPLATE TemplateSimpleSolidWithPhysicsToggle {

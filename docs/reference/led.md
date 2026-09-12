@@ -40,7 +40,7 @@ If the `color` list contains a single color, then the LED is monochromatic, and 
 #### `wb_led_set`
 #### `wb_led_get`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -95,19 +95,10 @@ public class LED extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_led_set(tag, value)
 value = wb_led_get(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/set_led` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) |
-| `/<device_name>/get_led` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) |
 
 %tab-end
 

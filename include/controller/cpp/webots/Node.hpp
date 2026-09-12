@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,12 +18,17 @@
 #define WB_USING_CPP_API
 #include <string>
 #include <webots/Field.hpp>
+#include <webots/Proto.hpp>
+#include "../../c/webots/contact_point.h"
 #include "../../c/webots/types.h"
 
 // Note: should match with node.h
 
 namespace webots {
+  typedef WbContactPoint ContactPoint;
+
   class Field;
+  class Proto;
   class Node {
   public:
     typedef enum {
@@ -31,7 +36,9 @@ namespace webots {
       // 3D rendering
       APPEARANCE,
       BACKGROUND,
+      BILLBOARD,
       BOX,
+      CAD_SHAPE,
       CAPSULE,
       COLOR,
       CONE,
@@ -45,11 +52,14 @@ namespace webots {
       INDEXED_FACE_SET,
       INDEXED_LINE_SET,
       MATERIAL,
+      MESH,
       MUSCLE,
+      NORMAL,
       PBR_APPEARANCE,
       PLANE,
       POINT_LIGHT,
       POINT_SET,
+      POSE,
       SHAPE,
       SPHERE,
       SPOT_LIGHT,
@@ -59,9 +69,9 @@ namespace webots {
       VIEWPOINT,
       // robots
       ROBOT,
-      DIFFERENTIAL_WHEELS,
       // devices
       ACCELEROMETER,
+      ALTIMETER,
       BRAKE,
       CAMERA,
       COMPASS,
@@ -83,14 +93,15 @@ namespace webots {
       RANGE_FINDER,
       RECEIVER,
       ROTATIONAL_MOTOR,
+      SKIN,
       SPEAKER,
       TOUCH_SENSOR,
+      VACUUM_GRIPPER,
       // misc
       BALL_JOINT,
       BALL_JOINT_PARAMETERS,
       CHARGER,
       CONTACT_PROPERTIES,
-      CUBEMAP,
       DAMPING,
       FLUID,
       FOCUS,
@@ -113,8 +124,7 @@ namespace webots {
       ZOOM,
       // experimental
       MICROPHONE,
-      RADIO,
-      SKIN
+      RADIO
     } Type;
 
     virtual void remove();
@@ -124,14 +134,33 @@ namespace webots {
     std::string getTypeName() const;
     std::string getBaseTypeName() const;
     Node *getParentNode() const;
+    bool isProto() const;
+    Proto *getProto() const;
+    Node *getFromProtoDef(const std::string &name) const;
+    int getNumberOfFields() const;
+    int getNumberOfBaseNodeFields() const;
     Field *getField(const std::string &fieldName) const;
+    Field *getBaseNodeField(const std::string &fieldName) const;
+    Field *getFieldByIndex(const int index) const;
+    Field *getBaseNodeFieldByIndex(const int index) const;
     const double *getPosition() const;
     const double *getOrientation() const;
+    const double *getPose() const;
+    const double *getPose(const Node *fromNode) const;
+    void enableContactPointsTracking(int samplingPeriod, bool includeDescendants = false) const;
+    void disableContactPointsTracking(bool includeDescendants = false) const;
+    void enablePoseTracking(int samplingPeriod) const;
+    void disablePoseTracking() const;
+    void enablePoseTracking(int samplingPeriod, const Node *fromNode) const;
+    void disablePoseTracking(const Node *fromNode) const;
+    ContactPoint *getContactPoints(bool includeDescendants, int *size) const;
     const double *getCenterOfMass() const;
     const double *getContactPoint(int index) const;
-    int getNumberOfContactPoints() const;
+    Node *getContactPointNode(int index) const;
+    int getNumberOfContactPoints(bool includeDescendants = false) const;
     bool getStaticBalance() const;
     const double *getVelocity() const;
+    std::string exportString() const;
 
     void setVelocity(const double velocity[6]);
     void resetPhysics();
@@ -139,6 +168,15 @@ namespace webots {
 
     void moveViewpoint() const;
     void setVisibility(Node *from, bool visible);
+
+    void addForce(const double force[3], bool relative);
+    void addForceWithOffset(const double force[3], const double offset[3], bool relative);
+    void addTorque(const double torque[3], bool relative);
+
+    void saveState(const std::string &stateName);
+    void loadState(const std::string &stateName);
+
+    void setJointPosition(double position, int index = 1);
 
     // DO NOT USE THESE FUNCTIONS: THEY ARE RESERVED FOR INTERNAL USE:
     static Node *findNode(WbNodeRef ref);

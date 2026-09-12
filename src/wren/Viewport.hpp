@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -39,6 +39,7 @@ namespace wren {
     void setPolygonMode(WrViewportPolygonMode polygonMode) { mPolygonMode = polygonMode; }
     void setVisbilityMask(int mask) { mVisibilityMask = mask; }
     void setSize(int width, int height);
+    void setPixelRatio(double ratio) { mPixelRatio = ratio; }
     void setCamera(Camera *camera);
     void setFrameBuffer(FrameBuffer *frameBuffer);
     void enableShadows(bool enable) { mAreShadowsEnabled = enable; }
@@ -58,6 +59,7 @@ namespace wren {
 
     int width() const { return mWidth; }
     int height() const { return mHeight; }
+    double pixelRatio() const { return mPixelRatio; }
     bool areShadowsEnabled() const { return mAreShadowsEnabled; }
     WrViewportPolygonMode polygonMode() const { return mPolygonMode; }
     int visibilityMask() const { return mVisibilityMask; }
@@ -88,6 +90,7 @@ namespace wren {
     int mVisibilityMask;
     int mWidth;
     int mHeight;
+    double mPixelRatio;
 
     Camera *mCamera;
     FrameBuffer *mFrameBuffer;

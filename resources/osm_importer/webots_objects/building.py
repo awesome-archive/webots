@@ -1,10 +1,10 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+# Copyright 1996-2024 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,9 +33,10 @@ class Building(WebotsObject):
     nameList = []
     wallTypes = ["glass building", "classic building", "orange building", "gray glass building", "blue glass building",
                  "arcade-style building", "transparent highrise", "windowed building", "old brick building",
-                 "red and white building", "construction building", "red brick wall", "old brick wall", "stone brick", "stone wall",
-                 "glass highrise", "old house", "old building", "highrise", "brick building", "residential building", "old office building",
-                 "factory building", "tall house", "office building", "concrete building"]
+                 "red and white building", "construction building", "stone brick",
+                 "stone wall", "glass highrise", "old house", "old building", "highrise", "brick building",
+                 "residential building", "old office building", "factory building", "tall house", "office building",
+                 "concrete building"]
     coloredWallTypes = ["old house", "brick building", "factory building", "tall house", "office building", "concrete building"]
     coloredRoofTypes = ["bitumen", "tiled"]
     importedWallTypes = {
@@ -102,13 +103,13 @@ class Building(WebotsObject):
                     building.green = float((building.color & 0x00FF00) >> 8) / 255.0
                     building.blue = float(building.color & 0x0000FF) / 255.0
                 else:
-                    try:
+                    if 'building:colour' in tags:
                         building.color = tags['building:colour']
                         red, green, blue = name_to_rgb(building.color, spec='css3')
                         building.red = float(red) / 255.0
                         building.green = float(green) / 255.0
                         building.blue = float(blue) / 255.0
-                    except:
+                    else:
                         building.color = ""
             if 'roof:colour' in tags:
                 if tags['roof:colour'].startswith("#"):
@@ -117,13 +118,13 @@ class Building(WebotsObject):
                     building.roofGreen = float((building.roofColor & 0x00FF00) >> 8) / 255.0
                     building.roofBlue = float(building.roofColor & 0x0000FF) / 255.0
                 else:
-                    try:
+                    if 'roof:colour' in tags:
                         building.roofColor = tags['roof:colour']
                         roofRed, roofGreen, roofBlue = name_to_rgb(building.roofColor, spec='css3')
                         building.roofRed = float(roofRed) / 255.0
                         building.roofGreen = float(roofGreen) / 255.0
                         building.roofBlue = float(roofBlue) / 255.0
-                    except:
+                    else:
                         building.roofColor = ""
             if 'name' in tags:
                 building.name = tags['name']
@@ -147,7 +148,8 @@ class Building(WebotsObject):
             if 'building:min_level' in tags:
                 building.minLevel = int(extract_float_from_string(tags['building:min_level']))
             building.ref = ref
-            if len(building.ref) > 0 and building.ref[0] == building.ref[-1]:  # often last and first reference are the same => this is useless for us
+            if building.ref and building.ref[0] == building.ref[-1]:
+                # often last and first reference are the same => this is useless for us
                 del building.ref[-1]
             Building.list.append(building)
 
@@ -175,14 +177,17 @@ class Building(WebotsObject):
             if WebotsObject.enable3D:
                 height = float('inf')
                 for ref in building.ref:
-                    if ref in OSMCoord.coordDictionnary and OSMCoord.coordDictionnary[ref].y < height:
-                        height = OSMCoord.coordDictionnary[ref].y
+                    if ref in OSMCoord.coordDictionnary and OSMCoord.coordDictionnary[ref].z < height:
+                        height = OSMCoord.coordDictionnary[ref].z
                 if height == float('inf'):
                     height = 0
                 height = height + building.layer * WebotsObject.layerHeight
-                file.write("  translation %.2lf %.2lf %.2lf\n" % (OSMCoord.coordDictionnary[building.ref[0]].x, height, OSMCoord.coordDictionnary[building.ref[0]].z))
+                file.write("  translation %.2lf %.2lf %.2lf\n" %
+                           (OSMCoord.coordDictionnary[building.ref[0]].x, OSMCoord.coordDictionnary[building.ref[0]].y, height))
             else:
-                file.write("  translation %.2lf %.2lf %.2lf\n" % (OSMCoord.coordDictionnary[building.ref[0]].x, building.layer * WebotsObject.layerHeight, OSMCoord.coordDictionnary[building.ref[0]].z))
+                file.write("  translation %.2lf %.2lf %.2lf\n" %
+                           (OSMCoord.coordDictionnary[building.ref[0]].x, OSMCoord.coordDictionnary[building.ref[0]].y,
+                            building.layer * WebotsObject.layerHeight))
 
             name = building.name
             if name != '' and building.number != '':
@@ -204,7 +209,10 @@ class Building(WebotsObject):
             file.write("  corners [\n")
             for ref in building.ref:
                 if ref in OSMCoord.coordDictionnary:
-                    file.write("    %.2f %.2f,\n" % (OSMCoord.coordDictionnary[ref].x - OSMCoord.coordDictionnary[building.ref[0]].x, OSMCoord.coordDictionnary[ref].z - OSMCoord.coordDictionnary[building.ref[0]].z))
+                    file.write("    %.2f %.2f,\n" % (OSMCoord.coordDictionnary[ref].x -
+                                                     OSMCoord.coordDictionnary[building.ref[0]].x,
+                                                     OSMCoord.coordDictionnary[ref].y -
+                                                     OSMCoord.coordDictionnary[building.ref[0]].y))
                 else:
                     print("Warning: node " + str(ref) + " not referenced.")
             file.write("  ]\n")
@@ -219,7 +227,8 @@ class Building(WebotsObject):
                 else:
                     file.write("  roofShape \"flat roof\"\n")
             # Set the wallType
-            if building.material in building.importedWallTypes and building.importedWallTypes[building.material] in building.coloredWallTypes and building.color != "":
+            if (building.material in building.importedWallTypes and
+                    building.importedWallTypes[building.material] in building.coloredWallTypes and building.color != ""):
                 file.write("  wallType \"%s\"\n" % building.importedWallTypes[building.material])
             elif building.color != "":
                 file.write('  wallType "%s"\n' % random.choice(building.coloredWallTypes))
@@ -230,7 +239,9 @@ class Building(WebotsObject):
             else:
                 file.write('  wallType "%s"\n' % random.choice(building.wallTypes))
             # Set the roofType
-            if building.roofMaterial in building.coloredRoofTypes and building.importedRoofTypes[building.roofMaterial] in building.coloredRoofTypes and building.roofColor != "":
+            if (building.roofMaterial in building.coloredRoofTypes and
+                    building.importedRoofTypes[building.roofMaterial] in building.coloredRoofTypes and
+                    building.roofColor != ""):
                 file.write('  roofType "%s"\n' % building.importedRoofTypes[building.roofMaterial])
             elif building.roofColor != "":
                 file.write(' roofType "%s"\n' % random.choice(building.coloredRoofTypes))

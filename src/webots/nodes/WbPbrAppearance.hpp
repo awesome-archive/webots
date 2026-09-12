@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,10 +18,11 @@
 #include "WbAbstractAppearance.hpp"
 #include "WbRgb.hpp"
 
-class WbCubemap;
 class WbImageTexture;
 
 struct WrMaterial;
+
+struct aiMaterial;
 
 class WbPbrAppearance : public WbAbstractAppearance {
   Q_OBJECT
@@ -31,14 +32,16 @@ public:
   explicit WbPbrAppearance(WbTokenizer *tokenizer = NULL);
   WbPbrAppearance(const WbPbrAppearance &other);
   explicit WbPbrAppearance(const WbNode &other);
-  virtual ~WbPbrAppearance();
+  WbPbrAppearance(const aiMaterial *material, const QString &filePath);
+  virtual ~WbPbrAppearance() override;
 
   // reimplemented public functions
   int nodeType() const override { return WB_NODE_PBR_APPEARANCE; }
+  void downloadAssets() override;
   void createWrenObjects() override;
   void preFinalize() override;
   void postFinalize() override;
-  void reset() override;
+  void reset(const QString &id) override;
   bool isSuitableForInsertionInBoundingObject(bool warning = false) const override { return true; }
 
   void setEmissiveColor(const WbRgb &color);
@@ -49,7 +52,6 @@ public:
   WbImageTexture *baseColorMap() const;
   WbImageTexture *roughnessMap() const;
   WbImageTexture *metalnessMap() const;
-  WbCubemap *environmentMap() const;
   WbImageTexture *normalMap() const;
   WbImageTexture *occlusionMap() const;
   WbImageTexture *emissiveColorMap() const;
@@ -59,20 +61,29 @@ public:
 
   // specific functions
   bool isBaseColorTextureLoaded() const;
+  bool isRoughnessTextureLoaded() const;
+  bool isOcclusionTextureLoaded() const;
   void pickColorInBaseColorTexture(WbRgb &pickedColor, const WbVector2 &uv) const;
+  void pickRoughnessInTexture(double *roughness, const WbVector2 &uv) const;
+  void pickOcclusionInTexture(double *occlusion, const WbVector2 &uv) const;
   WbRgb baseColor() const;
   double transparency() const;
+  double roughness() const;
+
+  QStringList fieldsToSynchronizeWithW3d() const override;
+  void exportShallowNode(const WbWriter &writer) const;
 
 protected:
-  void exportNodeSubNodes(WbVrmlWriter &writer) const override;
+  bool exportNodeHeader(WbWriter &writer) const override;
+  void exportNodeSubNodes(WbWriter &writer) const override;
 
 private:
   WbPbrAppearance &operator=(const WbPbrAppearance &);  // non copyable
   WbNode *clone() const override { return new WbPbrAppearance(*this); }
-  void clearCubemap(WrMaterial *wrenMaterial);
+  double getRedValueInTexture(WbImageTexture *texture, const WbVector2 &uv) const;
 
-  bool isTransparent();
   void init();
+  void sanitizeFields();
 
   WbSFColor *mBaseColor;
   WbSFNode *mBaseColorMap;
@@ -81,7 +92,6 @@ private:
   WbSFNode *mRoughnessMap;
   WbSFDouble *mMetalness;
   WbSFNode *mMetalnessMap;
-  WbSFNode *mEnvironmentMap;
   WbSFDouble *mIblStrength;
   WbSFNode *mNormalMap;
   WbSFDouble *mNormalMapFactor;
@@ -103,7 +113,6 @@ private slots:
   void updateRoughnessMap();
   void updateMetalness();
   void updateMetalnessMap();
-  void updateEnvironmentMap();
   void updateIblStrength();
   void updateNormalMap();
   void updateNormalMapFactor();

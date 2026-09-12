@@ -169,7 +169,7 @@ dxJointTransmission::getInfo2( dReal worldFPS,
 
         dIASSERT(m > 0);
 
-        // Caclulate the angle of the contact point relative to the
+        // Calculate the angle of the contact point relative to the
         // baseline.
 
         cosphi = clamp((radii[1] - radii[0]) / m, REAL(-1.0), REAL(1.0)); // Force into range to fix possible computation errors
@@ -206,6 +206,11 @@ dxJointTransmission::getInfo2( dReal worldFPS,
         }
 
         break;
+    default:
+        dSetZero(c[0], 3);
+        dSetZero(c[1], 3);
+
+        break;
     }
 
     if (update) {
@@ -232,7 +237,6 @@ dxJointTransmission::getInfo2( dReal worldFPS,
             //      reference[i][4],reference[i][5],reference[i][6],
             //      reference[i][8],reference[i][9],reference[i][10]);
 
-            radii[i] = radii[i];
             phase[i] = 0;
         }
 
@@ -328,7 +332,7 @@ dxJointTransmission::getInfo2( dReal worldFPS,
     // backlash gap.
 
     if (backlash == 0 || fabs(delta) > backlash) {
-        // The constraint is satisfied iff the absolute velocity of the
+        // The constraint is satisfied if the absolute velocity of the
         // contact point projected onto the tangent of the wheels is equal
         // for both gears.  This velocity can be calculated as:
         //
@@ -415,7 +419,7 @@ void dJointSetTransmissionAxis2( dJointID j, dReal x, dReal y, dReal z )
 {
     dxJointTransmission* joint = static_cast<dxJointTransmission*>(j);
     dUASSERT( joint, "bad joint argument" );
-    dUASSERT(joint->mode = dTransmissionIntersectingAxes,
+    dUASSERT(joint->mode == dTransmissionIntersectingAxes,
              "can't set individual axes in current mode" );
 
     if (joint->node[1].body) {

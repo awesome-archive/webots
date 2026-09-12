@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,7 @@
 
 #include "WbAppearance.hpp"
 #include "WbBasicJoint.hpp"
+#include "WbDictionary.hpp"
 #include "WbField.hpp"
 #include "WbFieldModel.hpp"
 #include "WbGeometry.hpp"
@@ -23,6 +24,7 @@
 #include "WbLog.hpp"
 #include "WbMFNode.hpp"
 #include "WbNode.hpp"
+#include "WbNodeOperations.hpp"
 #include "WbNodeUtilities.hpp"
 #include "WbPbrAppearance.hpp"
 #include "WbProtoModel.hpp"
@@ -33,6 +35,7 @@
 #include "WbSolid.hpp"
 #include "WbSolidReference.hpp"
 #include "WbViewpoint.hpp"
+#include "WbVrmlNodeUtilities.hpp"
 #include "WbWorld.hpp"
 
 #include <QtCore/QCoreApplication>
@@ -55,7 +58,10 @@ void WbTemplateManager::cleanup() {
   cInstance = NULL;
 }
 
-WbTemplateManager::WbTemplateManager() : mBlockRegeneration(false), mTemplatesNeedRegeneration(false) {
+WbTemplateManager::WbTemplateManager() :
+  mBlockRegeneration(false),
+  mTemplatesNeedRegeneration(false),
+  mRegeneratingUpperTemplateNode(NULL) {
 }
 
 WbTemplateManager::~WbTemplateManager() {
@@ -85,7 +91,7 @@ void WbTemplateManager::blockRegeneration(bool block) {
 }
 
 void WbTemplateManager::clear() {
-  foreach (WbNode *node, mTemplates)
+  foreach (const WbNode *node, mTemplates)
     disconnect(node, &WbNode::regenerationRequired, this, &WbTemplateManager::nodeNeedRegeneration);
   mTemplates.clear();
 }
@@ -95,25 +101,27 @@ void WbTemplateManager::subscribe(WbNode *node, bool subscribedDescendant) {
   if (node->isTemplate() && !mTemplates.contains(node)) {
     subscribed = true;
     mTemplates << node;
-    connect(node, &QObject::destroyed, this, &WbTemplateManager::unsubscribe, Qt::UniqueConnection);
     connect(node, &WbNode::regenerateNodeRequest, this, &WbTemplateManager::regenerateNode, Qt::UniqueConnection);
     connect(node, &WbNode::regenerationRequired, this, &WbTemplateManager::nodeNeedRegeneration);
   }
-
+  if (subscribedDescendant)
+    mNodesSubscribedForRegeneration.insert(node);
   recursiveFieldSubscribeToRegenerateNode(node, subscribed, subscribedDescendant);
+  connect(node, &QObject::destroyed, this, &WbTemplateManager::unsubscribe, Qt::UniqueConnection);
 }
 
 void WbTemplateManager::unsubscribe(QObject *node) {
-  disconnect(static_cast<WbNode *>(node), &WbNode::regenerationRequired, this, &WbTemplateManager::nodeNeedRegeneration);
-  mTemplates.removeAll(static_cast<WbNode *>(node));
+  const WbNode *n = static_cast<WbNode *>(node);
+  if (n->isTemplate() && mTemplates.removeAll(n) > 0)
+    disconnect(n, &WbNode::regenerationRequired, this, &WbTemplateManager::nodeNeedRegeneration);
+  mNodesSubscribedForRegeneration.remove(n);
 }
 
 bool WbTemplateManager::nodeNeedsToSubscribe(WbNode *node) {
   if (!node->isProtoInstance())
     return false;
 
-  QVector<WbField *> fields = node->fieldsOrParameters();
-  foreach (WbField *field, fields) {
+  foreach (const WbField *field, node->fieldsOrParameters()) {
     if (!field->alias().isEmpty())
       return true;
   }
@@ -123,10 +131,9 @@ bool WbTemplateManager::nodeNeedsToSubscribe(WbNode *node) {
 void WbTemplateManager::recursiveFieldSubscribeToRegenerateNode(WbNode *node, bool subscribedNode, bool subscribedDescendant) {
   if (subscribedNode || subscribedDescendant) {
     if (node->isProtoInstance())
-      connect(node, &WbNode::parameterChanged, this, &WbTemplateManager::regenerateNodeFromParameterChange,
-              Qt::UniqueConnection);
+      connect(node, &WbNode::parameterChanged, this, &WbTemplateManager::regenerateNodeFromField, Qt::UniqueConnection);
     else
-      connect(node, &WbNode::fieldChanged, this, &WbTemplateManager::regenerateNodeFromFieldChange, Qt::UniqueConnection);
+      connect(node, &WbNode::fieldChanged, this, &WbTemplateManager::regenerateNodeFromField, Qt::UniqueConnection);
   }
 
   // if PROTO node:
@@ -148,8 +155,8 @@ void WbTemplateManager::recursiveFieldSubscribeToRegenerateNode(WbNode *node, bo
       case WB_MF_NODE: {
         WbMFNode *mfnode = static_cast<WbMFNode *>(field->value());
         assert(mfnode);
-        for (int i = 0; i < mfnode->size(); i++) {
-          WbNode *subnode = mfnode->item(i);
+        for (int j = 0; j < mfnode->size(); j++) {
+          WbNode *subnode = mfnode->item(j);
           if (directSubscriptionEnabled || nodeNeedsToSubscribe(subnode))
             subscribe(subnode, subscribedDescendant || (subscribedNode && field->isTemplateRegenerator()));
         }
@@ -169,43 +176,36 @@ void WbTemplateManager::recursiveFieldSubscribeToRegenerateNode(WbNode *node, bo
   }
 }
 
-void WbTemplateManager::regenerateNodeFromFieldChange(WbField *field) {
-  // retrieve the right node
-  WbNode *templateNode = dynamic_cast<WbNode *>(sender());
-  assert(templateNode);
-  if (templateNode)
-    regenerateNodeFromField(templateNode, field, false);
-}
-
-void WbTemplateManager::regenerateNodeFromParameterChange(WbField *field) {
-  // retrieve the right node
-  WbNode *templateNode = dynamic_cast<WbNode *>(sender());
-  assert(templateNode);
-  if (templateNode)
-    regenerateNodeFromField(templateNode, field, true);
-}
-
 // intermediate function to determine which node should be updated
-// Note: The security is probably overkilled there, but its also safer for the first versions of the template mechanism
-void WbTemplateManager::regenerateNodeFromField(WbNode *templateNode, WbField *field, bool isParameter) {
-  // 1. retrieve upper template node where the modification appeared in a template regenerator field
-  templateNode = WbNodeUtilities::findUpperTemplateNeedingRegenerationFromField(field, templateNode);
-
+// Note: The security is probably overkill there, but its also safer for the first versions of the template mechanism
+void WbTemplateManager::regenerateNodeFromField(WbField *field) {
+  // retrieve the right node
+  WbNode *templateNode = dynamic_cast<WbNode *>(sender());
+  assert(templateNode);
   if (!templateNode)
     return;
 
+  // 1. retrieve upper template node where the modification appeared in a template regenerator field
+  WbNode *upperTemplateNode = WbVrmlNodeUtilities::findUpperTemplateNeedingRegenerationFromField(field, templateNode);
+
+  if (!upperTemplateNode)
+    return;
+
   // 2. check it's not a parameter managed by ODE
-  if (!isParameter && dynamic_cast<const WbSolid *>(templateNode) &&
+  if (!field->isParameter() && dynamic_cast<const WbSolid *>(templateNode) &&
       ((field->name() == "translation" && field->type() == WB_SF_VEC3F) ||
        (field->name() == "rotation" && field->type() == WB_SF_ROTATION) ||
        (field->name() == "position" && field->type() == WB_SF_FLOAT)))
     return;
 
+  // Store regenerator field and node to prevent infinite loop when updating the USE/DEF dictionary
+  mRegeneratingUpperTemplateNode = upperTemplateNode;
+
   // 3. regenerate template where the modification appeared in a template regenerator field
-  regenerateNode(templateNode);
+  regenerateNode(upperTemplateNode);
 }
 
-void WbTemplateManager::regenerateNode(WbNode *node) {
+void WbTemplateManager::regenerateNode(WbNode *node, bool restarted) {
   assert(node);
 
   if (mBlockRegeneration) {
@@ -215,7 +215,7 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
     node->setRegenerationRequired(false);
 
   // 1. get stuff
-  WbNode *parent = node->parent();
+  WbNode *parent = node->parentNode();
   WbProtoModel *proto = node->proto();
   assert(parent && proto);
   if (!parent || !proto)
@@ -225,18 +225,21 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
   QList<WbField *> previousParentRedirections;
   WbField *parentField = node->parentField();
   QVector<WbField *> parameters;
-  foreach (WbField *parameter, node->parameters()) {
+  WbNode::setRestoreUniqueIdOnClone(true);
+  foreach (const WbField *parameter, node->parameters()) {
     parameters << new WbField(*parameter, NULL);
     if (parameter->parameter() != NULL)
       previousParentRedirections.append(parameter->parameter());
   }
-  int uniqueId = node->uniqueId();
+  WbNode::setRestoreUniqueIdOnClone(false);
+  const int uniqueId = node->uniqueId();
+  const QString &stateId = node->stateId();
   const WbSolid *solid = dynamic_cast<const WbSolid *>(node);
   WbVector3 translationFromFile;
   WbRotation rotationFromFile;
   if (solid) {
-    translationFromFile = solid->translationFromFile();
-    rotationFromFile = solid->rotationFromFile();
+    translationFromFile = solid->translationFromFile(stateId);
+    rotationFromFile = solid->rotationFromFile(stateId);
   }
 
   WbWorld *world = WbWorld::instance();
@@ -251,38 +254,45 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
     followedSolidName = followedSolid->name();
 
   // 2. regenerate the new node
-  WbNode *upperTemplateNode = WbNodeUtilities::findUpperTemplateNeedingRegeneration(node);
+  WbNode *upperTemplateNode = WbVrmlNodeUtilities::findUpperTemplateNeedingRegeneration(node);
   bool nested = upperTemplateNode && upperTemplateNode != node;
   cRegeneratingNodeCount++;
-  if (isWorldInitialized)
+  if (isWorldInitialized && !restarted)
+    // signal is not emitted in case a node has been regenerated twice in a row (`restart` == TRUE)
+    // to preserve the scene tree selection
     emit preNodeRegeneration(node, nested);
 
-  WbNode::setGlobalParent(parent);
+  WbNode::setGlobalParentNode(parent);
 
-  WbNode *newNode = WbNode::regenerateProtoInstanceFromParameters(proto, parameters, node->isTopLevel(),
-                                                                  WbWorld::instance()->fileName(), true, uniqueId);
+  WbNode *newNode = WbNode::createProtoInstanceFromParameters(proto, parameters, WbWorld::instance()->fileName(), uniqueId);
 
   if (!newNode) {
-    WbLog::error(tr("Template regeneration failed. The node cannot be generated."));
+    WbLog::error(tr("Template regeneration failed. The node cannot be generated."), false, WbLog::PARSING);
     delete newNode;
     if (isWorldInitialized)
       emit abortNodeRegeneration();
     return;
   }
 
+  if (mRegeneratingUpperTemplateNode == node)
+    mRegeneratingUpperTemplateNode = newNode;  // update reference to base regenerated node
+
   newNode->setDefName(node->defName());
-  WbNode::setGlobalParent(NULL);
+  WbNode::setGlobalParentNode(NULL);
 
   WbNodeUtilities::validateInsertedNode(parentField, newNode, parent, isInBoundingObject);
 
-  subscribe(newNode);
+  subscribe(newNode, mNodesSubscribedForRegeneration.contains(node));
 
-  bool ancestorTemplateRegeneration = upperTemplateNode != NULL;
+  const bool ancestorTemplateRegeneration = upperTemplateNode != NULL;
   if (node->isProtoParameterNode()) {
-    const QVector<WbField *> &parentFields = parent->fieldsOrParameters();
-    foreach (WbField *const parentField, parentFields) {
-      if (parentField->type() == WB_SF_NODE) {
-        WbSFNode *sfnode = static_cast<WbSFNode *>(parentField->value());
+    // internal PROTO child could be regenerated due to a parameter exposed in the parent PROTO node
+    // so for parent PROTO instances both fields and parameters needs to be checked
+    const QList<WbField *> parentFields = (parent->isProtoInstance() ? QList(parent->parameters()) : QList<WbField *>())
+                                          << parent->fields();
+    foreach (WbField *const pf, parentFields) {
+      if (pf->type() == WB_SF_NODE) {
+        WbSFNode *sfnode = static_cast<WbSFNode *>(pf->value());
         if (sfnode->value() == node) {
           if (ancestorTemplateRegeneration)
             sfnode->blockSignals(true);
@@ -294,11 +304,13 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
             regenerateNode(upperTemplateNode);
             return;
           }
+          break;
         }
-      } else if (parentField->type() == WB_MF_NODE) {
-        WbMFNode *mfnode = static_cast<WbMFNode *>(parentField->value());
+      } else if (pf->type() == WB_MF_NODE) {
+        WbMFNode *mfnode = static_cast<WbMFNode *>(pf->value());
+        bool found = false;
         for (int i = 0; i < mfnode->size(); ++i) {
-          WbNode *n = mfnode->item(i);
+          const WbNode *n = mfnode->item(i);
           if (n == node) {
             if (ancestorTemplateRegeneration)
               mfnode->blockSignals(true);
@@ -311,17 +323,24 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
               regenerateNode(upperTemplateNode);
               return;
             }
+            found = true;
             break;
           }
+        }
+        if (found) {
+          if (parent->isProtoInstance())
+            parent->redirectInternalFields(parentField);
+          break;
         }
       }
     }
   } else {
     // reassign pointer in parent
+    WbSolid *const parentSolid = dynamic_cast<WbSolid *>(parent);
     WbGroup *const parentGroup = dynamic_cast<WbGroup *>(parent);
     WbBasicJoint *const parentJoint = dynamic_cast<WbBasicJoint *>(parent);
     WbShape *const parentShape = dynamic_cast<WbShape *>(parent);
-    WbSkin *const parentSkin = dynamic_cast<WbSkin *>(parent);
+    const WbSkin *const parentSkin = dynamic_cast<WbSkin *>(parent);
     WbSlot *const parentSlot = dynamic_cast<WbSlot *>(parent);
     WbAppearance *const newAppearance = dynamic_cast<WbAppearance *>(newNode);
     WbPbrAppearance *const newPbrAppearance = dynamic_cast<WbPbrAppearance *>(newNode);
@@ -330,24 +349,16 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
     WbSolid *const newSolid = dynamic_cast<WbSolid *>(newNode);
     WbSolidReference *const newSolidReference = dynamic_cast<WbSolidReference *>(newNode);
 
-    if (parentGroup) {
+    if (parentSolid && isInBoundingObject)
+      parentSolid->setBoundingObject(newNode);
+    else if (parentGroup) {
       int i = parentGroup->nodeIndex(node);
       assert(i != -1);
-
-      // TODO: The 3 following lines could be simplified by using WbGroup::setChild(),
-      //       but this function has to be fixed first (similar problem in WbSceneTree::transform
-      // remove currentNode
-      parentGroup->removeChild(node);
-      // insert just after currentNode
-      parentGroup->insertChild(i, newNode);
-      delete node;  // In the other cases the setter function will take care of deleting the node
+      parentGroup->setChild(i, newNode);
     } else if (parentSkin && parentSkin->appearanceField() && newAppearance) {
       int i = parentSkin->appearanceField()->nodeIndex(node);
       assert(i != -1);
-
-      // TODO: WbMFNode::setItem doesn't work here either. Fix this along with WbGroup::setChild()
-      parentSkin->appearanceField()->removeItem(i);
-      parentSkin->appearanceField()->insertItem(i, newAppearance);
+      parentSkin->appearanceField()->setItem(i, newAppearance);
     } else if (parentShape && newGeometry)
       parentShape->setGeometry(newGeometry);
     else if (parentShape && newAppearance)
@@ -363,7 +374,7 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
     else if (parentJoint && newSlot)
       parentJoint->setSolidEndPoint(newSlot);
     else {
-      WbLog::error(tr("Template regeneration failed. Unsupported node type."));
+      WbLog::error(tr("Template regeneration failed. Unsupported node type."), false, WbLog::PARSING);
       delete newNode;
       emit abortNodeRegeneration();
       return;
@@ -387,11 +398,16 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
   if (!previousParentRedirections.isEmpty()) {
     foreach (WbField *parentParameter, previousParentRedirections) {
       foreach (WbField *newParam, newNode->parameters()) {
-        if (parentParameter->name() == newParam->alias())
+        if (parentParameter->name() == newParam->alias()) {
+          newParam->blockSignals(true);
           newParam->redirectTo(parentParameter);
+          newParam->blockSignals(false);
+        }
       }
     }
   }
+
+  mBlockRegeneration = true;  // prevent regenerating `newNode` in the finalization step due to field checks
 
   WbBaseNode *base = dynamic_cast<WbBaseNode *>(newNode);
   if (isWorldInitialized) {
@@ -399,20 +415,42 @@ void WbTemplateManager::regenerateNode(WbNode *node) {
     base->finalize();
   }
 
+  mBlockRegeneration = false;
+  if (newNode->isRegenerationRequired()) {  // if needed, trigger `newNode` regeneration with finalized fields values
+    regenerateNode(newNode, true);
+    return;
+  }
+
   // if the viewpoint is being re-generated we need to re-get the correct pointer, not the old dangling pointer from before
   // the node was regenerated
   viewpoint = world->viewpoint();
-  if (isFollowedSolid) {
-    WbSolid *newSolid = dynamic_cast<WbSolid *>(newNode);
+  if (isFollowedSolid)
     viewpoint->startFollowUp(newSolid, true);
-  } else if (!followedSolidName.isEmpty() && viewpoint->followedSolid() == NULL)
+  else if (!followedSolidName.isEmpty() && viewpoint->followedSolid() == NULL)
     // restore follow solid
     viewpoint->startFollowUp(WbSolid::findSolidFromUniqueName(followedSolidName), true);
 
   cRegeneratingNodeCount--;
   assert(cRegeneratingNodeCount >= 0);
-  if (isWorldInitialized)
-    emit postNodeRegeneration(newNode);
+  if (isWorldInitialized) {
+    // update dictionary
+    mBlockRegeneration = true;  // prevent regenerating `newNode` while updating the dictionary
+    if (mRegeneratingUpperTemplateNode == newNode)
+      WbDictionary::instance()->setRegeneratedNode(mRegeneratingUpperTemplateNode);
+    const bool regenerationRequired = WbNodeOperations::instance()->updateDictionary(false, static_cast<WbBaseNode *>(newNode));
+    if (mRegeneratingUpperTemplateNode == newNode)
+      WbDictionary::instance()->setRegeneratedNode(NULL);
+    mBlockRegeneration = false;
+    if (!regenerationRequired)
+      emit postNodeRegeneration(newNode);
+    else {
+      regenerateNode(newNode, true);
+      return;
+    }
+  }
+
+  if (mRegeneratingUpperTemplateNode == newNode)
+    mRegeneratingUpperTemplateNode = NULL;
 }
 
 void WbTemplateManager::nodeNeedRegeneration() {

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,10 +13,11 @@
 // limitations under the License.
 
 #include "WbBrake.hpp"
+#include "WbDataStream.hpp"
 
 #include <QtCore/QDataStream>
 #include <cassert>
-#include "../../lib/Controller/api/messages.h"  // contains the definitions for the macros C_BRAKE_SET_DAMPING_CONSTANT and C_CONFIGURE
+#include "../../controller/c/messages.h"  // contains the definitions for the macros C_BRAKE_SET_DAMPING_CONSTANT and C_CONFIGURE
 
 WbBrake::WbBrake(const QString &modelName, WbTokenizer *tokenizer) : WbJointDevice(modelName, tokenizer) {
   init();
@@ -39,25 +40,21 @@ void WbBrake::init() {
   mRequestedDeviceTag = NULL;
 }
 
-void WbBrake::postFinalize() {
-  WbJointDevice::postFinalize();
-}
-
-void WbBrake::reset() {
-  WbJointDevice::reset();
-
+void WbBrake::reset(const QString &id) {
+  WbJointDevice::reset(id);
   mBrakingDampingConstant = 0.0;
   emit brakingChanged();
 }
 
-void WbBrake::writeConfigure(QDataStream &stream) {
+void WbBrake::writeConfigure(WbDataStream &stream) {
   stream << (unsigned short)tag();
   stream << (unsigned char)C_CONFIGURE;
   stream << (int)type();
 }
 
-void WbBrake::handleMessage(QDataStream &stream, short int &command) {
-  stream >> (unsigned char &)command;
+void WbBrake::handleMessage(QDataStream &stream) {
+  unsigned char command;
+  stream >> command;
   if (command & C_BRAKE_SET_DAMPING_CONSTANT) {
     double dampingConstant;
     stream >> dampingConstant;
@@ -69,7 +66,7 @@ void WbBrake::handleMessage(QDataStream &stream, short int &command) {
     stream >> deviceType;
     assert(mRequestedDeviceTag == NULL);
     mRequestedDeviceTag = new WbDeviceTag[1];
-    WbLogicalDevice *device = getSiblingDeviceByType(deviceType);
+    const WbLogicalDevice *device = getSiblingDeviceByType(deviceType);
     if (!device && deviceType == WB_NODE_ROTATIONAL_MOTOR)
       // check both motor types
       device = getSiblingDeviceByType(WB_NODE_LINEAR_MOTOR);
@@ -77,7 +74,7 @@ void WbBrake::handleMessage(QDataStream &stream, short int &command) {
   }
 }
 
-void WbBrake::writeAnswer(QDataStream &stream) {
+void WbBrake::writeAnswer(WbDataStream &stream) {
   if (mRequestedDeviceTag != NULL) {
     stream << tag();
     stream << (unsigned char)C_BRAKE_GET_ASSOCIATED_DEVICE;

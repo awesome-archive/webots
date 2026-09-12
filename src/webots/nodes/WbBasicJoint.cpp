@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -81,6 +81,12 @@ WbBasicJoint::~WbBasicJoint() {
   }
 }
 
+void WbBasicJoint::downloadAssets() {
+  WbBaseNode *const e = dynamic_cast<WbBaseNode *>(mEndPoint->value());
+  if (e)
+    e->downloadAssets();
+}
+
 void WbBasicJoint::preFinalize() {
   WbBaseNode::preFinalize();
 
@@ -88,7 +94,6 @@ void WbBasicJoint::preFinalize() {
   updateParameters();
   updateEndPointZeroTranslationAndRotation();
 
-  // the following code could be simplified
   WbBaseNode *const p = dynamic_cast<WbBaseNode *>(mParameters->value());
   WbBaseNode *const e = dynamic_cast<WbBaseNode *>(mEndPoint->value());
   if (p && !p->isPreFinalizedCalled())
@@ -106,7 +111,6 @@ void WbBasicJoint::setMatrixNeedUpdate() {
 void WbBasicJoint::postFinalize() {
   WbBaseNode::postFinalize();
 
-  // the following code could be simplified
   WbBaseNode *const p = dynamic_cast<WbBaseNode *>(mParameters->value());
   WbBaseNode *const e = dynamic_cast<WbBaseNode *>(mEndPoint->value());
   if (p && !p->isPostFinalizedCalled())
@@ -115,6 +119,14 @@ void WbBasicJoint::postFinalize() {
     e->postFinalize();
 
   connect(mEndPoint, &WbSFNode::changed, this, &WbBasicJoint::updateEndPoint);
+  const WbGroup *pg = dynamic_cast<WbGroup *>(parentNode());
+  if (pg)
+    connect(this, &WbBasicJoint::endPointChanged, pg, &WbGroup::insertChildFromSlotOrJoint);
+  else {
+    const WbSlot *slot = dynamic_cast<WbSlot *>(parentNode());
+    if (slot)
+      connect(this, &WbBasicJoint::endPointChanged, slot, &WbSlot::endPointInserted);
+  }
   connect(mParameters, &WbSFNode::changed, this, &WbBasicJoint::updateParameters);
 
   WbSolid *const s = solidEndPoint();
@@ -126,8 +138,8 @@ void WbBasicJoint::postFinalize() {
   if (protoParameterNode()) {
     const QVector<WbNode *> nodes = protoParameterNode()->protoParameterNodeInstances();
     if (nodes.size() > 1 && nodes.at(0) == this)
-      warn(tr("Joint node defined in PROTO field is used multiple times. "
-              "Webots doesn't fully support this because the multiple node instances cannot be identical."));
+      parsingWarn(tr("Joint node defined in PROTO field is used multiple times. "
+                     "Webots doesn't fully support this because the multiple node instances cannot be identical."));
   }
 }
 
@@ -139,11 +151,10 @@ void WbBasicJoint::createOdeObjects() {
 }
 
 bool WbBasicJoint::setJoint() {
-  WbSolidReference *const r = solidReference();
-  if (r)
-    r->updateName();
+  WbSolidReference *const sr = solidReference();
+  if (sr)
+    sr->updateName();
   const WbSolid *const s = solidEndPoint();
-  const WbSolidReference *const sr = solidReference();
   const bool invalidEndPoint = s == NULL && (sr == NULL || !sr->pointsToStaticEnvironment());
   if (invalidEndPoint || upperSolid() == NULL || (s && s->physics() == NULL) || (s && s->solidMerger().isNull())) {
     if (mJoint) {
@@ -173,24 +184,30 @@ void WbBasicJoint::setOdeJoint(dBodyID body, dBodyID parentBody) {
   applyToOdeSpringAndDampingConstants(body, parentBody);
 }
 
-void WbBasicJoint::reset() {
-  WbBaseNode::reset();
+void WbBasicJoint::reset(const QString &id) {
+  WbBaseNode::reset(id);
   WbNode *const p = mParameters->value();
   WbNode *const e = mEndPoint->value();
   if (p)
-    p->reset();
+    p->reset(id);
   if (e)
-    e->reset();
+    e->reset(id);
 }
 
-void WbBasicJoint::save() {
-  WbBaseNode::save();
+void WbBasicJoint::save(const QString &id) {
+  WbBaseNode::save(id);
   WbNode *const p = mParameters->value();
   WbNode *const e = mEndPoint->value();
   if (p)
-    p->save();
+    p->save(id);
   if (e)
-    e->save();
+    e->save(id);
+}
+
+void WbBasicJoint::updateSegmentationColor(const WbRgb &color) {
+  WbBaseNode *const e = dynamic_cast<WbBaseNode *>(mEndPoint->value());
+  if (e)
+    e->updateSegmentationColor(color);
 }
 
 // Update methods: they check validity and correct if necessary
@@ -225,8 +242,8 @@ void WbBasicJoint::updateEndPoint() {
     if (s != NULL && isPostFinalizedCalled())
       WbBoundingSphere::addSubBoundingSphereToParentNode(this);
   } else {
-    connect(s, &WbBaseNode::finalizationCompleted, this, &WbBasicJoint::endPointChanged);
-    connect(s, &WbBaseNode::finalizationCompleted, this, &WbBasicJoint::updateBoundingSphere);
+    connect(s, &WbBaseNode::finalizationCompleted, this, &WbBasicJoint::endPointChanged, Qt::UniqueConnection);
+    connect(s, &WbBaseNode::finalizationCompleted, this, &WbBasicJoint::updateBoundingSphere, Qt::UniqueConnection);
   }
 }
 
@@ -239,7 +256,7 @@ void WbBasicJoint::updateEndPointPosition() {
   if (mIsEndPointPositionChangedByJoint)
     return;
 
-  WbSolid *const s = solidEndPoint();
+  const WbSolid *const s = solidEndPoint();
   if (s)
     updateEndPointZeroTranslationAndRotation();
 
@@ -275,35 +292,35 @@ void WbBasicJoint::setSolidEndPoint(WbSlot *slot) {
 }
 
 WbSolid *WbBasicJoint::solidEndPoint() const {
-  WbSlot *slot = dynamic_cast<WbSlot *>(mEndPoint->value());
+  const WbSlot *slot = dynamic_cast<WbSlot *>(mEndPoint->value());
   if (slot) {
-    WbSlot *childrenSlot = slot->slotEndPoint();
+    const WbSlot *childrenSlot = slot->slotEndPoint();
     if (childrenSlot) {
       WbSolid *solid = childrenSlot->solidEndPoint();
       if (solid)
         return solid;
 
-      WbSolidReference *solidReference = childrenSlot->solidReferenceEndPoint();
-      if (solidReference)
-        return solidReference->solid();
+      const WbSolidReference *s = childrenSlot->solidReferenceEndPoint();
+      if (s)
+        return s->solid();
     }
   } else {
     WbSolid *solid = dynamic_cast<WbSolid *>(mEndPoint->value());
     if (solid)
       return solid;
 
-    const WbSolidReference *const solidReference = dynamic_cast<WbSolidReference *>(mEndPoint->value());
-    if (solidReference)
-      return solidReference->solid();
+    const WbSolidReference *const s = dynamic_cast<WbSolidReference *>(mEndPoint->value());
+    if (s)
+      return s->solid();
   }
 
   return NULL;
 }
 
 WbSolidReference *WbBasicJoint::solidReference() const {
-  WbSlot *slot = dynamic_cast<WbSlot *>(mEndPoint->value());
+  const WbSlot *slot = dynamic_cast<WbSlot *>(mEndPoint->value());
   if (slot) {
-    WbSlot *childrenSlot = slot->slotEndPoint();
+    const WbSlot *childrenSlot = slot->slotEndPoint();
     if (childrenSlot)
       return childrenSlot->solidReferenceEndPoint();
     else
@@ -313,7 +330,7 @@ WbSolidReference *WbBasicJoint::solidReference() const {
 }
 
 WbSolid *WbBasicJoint::solidParent() const {
-  return dynamic_cast<WbSolid *>(parent());
+  return dynamic_cast<WbSolid *>(parentNode());
 }
 
 WbVector3 WbBasicJoint::anchor() const {
@@ -409,11 +426,7 @@ void WbBasicJoint::retrieveEndPointSolidTranslationAndRotation(WbVector3 &it, Wb
   assert(s);
 
   if (solidReference()) {
-    const WbTransform *const ut = upperTransform();
-    WbMatrix4 m = ut->matrix().pseudoInversed() * s->matrix();
-    double scale = 1.0 / ut->absoluteScale().x();
-    scale *= scale;
-    m *= scale;
+    WbMatrix4 m = upperPose()->matrix().pseudoInversed() * s->matrix();
     ir = WbRotation(m.extracted3x3Matrix());
     it = m.translation();
   } else {
@@ -422,7 +435,7 @@ void WbBasicJoint::retrieveEndPointSolidTranslationAndRotation(WbVector3 &it, Wb
   }
 }
 
-void WbBasicJoint::write(WbVrmlWriter &writer) const {
+void WbBasicJoint::write(WbWriter &writer) const {
   WbSolid *const s = solidEndPoint();
   WbVector3 translation;
   WbRotation rotation;
@@ -435,7 +448,7 @@ void WbBasicJoint::write(WbVrmlWriter &writer) const {
     WbRotation computedRotation;
     const WbBasicJoint *instance = NULL;
     if (isProtoParameterNode())
-      instance = dynamic_cast<WbBasicJoint *>(protoParameterNodeInstances().at(0));
+      instance = dynamic_cast<WbBasicJoint *>(getFirstFinalizedProtoInstance());
     if (instance == NULL)
       instance = this;
     instance->computeEndPointSolidPositionFromParameters(computedTranslation, computedRotation);
@@ -447,11 +460,11 @@ void WbBasicJoint::write(WbVrmlWriter &writer) const {
     s->blockSignals(false);
   }
 
-  if (writer.isWebots())
+  if (writer.isWebots() || writer.isUrdf())
     WbBaseNode::write(writer);
   else {
     // we should not export any SolidReference Solid here,
-    // otherwise they will appear duplicate in the X3D/VRML file,
+    // otherwise they will appear duplicate in the W3D/VRML file,
     // this is why we don't use the solidEndPoint() method
     const WbSolid *solid = dynamic_cast<const WbSolid *>(mEndPoint->value());
     if (solid)
@@ -459,7 +472,7 @@ void WbBasicJoint::write(WbVrmlWriter &writer) const {
     else {
       const WbSlot *slot = dynamic_cast<const WbSlot *>(mEndPoint->value());
       if (slot) {
-        WbSlot *childrenSlot = slot->slotEndPoint();
+        const WbSlot *childrenSlot = slot->slotEndPoint();
         if (childrenSlot) {
           const WbSolid *solidInSlot = childrenSlot->solidEndPoint();
           if (solidInSlot)
@@ -479,8 +492,27 @@ void WbBasicJoint::write(WbVrmlWriter &writer) const {
 }
 
 WbBoundingSphere *WbBasicJoint::boundingSphere() const {
+  if (solidReference())
+    return NULL;
   const WbSolid *const solid = solidEndPoint();
   if (solid)
     return solid->boundingSphere();
   return NULL;
+}
+
+QList<const WbBaseNode *> WbBasicJoint::findClosestDescendantNodesWithDedicatedWrenNode() const {
+  QList<const WbBaseNode *> list;
+  if (mEndPoint->value())
+    list << static_cast<WbBaseNode *>(mEndPoint->value())->findClosestDescendantNodesWithDedicatedWrenNode();
+  return list;
+}
+
+QString WbBasicJoint::endPointName() const {
+  if (!mEndPoint->value())
+    return QString();
+
+  QString name = mEndPoint->value()->computeName();
+  if (name.isEmpty())
+    name = mEndPoint->value()->endPointName();
+  return name;
 }

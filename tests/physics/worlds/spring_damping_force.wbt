@@ -1,9 +1,15 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
   physics "spring_damping_force_plugin"
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.371267 0.881389 0.292085 4.82578
+  orientation 0.3712671110395124 0.8813892636081438 0.2920850873575512 4.82578
   position -4.23197 2.48435 1.32798
 }
 Background {
@@ -15,6 +21,7 @@ DirectionalLight {
   direction 0 -1 0
 }
 Floor {
+  rotation 1 0 0 -1.5708
 }
 DEF SLIDER_JOINT_1 Solid {
   translation 0 0.05 0
@@ -50,7 +57,7 @@ DEF SLIDER_JOINT_1 Solid {
               radius 0.05
             }
           }
-          Transform {
+          Pose {
             translation -0.28 0 0
             children [
               Shape {
@@ -108,7 +115,7 @@ DEF SLIDER_JOINT_2 Solid {
               radius 0.05
             }
           }
-          Transform {
+          Pose {
             translation -0.28 0 0
             children [
               Shape {
@@ -158,7 +165,7 @@ DEF HINGE_JOINT_3 Solid {
       }
       endPoint DEF END_POINT_SOLID_3 Solid {
         translation 0.25 0.05 0
-        rotation -0.57735 0.57735 -0.57735 2.0944
+        rotation -0.5773502691896258 0.5773502691896258 -0.5773502691896258 2.0944
         children [
           Shape {
             appearance Appearance {
@@ -170,7 +177,7 @@ DEF HINGE_JOINT_3 Solid {
               radius 0.05
             }
           }
-          Transform {
+          Pose {
             translation -0.28 0 0
             children [
               Shape {
@@ -217,7 +224,7 @@ DEF HINGE_JOINT_4 Solid {
       }
       endPoint DEF END_POINT_SOLID_4 Solid {
         translation 0.25 0.05 0
-        rotation 0 1 0 6.28319
+        rotation 0 -1 0 6.2831806143783
         children [
           Shape {
             appearance Appearance {
@@ -229,7 +236,7 @@ DEF HINGE_JOINT_4 Solid {
               radius 0.05
             }
           }
-          Transform {
+          Pose {
             translation -0.28 0 0
             children [
               Shape {
@@ -277,7 +284,7 @@ DEF BALL_JOINT_5 Solid {
       }
       endPoint DEF END_POINT_SOLID_5 Solid {
         translation 0 0.43 0
-        rotation -0.227884 -0.890685 0.393383 4.92295
+        rotation -0.22788387792605758 -0.8906845228737892 0.393382789270797 4.92295
         children [
           Shape {
             appearance Appearance {
@@ -289,7 +296,7 @@ DEF BALL_JOINT_5 Solid {
               radius 0.05
             }
           }
-          Transform {
+          Pose {
             translation -0.28 0 0
             children [
               Shape {
@@ -335,7 +342,7 @@ DEF BALL_JOINT_6 Solid {
       }
       endPoint DEF END_POINT_SOLID_6 Solid {
         translation 0 0.43 0
-        rotation -0.227884 -0.890685 0.393383 4.92295
+        rotation -0.22788387792605758 -0.8906845228737892 0.393382789270797 4.92295
         children [
           Shape {
             appearance Appearance {
@@ -347,7 +354,7 @@ DEF BALL_JOINT_6 Solid {
               radius 0.05
             }
           }
-          Transform {
+          Pose {
             translation -0.28 0 0
             children [
               Shape {
@@ -381,7 +388,6 @@ Robot {
     }
   ]
   controller "spring_damping_force"
-  controllerArgs "spring_damping_force"
   supervisor TRUE
 }
 TestSuiteSupervisor {

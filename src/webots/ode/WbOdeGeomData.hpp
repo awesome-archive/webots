@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,15 +22,19 @@ class WbGeometry;
 class WbOdeGeomData {
 public:
   // constructors and destructor
-  WbOdeGeomData(WbSolid *solid, WbGeometry *geometry = NULL) :
+  explicit WbOdeGeomData(WbSolid *solid, WbGeometry *geometry = NULL) :
     mFluid(NULL),
     mSolid(solid),
     mGeometry(geometry),
+    mLastChangeTime(0.0),
+    mEnableForContactPoint(false),
     mMagicNumber(0x7765626F7473LL) {}
-  WbOdeGeomData(WbFluid *fluid, WbGeometry *geometry = NULL) :
+  explicit WbOdeGeomData(WbFluid *fluid, WbGeometry *geometry = NULL) :
     mFluid(fluid),
     mSolid(NULL),
     mGeometry(geometry),
+    mLastChangeTime(0.0),
+    mEnableForContactPoint(false),
     mMagicNumber(0x7765626F7473LL) {}
   virtual ~WbOdeGeomData() {}
 
@@ -38,12 +42,18 @@ public:
   WbSolid *solid() const { return mSolid; }
   WbFluid *fluid() const { return mFluid; }
   WbGeometry *geometry() const { return mGeometry; }
+  double lastChangeTime() const { return mLastChangeTime; }
+  void setLastChangeTime(double time) { mLastChangeTime = time; }
+  bool enableForContactPoint() const { return mEnableForContactPoint; }
+  void setEnableForContactPoint(bool enable) { mEnableForContactPoint = enable; }
   const long long int &magicNumber() const { return mMagicNumber; }
 
 private:
   WbFluid *mFluid;
   WbSolid *mSolid;
   WbGeometry *mGeometry;
+  double mLastChangeTime;
+  bool mEnableForContactPoint;
   const long long int mMagicNumber;  // this number allows to distinguish WbOdeGeomData from users' own data put into an ODE
                                      // dGeomID (in "webots" replace each character by its hex. ascii)
 };

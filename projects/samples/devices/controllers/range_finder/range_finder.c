@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -81,24 +81,19 @@ int main() {
       centering_weight = ((i < (range_finder_width / 4)) || (i > (3 * range_finder_width / 4))) ? 1 : 3;
       for (j = 0; j < range_finder_height; j++) {
         distance = wb_range_finder_image_get_depth(image, range_finder_width, i, j);
-        if (state == SEARCHING) {
+        if (state == SEARCHING)
           average_distance += distance * centering_weight;
-        } else {
-          if (distance < minimal_distance) {
-            minimal_distance = distance;
-          }
-        }
+        else if (distance < minimal_distance)
+          minimal_distance = distance;
       }
     }
 
     average_distance /= range_finder_width * range_finder_height;
 
-    /* A big value means that our range-finder is looking at the sky. */
-    if (average_distance >= 1 && average_distance < 9 && state == SEARCHING) {
+    if (average_distance >= 1 && state == SEARCHING)
       state = MOVING;
-    } else if (minimal_distance < 0.1 && state == MOVING) {
+    else if (minimal_distance < 0.1 && state == MOVING)
       state = SEARCHING;
-    }
 
     if (state == MOVING) {
       left_speed = SPEED;
@@ -109,7 +104,7 @@ int main() {
     }
 
     if (save_image) {
-      /* Save range-finder's current view as TIFF image in home directory*/
+      /* Save range-finder's current view as HDR image in home directory*/
       char *filepath;
 #ifdef _WIN32
       const char *user_directory = wbu_system_short_path(wbu_system_getenv("USERPROFILE"));
@@ -122,7 +117,7 @@ int main() {
       strcpy(filepath, user_directory);
       strcat(filepath, "/");
 #endif
-      strcat(filepath, "test.tiff");
+      strcat(filepath, "test.hdr");
       wb_range_finder_save_image(range_finder, filepath, 100);
       free(filepath);
       save_image = false;

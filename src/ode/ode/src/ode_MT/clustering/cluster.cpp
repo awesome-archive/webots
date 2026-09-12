@@ -543,12 +543,17 @@ void dxClusteredWorldAndSpace::makeClusters()
     }
 
     clusterCount = 0;
+#ifndef dNODEBUG
+    // counters used only by the ODE_INFO/ODE_PRINT debug logging below
     int tableCount = 0;
     int firstaabbCount = 0;
     int oldNodeCount = 0, newNodeCount = 0;
+#endif
     // add each AABB to the hash table (may need to add it to up to 8 cells)
     for (aabb = first_aabb; aabb; aabb = aabb->next) {
+#ifndef dNODEBUG
     ++firstaabbCount;
+#endif
 
     ClusterNode *head = NULL;
     ClusterNode *tail = NULL;
@@ -569,7 +574,9 @@ void dxClusteredWorldAndSpace::makeClusters()
       // get the hash index
       dVector3 pos = { (dReal)xi, (dReal)yi, (dReal)zi};
       unsigned long hi = getVirtualAddress (pos) % sz;
+#ifndef dNODEBUG
       ++tableCount;
+#endif
 
       dxClusterNode *node = NULL;
       // first check to see if we have a free node
@@ -579,7 +586,9 @@ void dxClusteredWorldAndSpace::makeClusters()
           table[hi]->nextFreeNode = node->next;
 
           if (node->next) node->next->count = node->count + 1;
+#ifndef dNODEBUG
           ++oldNodeCount;
+#endif
       }
       // add a new node to the hash table if required
       else
@@ -592,7 +601,9 @@ void dxClusteredWorldAndSpace::makeClusters()
 
           node->next = table[hi];
           table[hi] = node;
+#ifndef dNODEBUG
           ++newNodeCount;
+#endif
       }
 
       node->x = xi;
@@ -630,19 +641,25 @@ void dxClusteredWorldAndSpace::makeClusters()
     }
 
     }
+#ifndef dNODEBUG
     ODE_INFO("%d new nodes, %d old nodes\n", newNodeCount, oldNodeCount);
+#endif
 
     // Finally, separate clusters based on proximity of hashspace cells
     // if 2 neighboring cells in the hashspace have objects inside,
     // they belong to the same cluster. In this way, we only need to traverse
     // the hashspace once and come with a list of clusters. Pretty fast.
+#ifndef dNODEBUG
     int nodeCount = 0;
+#endif
     for (int i = 0; i < sz; ++i)
     {
         dxClusterNode *node = table[i];
         if (node && node->isStatic==false && node->tagged == false  && table[i]->nextFreeNode != table[i])
         {
+#ifndef dNODEBUG
             ++nodeCount;
+#endif
             node->tagged = true;
 
             ClusterNode *head = NULL;
@@ -661,10 +678,11 @@ void dxClusteredWorldAndSpace::makeClusters()
         }
     }
 
-#ifdef ODE_DEBUG
+#ifndef dNODEBUG
 {
     ODE_INFO("Geom count: %d\n", algoN);
     ODE_INFO("Big box count: %d\n", bigboxCount);
+    ODE_INFO("AABB count: %d\n", firstaabbCount);
     ODE_INFO("Limits: (%f, %f), (%f, %f), (%f, %f)\n", xmin, xmax, ymin, ymax, zmin, zmax);
     ODE_INFO("%d out of %d table additions\n", tableCount, sz);
     ODE_IMPORTANT("dxClusterNode Count: %d\n", nodeCount);
@@ -711,9 +729,9 @@ void dxClusteredWorldAndSpace::attachBodyAndGeom(int &bodyCount, int &geomCount,
 
         if (oldWorld->nb == 0) oldWorld->firstbody = NULL;
 
-#ifdef ODE_DEBUG
-        dUASSERT(findBodyCount(oldWorld) == oldWorld->nb, "Body count mismatch in world!" );
-        dUASSERT(findBodyCount(newWorld) == newWorld->nb, "Body count mismatch in world!" );
+#ifndef dNODEBUG
+        dUASSERT(util_MT::findBodyCount(oldWorld) == oldWorld->nb, "Body count mismatch in world!" );
+        dUASSERT(util_MT::findBodyCount(newWorld) == newWorld->nb, "Body count mismatch in world!" );
 #endif
     }
 
@@ -827,12 +845,12 @@ void dxClusteredWorldAndSpace::reattachJoints(int &bodyCount, int &geomCount, in
 
     attachBodyAndGeom(bodyCount, geomCount, body, geom, oldWorld, oldSpace, newWorld, newSpace);
 
-#ifdef ODE_DEBUG
-    if (oldWorld) dUASSERT(findBodyCount(oldWorld) == oldWorld->nb, "Body count mismatch in world!" );
+#ifndef dNODEBUG
+    if (oldWorld) dUASSERT(util_MT::findBodyCount(oldWorld) == oldWorld->nb, "Body count mismatch in world!" );
     if (newWorld) {
-        dUASSERT(findBodyCount(newWorld) == newWorld->nb, "Body count mismatch in world!" );
+        dUASSERT(util_MT::findBodyCount(newWorld) == newWorld->nb, "Body count mismatch in world!" );
     } else if (body){
-        dUASSERT(findBodyCount(body->world) == body->world->nb, "Body count mismatch in world!" );
+        dUASSERT(util_MT::findBodyCount(body->world) == body->world->nb, "Body count mismatch in world!" );
     }
 #endif
 
@@ -846,12 +864,12 @@ void dxClusteredWorldAndSpace::reattachJoints(int &bodyCount, int &geomCount, in
           {
               dUASSERT(j->body != body, "self-joints allowed?");
               attachJoint(jointCount, j->joint, j->joint->world, newWorld);
-#ifdef ODE_DEBUG
-              if (oldWorld) dUASSERT(findJointCount(oldWorld) == oldWorld->nj, "Joint count mismatch in world!" );
+#ifndef dNODEBUG
+              if (oldWorld) dUASSERT(util_MT::findJointCount(oldWorld) == oldWorld->nj, "Joint count mismatch in world!" );
               if (newWorld) {
-                  dUASSERT(findJointCount(newWorld) == newWorld->nj, "Joint count mismatch in world!" );
+                  dUASSERT(util_MT::findJointCount(newWorld) == newWorld->nj, "Joint count mismatch in world!" );
               } else {
-                  dUASSERT(findJointCount(j->joint->world) == j->joint->world->nj, "Joint count mismatch in world!" );
+                  dUASSERT(util_MT::findJointCount(j->joint->world) == j->joint->world->nj, "Joint count mismatch in world!" );
               }
 #endif
               dUASSERT(j->body != body, "self-joints allowed?");
@@ -1031,12 +1049,14 @@ void dxClusteredWorldAndSpace::recombineClusters()
         {
             if (!node->aabb->geom || node->aabb->geom->tag == false)
             {
-#ifdef ODE_DEBUG
+#ifndef dNODEBUG
                 if (node->aabb->body)
-                for (dxJointNode *j = node->aabb->body->firstjoint; j; j = j->next)
                 {
-                    dUASSERT(j->joint->world == node->aabb->body->world, "fishy business going with joints and body worlds");
-                    if (j->body) dUASSERT(j->joint->world == j->body->world, "fishy business going with joints and body worlds");
+                  for (dxJointNode *j = node->aabb->body->firstjoint; j; j = j->next)
+                  {
+                      dUASSERT(j->joint->world == node->aabb->body->world, "fishy business going with joints and body worlds");
+                      if (j->body) dUASSERT(j->joint->world == j->body->world, "fishy business going with joints and body worlds");
+                  }
                 }
 #endif
 
@@ -1049,8 +1069,7 @@ void dxClusteredWorldAndSpace::recombineClusters()
                 reattachJoints(bCount, gCount, jCount, node->aabb->body, node->aabb->geom, nodeWorld, nodeSpace, originalWorld, originalSpace, false);
                 ODE_INFO("%d bodies, %d geoms and %d joints reclaimed from cluster %d\n", bCount, gCount, jCount, k);
 
-#ifdef ODE_DEBUG
-                checkWorld(currentWorld);
+#ifndef dNODEBUG
                 if (nodeWorld) checkWorld(nodeWorld);
 #endif
             }
@@ -1071,15 +1090,6 @@ void dxClusteredWorldAndSpace::recombineClusters()
         }
   }
 #endif
-
-#ifdef ODE_DEBUG
-  // check if all bodies have correct world and joint pointers
-  for (dxBody* b=currentWorld->firstbody; b; b=(dxBody*)b->next)
-  {
-     dUASSERT(b->world == currentWorld, "body belongs to wrong world!");
-  }
-#endif
-
     cleanupMemory();
     clusterCount = 0;
     activeClusterCount = 0;
@@ -1108,8 +1118,11 @@ bool dxClusteredWorldAndSpace::updateClusterAABBsAndTable(int kid)
     }
 
     // then go through each cluster AABB and update dbounds and table
+#ifndef dNODEBUG
+    // counters used only by the ODE_PRINT debug logging below
     int tableCount = 0, newNodeCount = 0, oldNodeCount = 0;
     int updateCount = 0;
+#endif
     for (dxClusterNode *node = clusterAABBs[kid]; node; node = node->next)
     {
         dxClusterAABB *aabb = node->aabb;
@@ -1133,7 +1146,9 @@ bool dxClusteredWorldAndSpace::updateClusterAABBsAndTable(int kid)
             joint = joint->next;
         }
 
+#ifndef dNODEBUG
         updateCount++;
+#endif
 
         // if geom was found, use absolute position of geom to update node aabb
         if (geom) // discretize AABB position to cell size
@@ -1164,7 +1179,9 @@ bool dxClusteredWorldAndSpace::updateClusterAABBsAndTable(int kid)
           if (bCalculateNewSZ == true)
               ODE_PRINT("SCENE SIZE CHANGED! Aborting current frame\n");
 
+#ifndef dNODEBUG
           tableCount++;
+#endif
 
           dxClusterNode *node2 = NULL;
           // first check to see if we have a free node
@@ -1173,7 +1190,9 @@ bool dxClusteredWorldAndSpace::updateClusterAABBsAndTable(int kid)
               node2 = clusterTables[kid][hi]->nextFreeNode;
               clusterTables[kid][hi]->nextFreeNode = node2->next;
 
+#ifndef dNODEBUG
               oldNodeCount++;
+#endif
           }
           else
           {
@@ -1186,7 +1205,9 @@ bool dxClusteredWorldAndSpace::updateClusterAABBsAndTable(int kid)
 
               node2->next = clusterTables[kid][hi];
               clusterTables[kid][hi] = node2;
+#ifndef dNODEBUG
               newNodeCount++;
+#endif
           }
 
           node2->x = xi;
@@ -1203,9 +1224,11 @@ bool dxClusteredWorldAndSpace::updateClusterAABBsAndTable(int kid)
         }
         }
     }
+#ifndef dNODEBUG
     ODE_PRINT("%d geoms updated\n", updateCount);
     ODE_PRINT("%d table additions\n", tableCount);
-
+    ODE_PRINT("%d nodes reused\n", oldNodeCount);
+#endif
     return bCalculateNewSZ;
 }
 
@@ -1443,10 +1466,6 @@ void dxClusteredWorldAndSpace::crossOverClusters(int kid1, int kid2, int cellId)
         if (clusterStaticTypes[biggerCluster] == true)
             staticClusterLinks[biggerCluster][smallerCluster] = true;
     }
-
-#ifdef ODE_DEBUG
-    checkClusterNodes();
-#endif
 }
 
 #include <vector>
@@ -1692,9 +1711,6 @@ void dxClusteredWorldAndSpace::update(bool bRefreshClusters)
 
     if (bRefreshClusters || ((originalWorld->nb > 0) && clusterCount < 1))
     {
-#ifdef ODE_DEBUG
-        buildBodyIndices();
-#endif
         cleanupMemory();
         originalSpace->cleanGeoms();
         flagDynamicGeoms(originalSpace);
@@ -1709,15 +1725,6 @@ void dxClusteredWorldAndSpace::update(bool bRefreshClusters)
             if (geomDuplicationMap.find(k) == geomDuplicationMap.end())
                 geomDuplicationMap[k] = *(new geomMap());
         }
-
-#ifdef ODE_DEBUG
-        checkBodyAndGeomConsistency();
-        checkClusterNodes();
-        checkWorld(currentWorld);
-        for (int i = 0; i < threadCount; ++i)
-            checkWorld(currentClusterWorld->worlds[i]);
-#endif
-
     }
 }
 
@@ -1725,42 +1732,6 @@ void dxClusteredWorldAndSpace::assignClustersToWorlds()
 {
   // First, turn off tags for all geoms, joints and bodies, so we can test for a 1-to-1 relationship between nodes and clusters
   util_MT::cleanTags(originalWorld, this);
-
-#ifdef ODE_DEBUG
-{
-    for (dxJoint *j = currentWorld->firstjoint; j; j = (dxJoint*) j->next)
-    {
-      ++nj;
-    }
-    if (nj > 0)
-    {
-      jArray = new unsigned int[nj];
-      int i = 0;
-      for (dxJoint *j = currentWorld->firstjoint; j; j = (dxJoint*) j->next)
-      {
-          int nj1 = findJointCount(j->node[0].body);
-          int nj2 = findJointCount(j->node[1].body);
-
-          jArray[i++] = (unsigned int) j;
-      }
-    }
-
-    bArray = new unsigned int[currentSpace->count];
-    int i = 0;
-    for (dxGeom *g = currentSpace->first; g; g = g->next)
-    {
-        dUASSERT(g->parent_space == currentSpace, "Spaces incoherent!");
-        if (g->body)
-            dUASSERT(g->body->world == currentWorld, "Worlds incoherent!");
-        bArray[i++] = (unsigned int) g;
-    }
-
-    for (dxBody *b = currentWorld->firstbody; b; b = (dxBody*) b->next)
-    {
-        dUASSERT(b->world == currentWorld, "Body world incorrect");
-    }
-}
-#endif
 
   // After the clusters are made, we separate the objects into different worlds, one per thread
   int kid;
@@ -1787,12 +1758,13 @@ void dxClusteredWorldAndSpace::assignClustersToWorlds()
     {
         if (!node->aabb->geom || node->aabb->geom->tag == false)
         {
-#ifdef ODE_DEBUG
-            if (node->aabb->body)
-            for (dxJointNode *j = node->aabb->body->firstjoint; j; j = j->next)
-            {
-                if (node->aabb->body) dUASSERT(j->joint->world == node->aabb->body->world, "fishy business going with joints and body worlds");
-                if (j->body) dUASSERT(j->joint->world == j->body->world, "fishy business going with joints and body worlds");
+#ifndef dNODEBUG
+            if (node->aabb->body) {
+              for (dxJointNode *j = node->aabb->body->firstjoint; j; j = j->next)
+              {
+                  if (node->aabb->body) dUASSERT(j->joint->world == node->aabb->body->world, "fishy business going with joints and body worlds");
+                  if (j->body) dUASSERT(j->joint->world == j->body->world, "fishy business going with joints and body worlds");
+              }
             }
 #endif
 
@@ -1815,7 +1787,7 @@ void dxClusteredWorldAndSpace::assignClustersToWorlds()
                 if (bCount > 0)
                     entityCount++;
 
-#ifdef ODE_DEBUG
+#ifndef dNODEBUG
                 checkWorld(originalWorld);
                 checkWorld(worlds[kid]);
 #endif
@@ -1847,118 +1819,6 @@ void dxClusteredWorldAndSpace::assignClustersToWorlds()
       }
   }
 
-#ifdef ODE_DEBUG
-{
-  for (int i = 0; i < nj; ++i)
-  {
-      bool found = false;
-      for (int c = 0; c < threadCount; ++c)
-      for (dxJoint *j = currentClusterWorld->worlds[c]->firstjoint; j; j = (dxJoint*) j->next)
-      {
-        if (jArray[i] == (unsigned int) j) found = true;
-      }
-      if (found == false)
-        ODE_PRINT("Missing joint:%p\n", jArray[i]);
-  }
-
-  for (int c = 0; c < threadCount; ++c)
-  for (dxJoint *j = currentClusterWorld->worlds[c]->firstjoint; j; j = (dxJoint*) j->next)
-  {
-      bool found = false;
-      for (int i = 0; i < nj; ++i)
-      {
-        if (jArray[i] == (unsigned int) j) found = true;
-      }
-      if (found == false)
-        ODE_PRINT("Extra joint:%p, body1:%p, body2:%p\n", j, j->node[0].body, j->node[1].body);
-
-      if (j->node[0].body == 0 || j->node[1].body == 0)
-      {
-          ODE_PRINT("Joint found with null bodies!\n");
-      }
-      if (j->node[0].body && j->node[0].body->geom->tag == 0)
-      {
-          ODE_PRINT("dxClusterNode left untagged!\n");
-      }
-      if (j->node[1].body && j->node[1].body->geom->tag == 0)
-      {
-          ODE_PRINT("dxClusterNode left untagged!\n");
-      }
-  }
-
-  for (int c = 0; c < threadCount; ++c)
-  for (dxBody *b = currentClusterWorld->worlds[c]->firstbody; b; b = (dxBody*) b->next)
-  {
-      if (b->geom && b->geom->tag == 0)
-      {
-          ODE_PRINT("untagged body in world!\n");
-      }
-      else
-      {
-          for (dxJointNode *j = b->firstjoint; j; j = j->next)
-          {
-            ODE_PRINT("BJoint: %p\n", j->joint);
-          }
-      }
-  }
-
-  if (nj > 0) delete[] jArray;
-
-  // go through all original bodies and see if each one is clustered
-  for (int i = 0; i < nb; ++i)
-  {
-      bool found = false;
-      for (int j = 0; j < threadCount; ++j)
-      for (dxGeom *g = currentClusterSpace->spaces[j]->first; g; g = g->next)
-      {
-        if (bArray[i] == (unsigned int) g) found = true;
-      }
-      // for nonclustered bodies
-      for (dxGeom *g = currentSpace->first; g; g = g->next)
-      {
-        if (bArray[i] == (unsigned int) g) found = true;
-      }
-      if (found == false)
-        ODE_PRINT("Missing geometry:%p\n", bArray[i]);
-  }
-    // go through all the clustered bodies and see if we have an extra one
-  for (int j = 0; j < threadCount; ++j)
-  for (dxGeom *g = currentClusterSpace->spaces[j]->first; g; g = (dxGeom*) g->next)
-  {
-      //ODE_PRINT("%ud\n", (unsigned int) j);
-      bool found = false;
-      for (int i=0; i<nb; i++)
-      {
-        if (bArray[i] == (unsigned int) g) found = true;
-      }
-      if (found == false)
-        ODE_PRINT("Extra body:%p\n", g);
-  }
-  for (dxGeom* g=currentSpace->first; g; g=(dxGeom*)g->next)
-  {
-      //ODE_PRINT("%ud\n", (unsigned int) j);
-      bool found = false;
-      for (int i=0; i<nb; i++)
-      {
-        if (bArray[i] == (unsigned int) g) found = true;
-      }
-      if (found == false)
-        ODE_PRINT("Extra body:%p\n", g);
-  }
-}
-#endif
-
-#ifdef ODE_DEBUG
-{
-  int snb = 0;
-  for (dxBody* b = currentWorld->firstbody; b; b = (dxBody*) b->next)
-    if (b->geom && b->geom->parent_space == currentSpace) snb++;
-
-  dUASSERT(snb == 0, "Unassigned bodies remaining in world!\n");
-  ODE_PRINT("Clustering OK\n");
-}
-#endif
-
 #ifdef TEST_COLLISIONS
 {
   // We assume the remaining geometries from the space are all static. They belong to all subspaces
@@ -1973,22 +1833,6 @@ void dxClusteredWorldAndSpace::assignClustersToWorlds()
   }
 }
 #endif
-
-#ifdef ODE_DEBUG
-{
-    for (int i = 0; i < threadCount; ++i)
-    {
-        ODE_IMPORTANT("Thread %d count: %d, load: ", i, threadArgs[i].clusterCount);
-        for (int j = 0; j < threadArgs[i].clusterCount; ++j)
-        {
-            ODE_IMPORTANT("%d ", threadArgs[i].clusterIDs[j]);
-        }
-        ODE_IMPORTANT("\n");
-    }
-    ODE_IMPORTANT("\n");
-}
- #endif
-
 }
 
 int dxClusteredWorldAndSpace::getSpaceClusterID(dxSpace *_space)
@@ -2228,4 +2072,8 @@ void dxClusteredWorldAndSpace::propagatePlaneParams(dxGeom *g, dReal a, dReal b,
             _func(geomDuplicationMap[k][g], a, b, c, d);
     }
     updateClusterAABBsAndTable(staticGeomClusterIDMap[g]);
+}
+
+void dxClusteredWorldAndSpace::propagateOffsetChange(dxGeom *g) {
+  updateClusterAABBsAndTable(staticGeomClusterIDMap[g]);
 }

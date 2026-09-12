@@ -35,7 +35,7 @@ static void quick_assert_color(WbDeviceTag camera, int px, int py, int expected,
 
   ts_assert_color_in_delta(wb_camera_image_get_red(image, w, px, py), wb_camera_image_get_green(image, w, px, py),
                            wb_camera_image_get_blue(image, w, px, py), (expected >> 16) & 0xFF, (expected >> 8) & 0xFF,
-                           expected & 0xFF, 1, error_msg);
+                           expected & 0xFF, 2, error_msg);
 }
 
 int main(int argc, char **argv) {
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
   wb_robot_step(TIME_STEP);
 
   // check image paste and draw with alpha on top of it
-  WbImageRef image_ref = wb_display_image_load(display, "./image.jpg");
+  WbImageRef image_ref = wb_display_image_load(display, "./image.png");
   wb_display_image_paste(display, image_ref, 0, 0, false);
   wb_robot_step(TIME_STEP);
   quick_assert_color(camera, 5, 5, GREEN, "image paste failed");

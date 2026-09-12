@@ -1,8 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.588653 -0.766793 -0.255961 5.50211
+  orientation 0.5886530315579841 -0.7667930411081594 -0.25596101372219826 5.50211
   position 4.85458 4.04549 3.96199
 }
 Background {
@@ -11,12 +16,12 @@ Background {
   ]
 }
 PointLight {
-  ambientIntensity 1
+  attenuation 0 0 1
   intensity 0
 }
-DEF INCLINED_PLANE Transform {
+DEF INCLINED_PLANE Pose {
   translation 1 0 -2
-  rotation 1 0 0 1
+  rotation -1 0 0 0.57079632679
   children [
     Shape {
       appearance Appearance {
@@ -30,7 +35,7 @@ DEF INCLINED_PLANE Transform {
     }
   ]
 }
-DEF CYLINDER Transform {
+DEF CYLINDER Pose {
   translation -1 0 -1
   children [
     Shape {
@@ -46,8 +51,9 @@ DEF CYLINDER Transform {
       }
     }
   ]
+  rotation 1 0 0 -1.57079632679
 }
-DEF GROUND Transform {
+DEF GROUND Pose {
   translation 0 -0.1 0
   children [
     Shape {
@@ -60,6 +66,7 @@ DEF GROUND Transform {
       }
     }
   ]
+  rotation 1 0 0 -1.57079632679
 }
 Robot {
   children [

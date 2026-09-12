@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@
 
 #include "sip_hash.hpp"
 
-class WbIndexedFaceSet;
+class WbTriangleMeshGeometry;
 class WbTriangleMesh;
 
 namespace WbTriangleMeshCache {
@@ -27,7 +27,7 @@ namespace WbTriangleMeshCache {
     return highwayhash::SipHash13(SIPHASH_KEY, reinterpret_cast<const char *>(bytes), size * sizeof(T));
   }
 
-  // TriangleMeshInfo is shared by all WbIndexedFaceSet instances requiring the same WbTriangleMesh.
+  // TriangleMeshInfo is shared by all WbTriangleMeshGeometry instances requiring the same WbTriangleMesh.
   struct TriangleMeshInfo {
     TriangleMeshInfo();
     explicit TriangleMeshInfo(WbTriangleMesh *triangleMesh);
@@ -36,24 +36,24 @@ namespace WbTriangleMeshCache {
     int mNumUsers;
   };
 
-  // Key type for an instance of WbIndexedFaceSet. Instances can share a WbTriangleMesh if their keys compare equal.
-  struct IndexedFaceSetKey {
-    IndexedFaceSetKey();
-    explicit IndexedFaceSetKey(WbIndexedFaceSet *indexedFaceSet);
+  // Key type for an instance of WbTriangleMeshGeometry. Instances can share a WbTriangleMesh if their keys compare equal.
+  struct TriangleMeshGeometryKey {
+    TriangleMeshGeometryKey();
+    explicit TriangleMeshGeometryKey(const WbTriangleMeshGeometry *triangleMeshGeometry);
 
-    void set(WbIndexedFaceSet *indexedFaceSet);
-    bool operator==(const IndexedFaceSetKey &rhs) const;
+    void set(const WbTriangleMeshGeometry *triangleMeshGeometry);
+    bool operator==(const TriangleMeshGeometryKey &rhs) const;
 
     uint64_t mHash;
   };
 
   // Key hashing function required by std::unordered_map
-  struct IndexedFaceSetKeyHasher {
-    std::size_t operator()(const IndexedFaceSetKey &k) const;
+  struct TriangleMeshGeometryKeyHasher {
+    std::size_t operator()(const TriangleMeshGeometryKey &k) const;
   };
 
-  void useTriangleMesh(WbIndexedFaceSet *user);
-  void releaseTriangleMesh(WbIndexedFaceSet *user);
+  void useTriangleMesh(WbTriangleMeshGeometry *user);
+  void releaseTriangleMesh(WbTriangleMeshGeometry *user);
 }  // namespace WbTriangleMeshCache
 
 #endif

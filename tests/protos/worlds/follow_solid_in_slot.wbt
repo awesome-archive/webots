@@ -1,5 +1,11 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/protos/protos/SolidWithExtensionSlot.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 DEF VIEWPOINT Viewpoint {
   orientation -0.9173812741630853 0.39663566854827187 0.03304155338629959 0.7222244315929436
@@ -41,12 +47,12 @@ SolidWithExtensionSlot {
   ]
 }
 Robot {
-  controller "follow_solid_in_slot"
-  supervisor TRUE
   children [
     TestSuiteEmitter {
     }
   ]
+  controller "follow_solid_in_slot"
+  supervisor TRUE
 }
 TestSuiteSupervisor {
 }

@@ -24,8 +24,9 @@ These relationships are depicted below.
 %end
 
 The texture is read from the file specified by the `url` field.
-The file should be specified with a relative path (cf. [this section](#search-rule-of-the-texture-path)).
-Absolute paths work as well, but they are not recommended because they are not portable across different systems.
+If the `url` value starts with `http://` or `https://`, Webots will get the file from the web.
+Otherwise, the file should be specified with a relative path (cf. [this section](#search-rule-of-the-texture-path)).
+Absolute paths work as well, but they are not recommended because they are not portable across systems.
 Ideally, the texture file should lie next to the world file, possibly inside a "textures" subfolder.
 Supported image formats include both JPEG and PNG.
 The rendering of the PNG alpha transparency is supported.
@@ -35,7 +36,7 @@ If the width or the height of a texture image is not a power of two, then an int
 A PNG image may contain an alpha channel.
 If such an alpha channel exists, the texture becomes semi-transparent.
 This is useful to render for example a scissor cut texture.
-Semi-transparent objects are sorted according to their center (the local position of the parent Transform) and are rendered in the same rendering queue as the objects having a transparent material (see the `transparency` field of the [Material](material.md) node).
+Semi-transparent objects are sorted according to their center (the local position of the parent Pose) and are rendered in the same rendering queue as the objects having a transparent material (see the `transparency` field of the [Material](material.md) node).
 Semi-transparent objects cannot receive and cannot cast shadows.
 
 If the image contains an alpha channel no texture filtering is performed, otherwise both a trilinear interpolation and an anisotropic texture filtering is applied (the texture is subsampled according to the distance and the angle between the textured polygon and the camera).

@@ -5,6 +5,7 @@ Derived from [Joint](joint.md).
 ```
 HingeJoint {
   MFNode  device   [ ] # {RotationalMotor, PositionSensor, Brake, PROTO}
+  # hidden fields
   SFFloat position 0   # [0, inf)
 }
 ```
@@ -13,7 +14,7 @@ HingeJoint {
 
 %figure "Hinge joint"
 
-![hingeJoint.png](images/hingeJoint.png)
+![hingeJoint.png](images/hingeJoint.thumbnail.png)
 
 %end
 
@@ -26,5 +27,7 @@ If empty, [HingeJointParameters](hingejointparameters.md) default values apply.
 
 - `device`: This field optionally specifies a [RotationalMotor](rotationalmotor.md), an angular [PositionSensor](positionsensor.md) and/or a [Brake](brake.md) device.
 If no motor is specified, the joint is passive joint.
+
+### Hidden Field Summary
 
 - `position`: This field is not visible from the Scene Tree, see [joint's hidden position field](joint.md#joints-hidden-position-fields).

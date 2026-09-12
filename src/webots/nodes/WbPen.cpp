@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbPen.hpp"
+
 #include "WbFieldChecker.hpp"
 #include "WbMatrix3.hpp"
 #include "WbNodeUtilities.hpp"
@@ -32,7 +33,7 @@
 #include <wren/static_mesh.h>
 #include <wren/transform.h>
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../controller/c/messages.h"
 
 #include <QtCore/QDataStream>
 #include <cassert>
@@ -79,12 +80,12 @@ WbPen::~WbPen() {
 void WbPen::preFinalize() {
   WbSolidDevice::preFinalize();
 
-  WbFieldChecker::checkAndClampDoubleInRangeWithIncludedBounds(this, mInkDensity, 0.0, 1.0);
+  WbFieldChecker::clampDoubleToRangeWithIncludedBounds(this, mInkDensity, 0.0, 1.0);
 }
 
 void WbPen::handleMessage(QDataStream &stream) {
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_PEN_WRITE:
@@ -95,13 +96,12 @@ void WbPen::handleMessage(QDataStream &stream) {
       return;
     case C_PEN_SET_INK_COLOR: {
       unsigned char r, g, b;
-      stream >> (unsigned char &)r >> (unsigned char &)g >> (unsigned char &)b;
+      stream >> r >> g >> b;
       mInkColor->setValue(r / 255.0f, g / 255.0f, b / 255.0f);
-
-      unsigned char density;
-      stream >> (unsigned char &)density;
-      mInkDensity->setValue((double)density / 255.0);
-      WbFieldChecker::checkAndClampDoubleInRangeWithIncludedBounds(this, mInkDensity, 0.0, 1.0);
+      double density;
+      stream >> density;
+      mInkDensity->setValue(density);
+      WbFieldChecker::clampDoubleToRangeWithIncludedBounds(this, mInkDensity, 0.0, 1.0);
       return;
     }
     default:
@@ -119,7 +119,7 @@ void WbPen::prePhysicsStep(double ms) {
   if (mWrite->isTrue()) {
     // find shape/texture that intersects the ray
     const WbMatrix4 &m = matrix();
-    const WbVector3 globalDirection = m.sub3x3MatrixDot(WbVector3(0, -1, 0));
+    const WbVector3 globalDirection = m.sub3x3MatrixDot(WbVector3(0, 0, -1));
     const WbRay ray(m.translation(), globalDirection);
     double distance;
     const WbShape *shape = WbNodeUtilities::findIntersectingShape(ray, maxDistance, distance);
@@ -137,7 +137,7 @@ void WbPen::prePhysicsStep(double ms) {
 void WbPen::createWrenObjects() {
   WbSolidDevice::createWrenObjects();
 
-  const float coords[6] = {0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f};
+  const float coords[6] = {0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f};
   mTransform = wr_transform_new();
   mRenderable = wr_renderable_new();
   mMaterial = wr_phong_material_new();
@@ -166,8 +166,8 @@ void WbPen::createWrenObjects() {
   connect(mWrite, &WbSFBool::changed, this, &WbPen::applyOptionalRenderingToWren);
 }
 
-void WbPen::reset() {
-  WbSolid::reset();
+void WbPen::reset(const QString &id) {
+  WbSolid::reset(id);
   WbPaintTexture::clearAllTextures();
 }
 

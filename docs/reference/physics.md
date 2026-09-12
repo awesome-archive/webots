@@ -26,13 +26,13 @@ For compatibility reasons, these fields are still present in the [Physics](#phys
 ### Field Summary
 
 - The `density` field can be used to define the density of the containing [Solid](solid.md).
-The value of the `density` field should be a positive number number or -1.
-A -1 value indicates that the dentity is not known, in this case the `mass` field (see below) must be specified.
+The value of the `density` field should be -1 or a positive number expressed in *kilogram per cubic meter* [kg/m³].
+A -1 value indicates that the density is not known, in this case the `mass` field (see below) must be specified.
 If the `density` is specified (different from -1) then the total mass of the [Solid](solid.md) is calculated by multiplying the specified density with the total volume of the geometrical primitives composing the `boundingObject`.
 Note that Webots ignores if the geometrical primitives intersect or not, the volume of each primitive is simply added to the total volume and finally multiplied by the density.
 
 - The `mass` field can be used to specify the total mass of the containing [Solid](solid.md).
-The value of the `mass` field should be a positive number or -1.
+The value of the `mass` field should be -1 or a positive number expressed in *kilogram* [kg].
 A -1 value indicates that the total mass is not known, in this case the `density` field (see above) must be specified.
 If the mass is known, e.g., indicated in the specifications of the robot, then it is more accurate to specify the mass rather than the density.
 
@@ -56,14 +56,14 @@ If this field is empty, Webots will compute the inertia matrix automatically acc
         [ I12 I22 I23 ]
         [ I13 I23 I33 ]
 
-    The Ixx values are expressed in kg*m^2. The principals moments of inertia must
+    The Ixx values are expressed in *kilogram square meter* [kg⋅m²]. The principals moments of inertia must
     be positive. The inertia matrix is defined with respect to the `centerOfMass` of
     the [Solid](solid.md). Internally, these 6 values are passed unchanged to the
     ODE's `dMassSetParameters` function.
 
 - The `damping` field allows to specify a [Damping](damping.md) node that defines the velocity damping parameters to be applied to the [Solid](solid.md).
 
-### How to Use Physics Nodes?
+### How to use Physics Nodes?
 
 If it contains a [Physics](#physics) node, a [Solid](solid.md) object will be simulated in *physics* mode.
 The *physics* simulation mode takes into account the simulation of the forces that act on the bodies and the properties of these bodies, e.g., mass and moment of inertia.
@@ -234,9 +234,9 @@ Robot {
 Most device nodes work without [Physics](#physics) node.
 But a [Physics](#physics) node can optionally be used if one wishes to simulate the weight and inertia of the device.
 So it is usually recommended to leave the `physics` field of a device empty, unless it represents a significant mass or volume in the simulated robot.
-This is true for these devices: [Accelerometer](accelerometer.md), [Camera](camera.md), [Compass](compass.md), [DistanceSensor](distancesensor.md), [Emitter](emitter.md), [GPS](gps.md), [LED](led.md), [LightSensor](lightsensor.md), [Pen](pen.md), and [Receiver](receiver.md).
+This is true for these devices: [Accelerometer](accelerometer.md), [Altimeter](altimeter.md), [Camera](camera.md), [Compass](compass.md), [DistanceSensor](distancesensor.md), [Emitter](emitter.md), [GPS](gps.md), [LED](led.md), [LightSensor](lightsensor.md), [Pen](pen.md), and [Receiver](receiver.md).
 
-> **Note**: The [InertialUnit](inertialunit.md) and [Connector](connector.md) nodes work differently.
+> **Note**: The [InertialUnit](inertialunit.md), [Connector](connector.md), and the [VacuumGripper](vacuumgripper.md) nodes work differently.
 Indeed, they require the presence of a [Physics](#physics) node in their parent node to be functional.
 It is also possible to specify a [Physics](#physics) node of the device but this adds an extra body to the simulation.
 

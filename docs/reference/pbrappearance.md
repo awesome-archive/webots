@@ -9,7 +9,6 @@ PBRAppearance {
   SFNode   roughnessMap         NULL              # {ImageTexture, PROTO}
   SFFloat  metalness            1                 # [0, 1]
   SFNode   metalnessMap         NULL              # {ImageTexture, PROTO}
-  SFNode   environmentMap       NULL              # {Cubemap, PROTO}
   SFFloat  IBLStrength          1                 # [0, inf)
   SFNode   normalMap            NULL              # {ImageTexture, PROTO}
   SFFloat  normalMapFactor      1                 # [0, inf)
@@ -27,7 +26,7 @@ PBRAppearance {
 
 %figure "An Oxidised Copper Sphere made with the PBRAppearance node"
 
-![pbrappearance.png](images/pbrappearance.png)
+![pbrappearance.png](images/pbrappearance.thumbnail.png)
 
 %end
 
@@ -39,6 +38,8 @@ This modern technique enables highly realistic rendering for every kind of objec
 For a detailed guide on PBR and how to use it for content creation and model design, an excellent description of the concepts on this subject can be found [on this blog post by Marmoset](https://www.marmoset.co/posts/physically-based-rendering-and-you-can-too/).
 
 Our PBR shading model makes use of Lambertian Diffuse, Cook-Torrence Specular and Fresnel-Schlick GGX for direct illumination, and an advanced Image-Based Lighting (IBL) BRDF for ambient diffuse lighting and reflections.
+
+[PBRAppearance](#pbrappearance) cannot be used in a [Shape](shape.md) node containing an [IndexedLineSet](indexedlineset.md) or [PointSet](pointset.md) node.
 
 ### Field Summary
 
@@ -53,9 +54,7 @@ A roughness of 0 gives a perfectly smooth material, while a roughness of 1 gives
 A metalness of 0 gives a completely dielectric material, while a metalness of 1 gives a completely metallic material.
 Note: it is encouraged to use either 1 or 0 for this value as no real-world materials are partly metallic.
 - The `metalnessMap` field specifies an [ImageTexture](imagetexture.md) for the material's metalness which overrides `metalness`.
-- The `environmentMap` field allows an object shaded with PBR to specify its source for ambient lighting and reflections (IBL), using a [Cubemap](cubemap.md) node.
-If this field is empty, the [Cubemap](cubemap.md) belonging to the world's [Background](background.md) node (if it exists) will be used as this source.
-- The `IBLStrength` field specifies a scale factor to be applied to the light contribution from the [Cubemap](cubemap.md).
+- The `IBLStrength` field specifies a scale factor to be applied to the light contribution from the [Background](background.md).
 - The `normalMap` field specifies an [ImageTexture](imagetexture.md) which is used to peturb the normal vectors of each vertex to create the appearance of relief on flat surfaces, or to add extra detail to low-polycount meshes.
 - The `normalMapFactor` field is used to scale the effect of the normal map on the object.
 - The `occlusionMap` field specifies an [ImageTexture](imagetexture.md) which contains pre-baked information about how parts of the model occlude each other (ambient occlusion). This can be used for more realistic-looking lighting.

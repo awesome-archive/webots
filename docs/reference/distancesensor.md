@@ -4,12 +4,13 @@ Derived from [Device](device.md) and [Solid](solid.md).
 
 ```
 DistanceSensor {
-  MFVec3f  lookupTable   [ 0 0 0, 0.1 1000 0 ] # lookup table
-  SFString type          "generic"             # {"generic", "infra-red", "sonar", "laser"}
-  SFInt32  numberOfRays  1                     # [1, inf)
-  SFFloat  aperture      1.5708                # [0, 2*pi]
-  SFFloat  gaussianWidth 1                     # [0, inf)
-  SFFloat  resolution    -1                    # {-1, [0, inf)}
+  MFVec3f  lookupTable              [ 0 0 0, 0.1 1000 0 ] # lookup table
+  SFString type                     "generic"             # {"generic", "infra-red", "sonar", "laser"}
+  SFInt32  numberOfRays             1                     # [1, inf)
+  SFFloat  aperture                 1.5708                # [0, 2*pi]
+  SFFloat  gaussianWidth            1                     # [0, inf)
+  SFFloat  resolution               -1                    # {-1, [0, inf)}
+  SFFloat  redColorSensitivity      1                     # [0, inf)
 }
 ```
 
@@ -27,7 +28,7 @@ The red/green transition on the rays indicates the points of intersection with t
 - `lookupTable`: a table used for specifying the desired response curve and noise of the device (see [below](#lookup-table) for more details).
 
 - `type`: one of "generic" (the default), "infra-red", "sonar" or "laser".
-Sensors of type "infra-red" are sensitive to the objects' colors; light and red (RGB) obstacles have a higher response than dark and non-red obstacles (see below for more details).
+Sensors of type "infra-red" can be sensitive to the objects' colors; light and red (RGB) obstacles have a higher response than dark and non-red obstacles (see below for more details).
 Sensors of type "sonar" and "laser" return the distance to the nearest object while "generic" and "infa-red" computes the average distance of all rays.
 Note however that sensors of type "sonar" will return the sonar range for each ray whose angle of incidence is greater than &pi;/8 radians (see below for more details).
 Sensors of type "laser" can have only one ray and they have the particularity to draw a red spot at the point where this ray hits an obstacle. This red spot is visible on the camera images. If the red spot disappears due to depth fighting, then it could help increasing the `lineScale` value in [WorldInfo](worldinfo.md) node that is used for computing its position offset.
@@ -74,7 +75,15 @@ This field is ignored for the "sonar" and "laser" DistanceSensor types.
 
 - `resolution`: This field allows to define the resolution of the sensor, the resolution is the smallest change that it is able to measure.
 Setting this field to -1 (default) means that the sensor has an 'infinite' resolution (it can measure any infinitesimal change).
+The raw measurement is first interpolated according to the lookup table and subsequently sampled with respect to the specified resolution, if one is defined.
 This field accepts any value in the interval (0.0, inf).
+
+- `redColorSensitivity`: red color sensitivity factor.
+This allows to tune (or even disable) red color sensitivity for infra-red distance sensor type.
+A value of 1 corresponds to the default behavior.
+Values greater that 1 increase the red color sensitivity and values lower than 1 decrease it.
+A value of 0 disables the effect of the red color completely.
+See details [below](#infra-red-sensors).
 
 ### Lookup Table
 
@@ -115,7 +124,7 @@ The resulting range of measured values is shown in [this figure](#sensor-respons
 
 %figure "Sensor response versus obstacle distance with opposite response-noise increase"
 
-![khepera_sonar_lut.png](images/khepera_sonar_lut.png)
+![khepera_sonar_lut.png](images/khepera_sonar_lut.thumbnail.png)
 
 %end
 
@@ -128,22 +137,28 @@ Two different methods are used for calculating the distance from an object.
 
 %figure "Summary of DistanceSensor types"
 
-| type (field)             | "generic" | "infra-red" | "sonar" | "laser" |
-| ------------------------ | --------- | ----------- | ------- | ------- |
-| numberOfRays (field)     | `>` 0     | `>` 0       | `>` 0   | 1       |
-| Distance calculation     | Average   | Average     | Nearest | Nearest |
-| gaussianWidth (field)    | Used      | Used        | Ignored | Ignored |
-| Sensitive to red objects | No        | Yes         | No      | No      |
-| Draws a red spot         | No        | No          | No      | Yes     |
+| type (field)               | "generic" | "infra-red" | "sonar" | "laser" |
+| -------------------------- | --------- | ----------- | ------- | ------- |
+| numberOfRays (field)       | `>` 0     | `>` 0       | `>` 0   | 1       |
+| Distance calculation       | Average   | Average     | Nearest | Nearest |
+| gaussianWidth (field)      | Used      | Used        | Ignored | Ignored |
+| Sensitive to red objects   | No        | Yes         | No      | No      |
+| Draws a red spot           | No        | No          | No      | Yes     |
+| Ignore transparent objects | No        | Yes         | No      | Yes     |
 
 %end
 
+A transparent object is not perceived by "laser" and "infra-red" distance sensors if its bounding object has transparency set to 1.0.
+
 ### Infra-Red Sensors
 
-In the case of an "infra-red" sensor, the value returned by the lookup table is modified by a reflection factor depending on the color properties of the object hit by the sensor ray.
-The reflection factor is computed as follows: *f = 0.2 + 0.8 * red\_level* where *red\_level* is the level of red color of the object hit by the sensor ray.
-This level is evaluated combining the `diffuseColor` and `transparency` values of the object, the pixel value of the image texture and the paint color applied on the object with the [Pen](pen.md) device.
-Then, the distance value computed by the simulator is divided by the reflection factor before the lookup table is used to compute the output value.
+In the case of an "infra-red" sensor, the value returned by the lookup table is modified by a reflection factor depending on the color, roughness and occlusion properties of the object hit by the sensor ray.
+The `redColorSensitivity` field also applies and can be used to tune this functionality. Value of 0 will completely disable red color sensitivity.
+The reflection factor is computed as follows: *f = 0.2 + 0.8 * red\_level * (1 - 0.5 * roughness) * (1 - 0.5 * occlusion)* where *red\_level* is the level of red color of the object hit by the sensor ray.
+This level is evaluated combining the `diffuseColor` (in case of [Appearance](appearance.md)), `baseColor` (in case of [PBRAppearance](pbrappearance.md)) and `transparency` values of the object, the pixel value of the image texture and the paint color applied on the object with the [Pen](pen.md) device.
+The *roughness* is evaluated (only in case of [PBRAppearance](pbrappearance.md), otherwise roughness is 0) using the `roughness` value and the pixel value of the `roughnessMap` image texture.
+The *occlusion* is evaluated (only in case of [PBRAppearance](pbrappearance.md), otherwise occlusion is 0) using the pixel value of the `occlusionMap` image texture.
+Then, the distance value computed by the simulator is multiplied by the `redColorSensitivity` field value and divided by the reflection factor before the lookup table is used to compute the output value.
 
 > **Note**: Unlike other distance sensor rays, "infra-red" rays can detect solid parts of the robot itself.
 It is thus important to ensure that no solid geometries interpose between the sensor and the area to inspect.
@@ -173,7 +188,7 @@ The ground texture must be placed in a [Plane](plane.md).
 #### `wb_distance_sensor_get_sampling_period`
 #### `wb_distance_sensor_get_value`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -191,7 +206,7 @@ double wb_distance_sensor_get_value(WbDeviceTag tag);
 %tab "C++"
 
 ```cpp
-#include "<webots/DistanceSensor.hpp>"
+#include <webots/DistanceSensor.hpp>
 
 namespace webots {
   class DistanceSensor : public Device {
@@ -239,22 +254,12 @@ public class DistanceSensor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_distance_sensor_enable(tag, sampling_period)
 wb_distance_sensor_disable(tag)
 period = wb_distance_sensor_get_sampling_period(tag)
 value = wb_distance_sensor_get_value(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/value` | `topic` | [`sensor_msgs::Range`](http://docs.ros.org/api/sensor_msgs/html/msg/Range.html) | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`uint8 ULTRASOUND=0`<br/>`uint8 INFRARED=1`<br/>`uint8 radiation_type`<br/>`float32 field_of_view`<br/>`float32 min_range`<br/>`float32 max_range`<br/>`float32 range` |
-| `/<device_name>/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/<device_name>/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -281,8 +286,10 @@ Hence, the range of the return value is defined by this lookup table.
 #### `wb_distance_sensor_get_max_value`
 #### `wb_distance_sensor_get_min_value`
 #### `wb_distance_sensor_get_aperture`
+#### `wb_distance_sensor_get_lookup_table_size`
+#### `wb_distance_sensor_get_lookup_table`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -292,6 +299,8 @@ Hence, the range of the return value is defined by this lookup table.
 double wb_distance_sensor_get_max_value(WbDeviceTag tag);
 double wb_distance_sensor_get_min_value(WbDeviceTag tag);
 double wb_distance_sensor_get_aperture(WbDeviceTag tag);
+int wb_distance_sensor_get_lookup_table_size(WbDeviceTag tag);
+const double *wb_distance_sensor_get_lookup_table(WbDeviceTag tag);
 ```
 
 %tab-end
@@ -299,13 +308,15 @@ double wb_distance_sensor_get_aperture(WbDeviceTag tag);
 %tab "C++"
 
 ```cpp
-#include "<webots/DistanceSensor.hpp>"
+#include <webots/DistanceSensor.hpp>
 
 namespace webots {
   class DistanceSensor : public Device {
     double getMaxValue() const;
     double getMinValue() const;
     double getAperture() const;
+    int getLookupTableSize() const;
+    const double *getLookupTable() const;
     // ...
   }
 }
@@ -322,6 +333,7 @@ class DistanceSensor (Device):
     def getMaxValue(self):
     def getMinValue(self):
     def getAperture(self):
+    def getLookupTable(self):
     # ...
 ```
 
@@ -336,6 +348,7 @@ public class DistanceSensor extends Device {
   public double getMaxValue();
   public double getMinValue();
   public double getAperture();
+  public double[] getLookupTable();
   // ...
 }
 ```
@@ -344,21 +357,12 @@ public class DistanceSensor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 max_value = wb_distance_sensor_get_max_value(tag)
 min_value = wb_distance_sensor_get_min_value(tag)
 aperture = wb_distance_sensor_get_aperture(tag)
+lookup_table_array = wb_distance_sensor_get_lookup_table(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_max_value` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_min_value` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_aperture` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -376,11 +380,16 @@ This value is the minimum of the second column of the `DistanceSensor.lookupTabl
 
 The `wb_distance_sensor_get_aperture` function returns the aperture of the distance sensor in radians.
 
+The `wb_distance_sensor_get_lookup_table_size` function returns the number of rows in the [lookup table](#lookup-table).
+
+The `wb_distance_sensor_get_lookup_table` function returns lookup table fields of the [lookup table](#lookup-table).
+This function returns a matrix containing exactly N * 3 values (N represents the number of mapped values optained with the `wb_distance_sensor_get_lookup_table_size` function) that shall be interpreted as a N x 3 table.
+
 ---
 
 #### `wb_distance_sensor_get_type`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -402,7 +411,7 @@ WbDistanceSensorType wb_distance_sensor_get_type(WbDeviceTag tag);
 %tab "C++"
 
 ```cpp
-#include "<webots/DistanceSensor.hpp>"
+#include <webots/DistanceSensor.hpp>
 
 namespace webots {
   class DistanceSensor : public Device {
@@ -446,19 +455,11 @@ public class DistanceSensor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_DISTANCE_SENSOR_GENERIC, WB_DISTANCE_SENSOR_INFRA_RED, WB_DISTANCE_SENSOR_SONAR, WB_DISTANCE_SENSOR_LASER
 
 type = wb_distance_sensor_get_type(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_type` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 

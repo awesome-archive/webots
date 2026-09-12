@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,10 @@
 // Description: world with physics/kinematic simulation
 //
 
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QList>
 #include <QtCore/QMutex>
-#include <QtCore/QTime>
+
 #include "WbWorld.hpp"
 
 class WbSimulationCluster;
@@ -37,7 +38,7 @@ public:
   static WbSimulationWorld *instance();
 
   // constructors and destructor
-  WbSimulationWorld(WbProtoList *protos = NULL, WbTokenizer *tokenizer = NULL);
+  explicit WbSimulationWorld(WbTokenizer *tokenizer = NULL);
   virtual ~WbSimulationWorld();
 
   // returns the physics plugin used in this world or NULL if none
@@ -47,7 +48,10 @@ public:
   bool simulationHasRunAfterSave();
 
   bool saveAs(const QString &fileName) override;
-  void reset() override;
+  void reset(bool restartControllers) override;
+
+  void pauseStepTimer();
+  void restartStepTimer();
 
   virtual void step();
 
@@ -72,9 +76,7 @@ private:
   WbOdeContext *mOdeContext;
   WbPhysicsPlugin *mPhysicsPlugin;
   QTimer *mTimer;
-  QTime mLastRealTime;
-  double mSleepRealTime;
-  QList<int> mElapsedTimeHistory;
+  double mOldTimeStep;
   QVector<WbNode *> mAddedNode;  // list of nodes added since the simulation started
 
   void storeLastSaveTime() override;
@@ -82,8 +84,7 @@ private:
   void propagateBoundingObjectMaterialUpdate(bool onMenuAction);
 
 private slots:
-  void setThreadingPolicy();
-  void removeNodeFromAddedNodeList(QObject *node);
+  void removeNodeFromAddedNodeList(const QObject *node);
   void propagateBoundingObjectUpdate() { propagateBoundingObjectMaterialUpdate(false); }
   void updateRandomSeed();
 };

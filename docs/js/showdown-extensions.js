@@ -17,7 +17,7 @@ function wbSlugify(obj) {
     .replace(/[-]+/g, '-')
     .replace(/^-*/, '')
     .replace(/-*$/, '')
-    .replace('+', 'p')
+    .replace(/\+/g, 'p')
     .replace(/[^\w-]+/g, '');
 }
 
@@ -27,18 +27,24 @@ function wbSlugify(obj) {
 showdown.extension('wbVariables', function() {
   // static variables to maintain
   // TODO: could be computed
+  const branch = (typeof setup !== 'undefined' && typeof setup.branch !== 'undefined' && setup.branch !== '') ? setup.branch : 'released';
   var vars = {
     webots: {
       version: {
-        major: 'R2019a',
+        major: 'R2025a',
         // full is equal to major for the first major version
         // and contains the revision number for subsequent versions
-        full: 'R2019a',
-        package: 'R2019a'
+        full: 'R2025a',
+        package: 'R2025a'
       }
     },
     date: {
-      year: 2019
+      year: 2024
+    },
+    url: {
+      github_tree: `https://github.com/cyberbotics/webots/tree/` + branch,
+      github_blob: `https://github.com/cyberbotics/webots/blob/` + branch,
+      github_raw: `https://raw.githubusercontent.com/cyberbotics/webots/` + branch
     }
   };
 
@@ -200,6 +206,26 @@ showdown.extension('wbChart', function() {
   ];
 });
 
+// This extension allows to define extensible part (hided by default)
+showdown.extension('wbSpoiler', function() {
+  return [
+    {
+      type: 'lang',
+      filter: function(text, converter, options) {
+        text = text.replace(/%spoiler\s*\"(.*)\"\n(^(?:(?!%end).+\n*)*\n)*\n%end/gim, function(match, title, content) {
+          var replacement =
+            '<details>\n' +
+            '  <summary>' + title + '</summary>\n' +
+            '  ' + content + '\n' +
+            '</details>\n';
+          return replacement;
+        });
+        return text;
+      }
+    }
+  ];
+});
+
 // This extension allows to add robot component.
 // Example: "%robot nao"
 showdown.extension('wbRobotComponent', function() {
@@ -222,12 +248,7 @@ showdown.extension('wbRobotComponent', function() {
               '  <div id="%ROBOT%-robot-view" class="robot-view">\n' +
               '    <div id="%ROBOT%-robot-webots-view" class="robot-webots-view">\n' +
               '    </div>\n' +
-              '    <div class="menu">\n' +
-              '      <div class="menu-items">\n' +
-              '        <button class="reset-button" title="Reset Viewpoint and sliders." onclick="resetRobotComponent(\'%ROBOT%\')"></button>\n' +
-              '        <button class="menu-button" title="Show/Hide the device list." onclick="toggleDeviceComponent(\'%ROBOT%\')"></button>\n' +
-              '      </div>\n' +
-              '    </div>\n' +
+              '    <button class="menu-button" title="Show/Hide the device list."><div class="arrow-right" id="arrow"></div></button>\n' +
               '  </div>\n' +
               '  <div id="%ROBOT%-device-component" class="device-component"></div>\n' +
               '</div>\n';
@@ -266,12 +287,12 @@ showdown.extension('wbTabComponent', function() {
     {
       type: 'lang',
       filter: function(text, converter, options) {
-        text = text.replace(/%tab-component([^]+?)%end/gi, function(match, content) {
+        text = text.replace(/%tab-component\s+"([^]+?)"([^]+?)%end/gi, function(match, tabTitle, content) {
           tabComponentCounter++;
           var buttons = '';
           var first = true;
           var subText = content.replace(/%tab\s+"([^]+?)"([^]+?)%tab-end/gi, function(subMatch, title, subContent) {
-            buttons += '<button name="' + title.toLowerCase() + '" class="tab-links' + (first ? ' active' : '') + '" onclick="openTabFromEvent(event, \'' + title + '\')">' + title + '</button>';
+            buttons += '<button name="' + title.toLowerCase() + '" class="tab-links' + (first ? ' active' : '') + '" title="' + tabTitle + '">' + title + '</button>';
             var result = '<div class="tab-content" name="' + title.toLowerCase() + '"' + (first ? ' style="display:block"' : '') + ' tabid="' + tabComponentCounter + '">' + converter.makeHtml(subContent) + '</div>';
             first = false;
             return result;

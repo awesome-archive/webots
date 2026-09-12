@@ -1,16 +1,18 @@
-$('#robottabs').tabs();
+import RobotWindow from 'https://cyberbotics.com/wwi/R2025a/RobotWindow.js';
 
-webots.window('pan_tilt_camera_view').receive = function(message, robot) {
+window.robotWindow = new RobotWindow();
+
+window.robotWindow.receive = function(message, robot) {
   // image format: image[<device name>]:<URI image data>
   if (message.startsWith('image')) {
-    var label = message.substring(message.indexOf('[') + 1, message.indexOf(']'));
-    var imageElement = document.getElementById('robot-' + label);
+    const label = message.substring(message.indexOf('[') + 1, message.indexOf(']'));
+    const imageElement = document.getElementById('robot-' + label);
     if (imageElement != null)
       imageElement.setAttribute('src', message.substring(message.indexOf(':') + 1));
 
-    if (label == 'camera') {
+    if (label === 'camera') {
       // remove warning if needed
-      var element = document.getElementById('robottab-camera-warning');
+      const element = document.getElementById('robottab-camera-warning');
       if (element != null)
         element.parentNode.removeChild(element);
     }
@@ -19,4 +21,4 @@ webots.window('pan_tilt_camera_view').receive = function(message, robot) {
       message = message.substr(0, 200);
     console.log("Received unknown message for robot '" + robot + "': '" + message + "'");
   }
-}
+};

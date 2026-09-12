@@ -2,11 +2,30 @@
 
 ### Interface
 
-The PROTO definition defines exactly what the PROTO does in terms of the built-in nodes or of the instances of other PROTO nodes.
-Here is the syntax for a PROTO definition:
+A PROTO node is defined in a PROTO file which is a text file ending with a `.proto` extension.
+
+#### Header
+
+The PROTO file starts with the following header line:
 
 ```
-PROTO protoName [ protoInterface ] { protoBody }
+#VRML_SIM {{ webots.version.major }} utf8
+```
+
+Possibly followed by comments, such as:
+
+```
+# license: Apache License 2.0
+# license url: https://www.apache.org/licenses/LICENSE-2.0
+# This is the description of the sample PROTO node.
+```
+
+#### Structure
+
+The PROTO definition lists the fields of the PROTO and defines how these fields impact the underlying object which is defined using base nodes and/or PROTO nodes.
+
+```
+PROTO protoName [ protoFields ] { protoBody }
 ```
 
 The interface is a sequence of field declarations which specify the types, names and default values for the PROTO's fields.
@@ -16,15 +35,21 @@ A field declaration has the following syntax:
 field fieldType fieldName defaultValue
 ```
 
-`field` is a reserved keyword, `fieldType` is one of: `SFNode, SFColor, SFFloat, SFInt32, SFString, SFVec2f, SFVec3f, SFRotation, SFBool, MFNode, MFColor, MFFloat, MFInt32, MFString, MFVec2f` and `MFVec3f`.
-`fieldName` is a freely chosen name for this field and `defaultValue` is a literal default value that depends on `fieldType`.
+- `field` is a reserved keyword.
+- `fieldType` is one of: `SFNode, SFColor, SFFloat, SFInt32, SFString, SFVec2f, SFVec3f, SFRotation, SFBool, MFNode, MFColor, MFFloat, MFInt32, MFString, MFVec2f, MFVec3f, MFRotation` and `MFBool`.
+- `fieldName` is a freely chosen name for this field.
+- `defaultValue` is a literal default value that depends on `fieldType`.
 
-Here is an example of PROTO definition:
+#### Summary
+
+Here is how a PROTO file looks like:
 
 ```
+#VRML_SIM {{ webots.version.major }} utf8
+
 PROTO MyProto [
   field SFVec3f    translation   0 0 0
-  field SFRotation rotation      0 1 0 0
+  field SFRotation rotation      0 0 1 0
   field SFString   name          "my proto"
   field SFColor    color         0.5 0.5 0.5
   field SFNode     physics       NULL
@@ -48,15 +73,19 @@ If a field should have only a limited set of possible values, it is possible to 
 ```
 PROTO MyProto [
   field SFVec3f                             translation   0 0 0
-  field SFRotation                          rotation      0 1 0 0
+  field SFRotation                          rotation      0 0 1 0
   field SFString                            name          "my proto"
   field SFColor{0 0 0, 0.5 0.5 0.5, 1 1 1}  color         0.5 0.5 0.5
   field SFNode                              physics       NULL
-  field MFNode{Solid{}, Transform{}}        extensionSlot []
+  field MFNode{Solid{}+, Pose{}}            extensionSlot []
 ]
 ```
 
-In this example, the `color` field value can only be `0 0 0`, `0.5 0.5 0.5` or `1 1 1` and the `extensionSlot` field can only accept [Solid](../reference/solid.md) and [Transform](../reference/transform.md) nodes.
+For `SFNode`/`MFNode` fields, the `<NodeType>{}+` syntax allows the field to also accept nodes which derive from a specific node type.
+
+In this example, the `color` field value can only be `0 0 0`, `0.5 0.5 0.5` or `1 1 1`, and the `extensionSlot` field can only accept [Pose](pose.md) nodes, PROTOs whose base type is [Pose](pose.md), [Solid](solid.md) nodes, nodes derived from [Solid](solid.md), and PROTOs derived from [Solid](solid.md) or a type that inherits from [Solid](../reference/solid.md). Note that because  `Pose{}` is not followed by a `+`, `extensionSlot` does not accept nodes that derive from [Pose](pose.md) (e.g. [Transform](transform.md) or [Fluid](fluid.md)) or PROTOs whose base type is not [Pose](pose.md).
+
+Because [Solid](solid.md) derives from [Pose](pose.md), we could have allowed all the same node types by using `MFNode{Pose{}+}`, but this would also allow other descendants of [Pose](pose.md) such as [Transform](transform.md) or [Fluid](fluid.md).
 
 ### IS Statements
 
@@ -69,7 +98,7 @@ For example:
 ```
 PROTO Bicycle [
   field SFVec3f    position   0 0 0
-  field SFRotation rotation   0 1 0 0
+  field SFRotation rotation   0 0 1 0
   field SFString   name       "bicycle"
   field SFColor    frameColor 0.5 0.5 0.5
   field SFBool     hasBrakes  TRUE
@@ -97,7 +126,7 @@ This warning can be suppressed when declaring an interface field by using the `u
 This is useful when the value of an interface field is used to 'store' relevant data that a `Supervisor` controller may wish to access, such as the speed limit for a stretch of road, or an object's radioactivity.
 
 It is an error for an IS statement to refer to a non-existent interface field.
-It is an error if the type of the field being associated does not match the type declared in the PROTO's interface.
+It is also an error if the type of the field being associated does not match the type declared in the PROTO's interface.
 For example, it is illegal to associate an `SFColor` with an `SFVec3f`.
 It is also illegal to associate a `SFColor` with a `MFColor` or vice versa.
 Results are undefined if a field of a node in the PROTO body is associated with more than one field in the PROTO's interface.

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "WbReceiver.hpp"
+
 #include "WbDataPacket.hpp"
+#include "WbDataStream.hpp"
 #include "WbEmitter.hpp"
 #include "WbFieldChecker.hpp"
 #include "WbOdeContext.hpp"
@@ -23,7 +25,7 @@
 #include "WbWorld.hpp"
 
 #include <webots/receiver.h>  // for WB_CHANNEL_BROADCAST
-#include "../../lib/Controller/api/messages.h"
+#include "../../controller/c/messages.h"
 
 #include <QtCore/QDataStream>
 #include <cassert>
@@ -70,7 +72,7 @@ public:
   void recomputeRayDirection(const WbVector3 &receiverTranslation) {
     // compute ray direction and length
     WbEmitter *e = mPacket->emitter();
-    e->updateTransformAfterPhysicsStep();
+    e->updateTransformForPhysicsStep();
     const WbVector3 &te = e->matrix().translation();
     WbVector3 dir = receiverTranslation - te;
     dGeomRaySetLength(mGeom, dir.length());
@@ -108,6 +110,7 @@ void WbReceiver::init() {
   mBufferSize = findSFInt("bufferSize");
   mSignalStrengthNoise = findSFDouble("signalStrengthNoise");
   mDirectionNoise = findSFDouble("directionNoise");
+  mAllowedChannels = findMFInt("allowedChannels");
 }
 
 WbReceiver::WbReceiver(WbTokenizer *tokenizer) : WbSolidDevice("Receiver", tokenizer) {
@@ -142,6 +145,7 @@ void WbReceiver::preFinalize() {
 
   mSensor = new WbSensor();
   updateTransmissionSetup();
+  updateAllowedChannels();
 
   gReceiverList.append(this);  // add myself
 }
@@ -157,37 +161,69 @@ void WbReceiver::postFinalize() {
   connect(mByteSize, &WbSFInt::changed, this, &WbReceiver::updateTransmissionSetup);
   connect(mSignalStrengthNoise, &WbSFDouble::changed, this, &WbReceiver::updateTransmissionSetup);
   connect(mDirectionNoise, &WbSFDouble::changed, this, &WbReceiver::updateTransmissionSetup);
+  connect(mAllowedChannels, &WbMFInt::changed, this, &WbReceiver::updateAllowedChannels);
 }
 
 void WbReceiver::updateTransmissionSetup() {
   mMediumType = WbDataPacket::decodeMediumType(mType->value());
   if (mMediumType == WbDataPacket::UNKNOWN) {
-    warn(tr("Unknown 'type': \"%1\".").arg(mType->value()));
+    parsingWarn(tr("Unknown 'type': \"%1\".").arg(mType->value()));
     mMediumType = WbDataPacket::RADIO;
   }
 
-  WbFieldChecker::checkDoubleIsInRangeWithIncludedBoundsOrDisabled(this, mAperture, 0, 2 * M_PI, -1, -1);
-  WbFieldChecker::checkDoubleIsNonNegative(this, mSignalStrengthNoise, 0);
-  WbFieldChecker::checkDoubleIsNonNegative(this, mDirectionNoise, 0);
-  WbFieldChecker::checkIntIsPositiveOrDisabled(this, mBufferSize, -1, -1);
-  WbFieldChecker::checkIntIsPositiveOrDisabled(this, mBaudRate, -1, -1);
-  WbFieldChecker::checkIntIsGreaterOrEqual(this, mByteSize, 8, 8);
+  WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBoundsAndNotDisabled(this, mAperture, 0, 2 * M_PI, -1, -1);
+  WbFieldChecker::resetDoubleIfNegative(this, mSignalStrengthNoise, 0);
+  WbFieldChecker::resetDoubleIfNegative(this, mDirectionNoise, 0);
+  WbFieldChecker::resetIntIfNonPositiveAndNotDisabled(this, mBufferSize, -1, -1);
+  WbFieldChecker::resetIntIfNonPositiveAndNotDisabled(this, mBaudRate, -1, -1);
+  WbFieldChecker::resetIntIfLess(this, mByteSize, 8, 8);
+
+  if (!isChannelAllowed()) {
+    parsingWarn(tr("'channel' is not included in 'allowedChannels'. Setting 'channel' to %1").arg(mAllowedChannels->item(0)));
+    mChannel->setValue(mAllowedChannels->item(0));
+  }
 
   mNeedToConfigure = true;
 }
 
-void WbReceiver::writeConfigure(QDataStream &stream) {
+bool WbReceiver::isChannelAllowed() {
+  const int allowedChannelsSize = mAllowedChannels->size();
+  if (allowedChannelsSize > 0) {
+    const int currentChannel = (int)mChannel->value();
+    for (int i = 0; i < allowedChannelsSize; i++) {
+      if (currentChannel == mAllowedChannels->item(i))
+        return true;
+    }
+    return false;
+  }
+  return true;
+}
+
+void WbReceiver::updateAllowedChannels() {
+  if (!isChannelAllowed()) {
+    parsingWarn(
+      tr("'allowedChannels' does not contain current 'channel'. Setting 'channel' to %1.").arg(mAllowedChannels->item(0)));
+    mChannel->setValue(mAllowedChannels->item(0));
+  }
+
+  mNeedToConfigure = true;
+}
+
+void WbReceiver::writeConfigure(WbDataStream &stream) {
   // TODO disable in remote or not ?
-  // mSensor->connectToRobotSignal(robot());
+  mSensor->connectToRobotSignal(robot(), false);
 
   stream << tag();
   stream << (unsigned char)C_CONFIGURE;
   stream << (int)mBufferSize->value();
   stream << (int)mChannel->value();
+  stream << (int)mAllowedChannels->size();
+  for (int i = 0; i < mAllowedChannels->size(); i++)
+    stream << (int)mAllowedChannels->item(i);
   mNeedToConfigure = false;
 }
 
-void WbReceiver::writeAnswer(QDataStream &stream) {
+void WbReceiver::writeAnswer(WbDataStream &stream) {
   if (refreshSensorIfNeeded() || mSensor->hasPendingValue()) {
     for (int i = 0; i < mReadyQueue.size(); i++) {
       WbDataPacket *packet = mReadyQueue[i];
@@ -200,7 +236,7 @@ void WbReceiver::writeAnswer(QDataStream &stream) {
       stream << (double)emitterDir[2];
       stream << (double)packet->signalStrength();
       stream << (int)packet->dataSize();
-      stream.writeRawData((const char *)packet->data(), packet->dataSize());
+      stream.writeRawData(static_cast<const char *>(packet->data()), packet->dataSize());
       delete packet;
     }
     mReadyQueue.clear();
@@ -213,19 +249,19 @@ void WbReceiver::writeAnswer(QDataStream &stream) {
 
 void WbReceiver::handleMessage(QDataStream &stream) {
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SET_SAMPLING_PERIOD: {
       short rate;
-      stream >> (short &)rate;
+      stream >> rate;
       mSensor->setRefreshRate(rate);
       return;
     }
     case C_RECEIVER_SET_CHANNEL: {
-      int channel;
-      stream >> (int &)channel;
-      mChannel->setValue(channel);
+      int receiverChannel;
+      stream >> receiverChannel;
+      mChannel->setValue(receiverChannel);
       return;
     }
     default:
@@ -241,7 +277,7 @@ void WbReceiver::prePhysicsStep(double ms) {
 }
 
 void WbReceiver::updateRaysSetupIfNeeded() {
-  updateTransformAfterPhysicsStep();
+  updateTransformForPhysicsStep();
   const WbVector3 position = matrix().translation();
   // update receiver position in pending packets
   foreach (Transmission *t, mTransmissionList)
@@ -353,8 +389,8 @@ bool WbReceiver::refreshSensorIfNeeded() {
   return true;
 }
 
-void WbReceiver::reset() {
-  WbSolidDevice::reset();
+void WbReceiver::reset(const QString &id) {
+  WbSolidDevice::reset(id);
   qDeleteAll(mTransmissionList);
   mTransmissionList.clear();
   qDeleteAll(mReadyQueue);
@@ -382,19 +418,19 @@ bool WbReceiver::checkApertureAndRange(const WbEmitter *emitter, const WbReceive
 
   // emission: check that receiver is within emitter's cone
   if (emitter->aperture() > 0.0) {
-    WbVector3 e2r = rTranslation - eTranslation;
-    WbVector4 eAxisZ4 = emitter->matrix().column(2);
-    WbVector3 eAxisZ3(eAxisZ4[0], eAxisZ4[1], eAxisZ4[2]);
-    if (eAxisZ3.angle(e2r) > emitter->aperture() / 2.0)
+    const WbVector3 e2r = rTranslation - eTranslation;
+    const WbVector4 eAxisX4 = emitter->matrix().column(0);
+    const WbVector3 eAxisX3(eAxisX4[0], eAxisX4[1], eAxisX4[2]);
+    if (eAxisX3.angle(e2r) > emitter->aperture() / 2.0)
       return false;
   }
 
   // reception: check that emitter is within receiver's cone
   if (receiver->aperture() > 0.0) {
-    WbVector3 r2e = eTranslation - rTranslation;
-    WbVector4 rAxisZ4 = receiver->matrix().column(2);
-    WbVector3 rAxisZ3(rAxisZ4[0], rAxisZ4[1], rAxisZ4[2]);
-    if (rAxisZ3.angle(r2e) > receiver->aperture() / 2.0)
+    const WbVector3 r2e = eTranslation - rTranslation;
+    const WbVector4 rAxisX4 = receiver->matrix().column(0);
+    const WbVector3 rAxisX3(rAxisX4[0], rAxisX4[1], rAxisX4[2]);
+    if (rAxisX3.angle(r2e) > receiver->aperture() / 2.0)
       return false;
   }
 
@@ -449,7 +485,7 @@ void WbReceiver::transmitPacket(WbDataPacket *packet) {
 }
 
 void WbReceiver::receiveData(int channel, const void *data, int size) {
-  mWaitingQueue.append(new WbDataPacket(NULL, channel, (const char *)data, size));
+  mWaitingQueue.append(new WbDataPacket(NULL, channel, static_cast<const char *>(data), size));
 }
 
 void WbReceiver::transmitData(int channel, const void *data, int size) {

@@ -1,8 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.920152 0.3903 0.0314166 5.65888
+  orientation 0.9201516338443356 0.3902998446880996 0.03141658749840674 5.65888
   position -0.321062 0.718685 1.12281
 }
 Background {
@@ -15,22 +20,29 @@ PointLight {
   intensity 0
 }
 Robot {
+  name "A"
   children [
     Emitter {
     }
   ]
   controller "emitter_receiver_determinism"
-  controllerArgs "A"
+  controllerArgs [
+    "A"
+  ]
 }
 Robot {
+  name "B"
   children [
     Emitter {
     }
   ]
   controller "emitter_receiver_determinism"
-  controllerArgs "B"
+  controllerArgs [
+    "B"
+  ]
 }
 Robot {
+  name "C"
   children [
     Receiver {
     }

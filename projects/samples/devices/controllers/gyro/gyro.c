@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,6 +27,7 @@
 #include <webots/gyro.h>
 #include <webots/motor.h>
 #include <webots/robot.h>
+#include <webots/utils/ansi_codes.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,7 @@ static void run_for_a_while() {
     if (wb_robot_step(TIME_STEP) == -1)
       exit(EXIT_SUCCESS);
     const double *vel = wb_gyro_get_values(gyro);
+    ANSI_CLEAR_CONSOLE();
     printf("rotation axes: [ x y z ] = [ %+.2f %+.2f %+.2f ]\n", vel[0], vel[1], vel[2]);
   }
 }

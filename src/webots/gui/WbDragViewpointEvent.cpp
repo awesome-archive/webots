@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,7 +34,6 @@ WbDragViewpointEvent::WbDragViewpointEvent(WbViewpoint *viewpoint) : WbDragKinem
 WbTranslateViewpointEvent::WbTranslateViewpointEvent(const QPoint &initialMousePosition, WbViewpoint *viewpoint, double scale) :
   WbDragViewpointEvent(viewpoint),
   mInitialMousePosition(initialMousePosition),
-  mDifference(),
   mInitialCameraPosition(viewpoint->position()->value()),
   mScaleFactor(scale) {
 }
@@ -48,7 +47,7 @@ void WbTranslateViewpointEvent::apply(const QPoint &currentMousePosition) {
   if (mViewpoint->isLocked())
     return;
   mDifference = currentMousePosition - mInitialMousePosition;
-  const double targetRight = -mScaleFactor * mDifference.x();
+  const double targetRight = mScaleFactor * mDifference.x();
   const double targetUp = mScaleFactor * mDifference.y();
   const WbRotation &orientation = mViewpoint->orientation()->value();
   const WbVector3 target = targetRight * orientation.right() + targetUp * orientation.up();
@@ -64,7 +63,7 @@ WbRotateViewpointEvent::WbRotateViewpointEvent(const QPoint &initialMousePositio
   WbDragViewpointEvent(viewpoint),
   mPreviousMousePosition(initialMousePosition),
   mDelta(),
-  mWorldUpVector(-WbWorld::instance()->worldInfo()->gravityUnitVector()),
+  mWorldUpVector(WbWorld::instance()->worldInfo()->upVector()),
   mIsObjectPicked(objectPicked) {
   mViewpoint->lockRotationCenter();
 }
@@ -81,26 +80,30 @@ void WbRotateViewpointEvent::apply(const QPoint &currentMousePosition) {
 
   mDelta = currentMousePosition - mPreviousMousePosition;
   mPreviousMousePosition = currentMousePosition;
-  double halfPitchAngle = -0.005 * mDelta.y();
-  double halfYawAngle = -0.005 * mDelta.x();
-  if (!mIsObjectPicked) {
+  applyToViewpoint(mDelta, mViewpoint->rotationCenter(), mWorldUpVector, mIsObjectPicked, mViewpoint);
+}
+
+void WbRotateViewpointEvent::applyToViewpoint(const QPoint &delta, const WbVector3 &rotationCenter,
+                                              const WbVector3 &worldUpVector, bool objectPicked, WbViewpoint *viewpoint) {
+  double halfPitchAngle = 0.005 * delta.y();
+  double halfYawAngle = -0.005 * delta.x();
+  if (!objectPicked) {
     halfPitchAngle /= -8;
     halfYawAngle /= -8;
   }
   const double sinusYaw = sin(halfYawAngle);
   const double sinusPitch = sin(halfPitchAngle);
-  WbSFRotation *orientation = mViewpoint->orientation();
-  WbSFVector3 *position = mViewpoint->position();
+  WbSFRotation *orientation = viewpoint->orientation();
+  WbSFVector3 *position = viewpoint->position();
   const WbRotation &orientationValue = orientation->value();
   const WbVector3 pitch = orientationValue.right();
   const WbQuaternion pitchRotation(cos(halfPitchAngle), sinusPitch * pitch.x(), sinusPitch * pitch.y(), sinusPitch * pitch.z());
-  const WbQuaternion yawRotation(cos(halfYawAngle), sinusYaw * mWorldUpVector.x(), sinusYaw * mWorldUpVector.y(),
-                                 sinusYaw * mWorldUpVector.z());
+  const WbQuaternion yawRotation(cos(halfYawAngle), sinusYaw * worldUpVector.x(), sinusYaw * worldUpVector.y(),
+                                 sinusYaw * worldUpVector.z());
   // Updates camera's position and orientation
-  const WbQuaternion deltaRotation = yawRotation * pitchRotation;
-  const WbVector3 &rotationCenter = mViewpoint->rotationCenter();  // picked coordinates or viewpoint position
-  const WbVector3 currentPosition = deltaRotation * (position->value() - rotationCenter) + rotationCenter;
-  const WbQuaternion currentOrientation = deltaRotation * orientationValue.toQuaternion();
+  const WbQuaternion deltaRotation(yawRotation * pitchRotation);
+  const WbVector3 currentPosition(deltaRotation * (position->value() - rotationCenter) + rotationCenter);
+  const WbQuaternion currentOrientation(deltaRotation * orientationValue.toQuaternion());
   position->setValue(currentPosition);
   orientation->setValue(WbRotation(currentOrientation));
 }
@@ -115,8 +118,7 @@ WbZoomAndRotateViewpointEvent::WbZoomAndRotateViewpointEvent(const QPoint &initi
   WbDragViewpointEvent(viewpoint),
   mPreviousMousePosition(initialMousePosition),
   mDelta(),
-  mZscaleFactor(scale),
-  mProjectionModeIsOrthographic(viewpoint->projectionMode() == WR_CAMERA_PROJECTION_MODE_ORTHOGRAPHIC) {
+  mZscaleFactor(scale) {
 }
 
 WbZoomAndRotateViewpointEvent::~WbZoomAndRotateViewpointEvent() {
@@ -130,18 +132,23 @@ void WbZoomAndRotateViewpointEvent::apply(const QPoint &currentMousePosition) {
 
   mDelta = currentMousePosition - mPreviousMousePosition;
   mPreviousMousePosition = currentMousePosition;
-  if (mProjectionModeIsOrthographic) {
-    if (mDelta.y() > 0.0)
-      mViewpoint->incOrthographicViewHeight();
+  applyToViewpoint(0.01 * mDelta.x(), mDelta.y(), mZscaleFactor, mViewpoint);
+}
+
+void WbZoomAndRotateViewpointEvent::applyToViewpoint(double tiltAngle, double zoom, double scaleFactor,
+                                                     WbViewpoint *viewpoint) {
+  if (viewpoint->projectionMode() == WR_CAMERA_PROJECTION_MODE_ORTHOGRAPHIC) {
+    if (zoom > 0.0)
+      viewpoint->incOrthographicViewHeight();
     else
-      mViewpoint->decOrthographicViewHeight();
+      viewpoint->decOrthographicViewHeight();
   }
-  WbSFVector3 *position = mViewpoint->position();
-  WbSFRotation *orientation = mViewpoint->orientation();
+  WbSFVector3 *position = viewpoint->position();
+  WbSFRotation *orientation = viewpoint->orientation();
   const WbRotation &orientationValue = orientation->value();
   const WbVector3 rollVector = orientationValue.direction();
-  const WbVector3 zDisplacement = (mZscaleFactor * mDelta.y()) * rollVector;
-  const WbQuaternion roll(rollVector, 0.01 * mDelta.x());
+  const WbVector3 zDisplacement = (scaleFactor * zoom) * rollVector;
+  const WbQuaternion roll(rollVector, tiltAngle);
   position->setValue(position->value() + zDisplacement);
   orientation->setValue(WbRotation(roll * orientationValue.toQuaternion()));
 }

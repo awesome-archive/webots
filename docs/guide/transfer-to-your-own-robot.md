@@ -1,4 +1,4 @@
-## Transfer to Your Own Robot
+## Transfer to your own Robot
 
 In mobile robot simulation, it is often useful to transfer the results onto real mobile robots.
 Webots was designed with this transfer capability in mind.
@@ -37,7 +37,7 @@ It requests that the simulator performs a simulation step of ms milliseconds; th
 
 The `wb_robot_cleanup` function should be called at the end of a program in order to leave the controller in a clean fashion.
 
-#### Running Your Real Robot
+#### Running your Real Robot
 
 Once linked with your own remote control plugin, you can control your real robot by running the simulation in Webots.
 It might be useful to also add a robot window (see [this section](controller-plugin.md#robot-window)) to graphically display specific sensor values, motor commands or a stop button.
@@ -53,7 +53,7 @@ Hence, the source code you wrote for the Webots simulation will be executed on t
 This is only possible if the processor on your robot can be programmed respectively in C, C++, Java or Python.
 It is not possible for a processor that can be programmed only in assembler or another specific language.
 Webots includes the source code of such a cross-compilation system for the e-puck and the Hemisson robot.
-Samples are located in the "WEBOTS\_HOME/projects/robots" directory.
+Samples are located in the "[WEBOTS\_HOME/projects/robots]({{ url.github_tree }}/projects/robots)" directory.
 
 #### Developing a Custom Library
 

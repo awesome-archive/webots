@@ -1,8 +1,14 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.38576643 0.88424537 0.26323826 4.8294469
+  orientation 0.38576643107836966 0.8842453724718153 0.263238260735855 4.8294469
   position -39.210855 31.412887 12.053205
 }
 DirectionalLight {
@@ -19,7 +25,7 @@ Robot {
       fieldOfView 6.28
       width 1000
       height 80
-      spherical TRUE
+      projection "cylindrical"
       minRange 4
       maxRange 10
     }

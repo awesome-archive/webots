@@ -21,8 +21,8 @@ static const double values[N_VALUES] = {
   123456789012345.0, 0.123456789012345,
   // +/- double epsilon
   DBL_EPSILON, -DBL_EPSILON,
-  // min/max double
-  DBL_MIN, DBL_MAX};
+  // min/max double/float: we don't use DBL_MAX as it forbidden by Webots because it causes ODE failures.
+  DBL_MIN, FLT_MAX};
 
 int main(int argc, char **argv) {
   wb_robot_init();
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     for (i = 0; i < N_VALUES; ++i) {
       printf("%g\n", values[i]);
       sprintf(name_buffer, "TEST_%d", i);
-      sprintf(import_buffer, "DEF %s Transform {}", name_buffer);
+      sprintf(import_buffer, "DEF %s Pose {}", name_buffer);
       wb_supervisor_field_import_mf_node_from_string(root_children, -1, import_buffer);
       WbNodeRef test_node = wb_supervisor_node_get_from_def(name_buffer);
       WbFieldRef test_translation = wb_supervisor_node_get_field(test_node, "translation");

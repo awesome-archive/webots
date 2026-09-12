@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,11 +35,8 @@
 #define BLIND_SPOT_COLOR 0xC0C0C0
 #define BACKGROUND_COLOR 0xFFFFFF
 
-// the lidar values are clamped between 0 and CLAMP_MAX
-#define CLAMP_MAX 1.0
-
-// function retrieving the min value between x and y
-#define MIN(x, y) ((x) > (y) ? (y) : (x))
+// max distance represented in the displayed circle
+#define RADIUS 1.0
 
 // function displaying lidar values on a display
 static void display(WbDeviceTag d,   // display
@@ -68,9 +65,11 @@ static void display(WbDeviceTag d,   // display
 
   int i;
   for (i = 0; i < ns; i++) {
-    float f = MIN(CLAMP_MAX, v[i]);
-    float alpha = -fov2 + fov * i / ns - M_PI_2;
-    wb_display_draw_line(d, dw2, dh2, dw2 + f * cos(alpha) * dw2 / CLAMP_MAX, dh2 + f * sin(alpha) * dh2 / CLAMP_MAX);
+    const float f = v[i];
+    if (f != INFINITY && !isnan(f)) {
+      const float alpha = -fov2 + fov * i / ns - M_PI_2;
+      wb_display_draw_line(d, dw2, dh2, dw2 + f * cos(alpha) * dw2 / RADIUS, dh2 + f * sin(alpha) * dh2 / RADIUS);
+    }
   }
 }
 

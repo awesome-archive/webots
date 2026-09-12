@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -93,42 +93,42 @@ const WbRgb &WbMaterial::diffuseColor() const {
 }
 
 void WbMaterial::updateAmbientIntensity() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mAmbientIntensity, 0.0, 1.0, 0.5))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mAmbientIntensity, 0.0, 1.0, 0.5))
     return;
   if (isPostFinalizedCalled())
     emit changed();
 }
 
 void WbMaterial::updateDiffuseColor() {
-  if (WbFieldChecker::checkColorIsValid(this, mDiffuseColor))
+  if (WbFieldChecker::resetColorIfInvalid(this, mDiffuseColor))
     return;
   if (isPostFinalizedCalled())
     emit changed();
 }
 
 void WbMaterial::updateEmissiveColor() {
-  if (WbFieldChecker::checkColorIsValid(this, mEmissiveColor))
+  if (WbFieldChecker::resetColorIfInvalid(this, mEmissiveColor))
     return;
   if (isPostFinalizedCalled())
     emit changed();
 }
 
 void WbMaterial::updateShininess() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mShininess, 0.0, 1.0, 0.5))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mShininess, 0.0, 1.0, 0.5))
     return;
   if (isPostFinalizedCalled())
     emit changed();
 }
 
 void WbMaterial::updateSpecularColor() {
-  if (WbFieldChecker::checkColorIsValid(this, mSpecularColor))
+  if (WbFieldChecker::resetColorIfInvalid(this, mSpecularColor))
     return;
   if (isPostFinalizedCalled())
     emit changed();
 }
 
 void WbMaterial::updateTransparency() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mTransparency, 0.0, 1.0, 0.5))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mTransparency, 0.0, 1.0, 0.5))
     return;
   if (isPostFinalizedCalled())
     emit changed();
@@ -154,41 +154,29 @@ void WbMaterial::modifyWrenMaterial(WrMaterial *wrenMaterial, bool textured) {
     shininess = mShininess->value();
   }
 
-  const float ambientColor[] = {static_cast<float>(ambient.red()), static_cast<float>(ambient.green()),
-                                static_cast<float>(ambient.blue())};
+  const float newAmbientColor[] = {static_cast<float>(ambient.red()), static_cast<float>(ambient.green()),
+                                   static_cast<float>(ambient.blue())};
 
-  const float diffuseColor[] = {static_cast<float>(diffuse.red()), static_cast<float>(diffuse.green()),
-                                static_cast<float>(diffuse.blue())};
+  const float newDiffuseColor[] = {static_cast<float>(diffuse.red()), static_cast<float>(diffuse.green()),
+                                   static_cast<float>(diffuse.blue())};
 
-  const float specularColor[] = {static_cast<float>(specular.red()), static_cast<float>(specular.green()),
-                                 static_cast<float>(specular.blue())};
+  const float newSpecularColor[] = {static_cast<float>(specular.red()), static_cast<float>(specular.green()),
+                                    static_cast<float>(specular.blue())};
 
-  const float emissiveColor[] = {static_cast<float>(emissive.red()), static_cast<float>(emissive.green()),
-                                 static_cast<float>(emissive.blue())};
+  const float newEmissiveColor[] = {static_cast<float>(emissive.red()), static_cast<float>(emissive.green()),
+                                    static_cast<float>(emissive.blue())};
 
-  wr_phong_material_set_all_parameters(wrenMaterial, ambientColor, diffuseColor, specularColor, emissiveColor, shininess,
-                                       mTransparency->value());
+  wr_phong_material_set_all_parameters(wrenMaterial, newAmbientColor, newDiffuseColor, newSpecularColor, newEmissiveColor,
+                                       shininess, mTransparency->value());
 }
 
-void WbMaterial::exportNodeFields(WbVrmlWriter &writer) const {
-  if (writer.isWebots()) {
-    WbBaseNode::exportNodeFields(writer);
-    return;
-  }
-
-  foreach (WbField *field, fields()) {
-    // Override WbNode::exportNodeFields in order to skip exporting emissiveColor in x3d
-    // given that the result in x3dom is not the expected one
-    if (writer.isX3d() && field->name() == "emissiveColor")
-      continue;
-    if (!field->isDeprecated() && (field->isVrml() && field->singleType() != WB_SF_NODE))
-      field->write(writer);
-  }
-}
-
-QStringList WbMaterial::fieldsToSynchronizeWithX3D() const {
+QStringList WbMaterial::fieldsToSynchronizeWithW3d() const {
   QStringList fields;
-  fields << "emissiveColor"
+  fields << "ambientIntensity"
+         << "shininess"
+         << "specularColor"
+         << "transparency"
+         << "emissiveColor"
          << "diffuseColor";
   return fields;
 }

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,9 +20,9 @@
 //
 
 #include "WbMultipleValue.hpp"
-#include "WbVrmlWriter.hpp"
+#include "WbWriter.hpp"
 
-#include <QtCore/QVector>
+#include <QtCore/QStringList>
 
 #include <cassert>
 
@@ -33,41 +33,44 @@ public:
   typedef WbMFIterator<WbMFString, QString> Iterator;
 
   WbMFString(WbTokenizer *tokenizer, const QString &worldPath) { read(tokenizer, worldPath); }
-  WbMFString(const WbMFString &other) { mVector = other.mVector; }
-  virtual ~WbMFString() {}
+  WbMFString(const WbMFString &other) : mValue(other.mValue) {}
+  explicit WbMFString(const QStringList &value) : mValue(value) {}
+  virtual ~WbMFString() override {}
   WbValue *clone() const override { return new WbMFString(*this); }
   bool equals(const WbValue *other) const override;
   void copyFrom(const WbValue *other) override;
-  int size() const override { return mVector.size(); }
+  int size() const override { return mValue.size(); }
   void clear() override;
-  void writeItem(WbVrmlWriter &writer, int index) const override {
+  void writeItem(WbWriter &writer, int index) const override {
     assert(index >= 0 && index < size());
-    writer.writeLiteralString(mVector[index]);
+    writer.writeLiteralString(mValue[index]);
   }
   void insertDefaultItem(int index) override;
   WbVariant defaultNewVariant() const override { return WbVariant(QString()); }
   void removeItem(int index) override;
   WbVariant variantValue(int index) const override {
     assert(index >= 0 && index < size());
-    return WbVariant(mVector[index]);
+    return WbVariant(mValue[index]);
   }
+  const QStringList &value() const { return mValue; }
   WbFieldType type() const override { return WB_MF_STRING; }
   const QString &item(int index) const {
     assert(index >= 0 && index < size());
-    return mVector[index];
+    return mValue[index];
   }
+  void setValue(const QStringList &value);
   void setItem(int index, const QString &value);
   void addItem(const QString &value);
   void insertItem(int index, const QString &value);
   WbMFString &operator=(const WbMFString &other);
-  bool operator==(const WbMFString &other) const { return mVector == other.mVector; }
+  bool operator==(const WbMFString &other) const { return mValue == other.mValue; }
 
 protected:
   void readAndAddItem(WbTokenizer *tokenizer, const QString &worldPath) override;
   bool smallSeparator(int i) const override { return false; }
 
 private:
-  QVector<QString> mVector;
+  QStringList mValue;
 };
 
 #endif

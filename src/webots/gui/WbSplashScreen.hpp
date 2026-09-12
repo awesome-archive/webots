@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -44,12 +44,12 @@ public:
   const QColor &versionColor() const { return mVersionColor; }
   const QColor &loadingColor() const { return mLoadingColor; }
 
-  void setBackgroundGradientStartColor(QColor &color) { mBackgroundGradientStartColor = color; }
-  void setBackgroundGradientEndColor(QColor &color) { mBackgroundGradientEndColor = color; }
-  void setCompanyColor(QColor &color) { mCompanyColor = color; }
-  void setTaglineColor(QColor &color) { mTaglineColor = color; }
-  void setVersionColor(QColor &color) { mVersionColor = color; }
-  void setLoadingColor(QColor &color) { mLoadingColor = color; }
+  void setBackgroundGradientStartColor(const QColor &color) { mBackgroundGradientStartColor = color; }
+  void setBackgroundGradientEndColor(const QColor &color) { mBackgroundGradientEndColor = color; }
+  void setCompanyColor(const QColor &color) { mCompanyColor = color; }
+  void setTaglineColor(const QColor &color) { mTaglineColor = color; }
+  void setVersionColor(const QColor &color) { mVersionColor = color; }
+  void setLoadingColor(const QColor &color) { mLoadingColor = color; }
 
 private:
   QString mMessage;

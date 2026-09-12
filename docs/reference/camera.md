@@ -4,25 +4,40 @@ Derived from [Device](device.md) and [Solid](solid.md).
 
 ```
 Camera {
-  SFFloat  fieldOfView  0.7854  # [0, pi]
-  SFInt32  width        64      # [0, inf)
-  SFInt32  height       64      # [0, inf)
-  SFBool   spherical    FALSE   # {TRUE, FALSE}
-  SFFloat  near         0.01    # [0, inf)
-  SFFloat  far          0.0     # [0, inf)
-  SFBool   antiAliasing FALSE   # {TRUE, FALSE}
-  SFFloat  motionBlur   0.0     # [0, inf)
-  SFFloat  noise        0.0     # [0, 1]
-  SFString noiseMaskUrl ""      # any string
-  SFNode   lens         NULL    # {Lens, PROTO}
-  SFNode   focus        NULL    # {Focus, PROTO}
-  SFNode   zoom         NULL    # {Zoom, PROTO}
-  SFNode   recognition  NULL    # {Recognition, PROTO}
-  SFNode   lensFlare    NULL    # {LensFlare, PROTO}
+  SFFloat  fieldOfView            0.7854   # [0, pi]
+  SFInt32  width                  64       # [0, inf)
+  SFInt32  height                 64       # [0, inf)
+  SFString projection             "planar" # {"planar", "spherical", "cylindrical"}
+  SFFloat  near                   0.01     # [0, inf)
+  SFFloat  far                    0.0      # [0, inf)
+  SFFloat  exposure               1.0      # [near, inf)
+  SFBool   antiAliasing           FALSE    # {TRUE, FALSE}
+  SFFloat  ambientOcclusionRadius 0        # [0, inf)
+  SFFloat  bloomThreshold         -1.0     # [-1, inf)
+  SFFloat  motionBlur             0.0      # [0, inf)
+  SFFloat  noise                  0.0      # [0, 1]
+  SFString noiseMaskUrl           ""       # any string
+  SFNode   lens                   NULL     # {Lens, PROTO}
+  SFNode   focus                  NULL     # {Focus, PROTO}
+  SFNode   zoom                   NULL     # {Zoom, PROTO}
+  SFNode   recognition            NULL     # {Recognition, PROTO}
+  SFNode   lensFlare              NULL     # {LensFlare, PROTO}
 }
 ```
 
 ### Description
+
+%figure "Camera Coordinate System"
+
+![camera.png](images/camera.thumbnail.jpg)
+
+%end
+
+%figure "Roll Tilt Pan Axes"
+
+![roll-tilt-pan.png](images/roll-tilt-pan.png)
+
+%end
 
 The [Camera](#camera) node is used to model a robot's on-board camera.
 The resulting image can be displayed on the 3D window.
@@ -31,18 +46,18 @@ Depending on its setup, the Camera node can model a linear camera, a typical RGB
 ### Field Summary
 
 - `fieldOfView`: horizontal field of view angle of the camera.
-The value is limited to the range 0 to &pi; radians if the `spherical` field is set to FALSE, otherwise there is no upper limit.
+The value is limited to the range 0 to &pi; radians if the `projection` field is set to "planar", otherwise there is no upper limit.
 Since camera pixels are squares, the vertical field of view can be computed from the `width`, `height` and horizontal `fieldOfView`:
 
-    *vertical FOV = fieldOfView * height / width*
+    *vertical FOV = 2 * atan(tan(fieldOfView * 0.5) * (height / width))*
 
 - `width`: width of the image in pixels.
 
 - `height`: height of the image in pixels.
 
-- `spherical`: switch between a planar or a spherical projection.
-A spherical projection can be used for example to simulate a fisheye lens.
-More information on spherical projection in the corresponding subsection below.
+- `projection`: switch between a planar, spherical, or cylindrical projection.
+The spherical projection simulates a fisheye lens and the cylindrical projection generates equirectangular images.
+More information on spherical and cylindrical projections in the corresponding subsection below.
 
 - The `near` field defines the distance from the camera to the near clipping plane.
 This plane is parallel to the camera retina (i.e. projection plane).
@@ -52,9 +67,24 @@ More information on frustums in the corresponding subsection below.
 
 - The `far` field defines the distance from the camera to the far clipping plane.
 
+- The `exposure` field defines the photometric exposure of the scene in joule per square meter (J/m^2).
+
 - The `antiAliasing` field switches on or off (the default) anti-aliasing effect on the camera images.
 Aliasing artifacts can appear as jagged edges (or moiré patterns, strobing, etc.).
 Anti-aliasing is a technique that selectively blurs these jagged edges (and thus makes them look more smooth) in the rendered camera image, similar to an anti-aliasing filter in real camera sensors.
+
+- The `ambientOcclusionRadius` field denotes the radius of geometric occlusion searches in the scene.
+Increasing the radius can increase occlusion from further objects.
+However, at lower quality levels, near-field occlusion can start to disappear as the radius increases.
+This effect is disabled by default on cameras for performance reasons, with a value of `0`.
+Setting this field to any positive non-zero value enables the effect.
+
+- The `bloomThreshold` field denotes the luminosity above which pixels start to "bloom" - i.e. overexpose the camera and leak light around themselves.
+Decreasing the threshold means pixels bloom more easily, as if the camera were more easily overexposed.
+The effect is disabled by default, with a default threshold of `-1`.
+Setting this value to 0 or any positive value enables the effect.
+Please note this effect is not physically based, like with Ambient Occlusion (GTAO) or PBR.
+It serves as a good approximation of camera overexposure, however.
 
 - If the `motionBlur` field is greater than 0.0, the image is blurred by the motion of the camera or objects in the field of view.
 It means the image returned is a mix between the current view and the previous images returned by the camera.
@@ -68,8 +98,9 @@ A value of 0.0 corresponds to remove the noise and thus saving computation time.
 A value of 1.0 corresponds to a gaussian noise having a standard derivation of 255 in the channel representation.
 More information on noise in the corresponding subsection below.
 
-- The `noiseMaskUrl` field specifies the file path of a user-defined noise mask, usually a transparent PNG image The file should be specified with a relative path (cf.
-[this section](imagetexture.md#search-rule-of-the-texture-path)).
+- The `noiseMaskUrl` field specifies a user-defined noise mask as a transparent PNG image.
+If the `noiseMaskUrl` value starts with `http://` or `https://`, Webots will get the file from the web.
+Otherwise the file should be specified with a relative path (cf. [this section](imagetexture.md#search-rule-of-the-texture-path)).
 Absolute paths work as well, but they are not recommended because they are not portable across different systems.
 Ideally, the texture file should lie next to the world file, possibly inside a "textures" subfolder.
 It is suggested to use textures with power of 2 resolution (e.g. 8x8, 2048x64, etc.) and bigger than the camera resolution to avoid internal scaling that could cause the loss of pixel precision.
@@ -102,7 +133,9 @@ The pixel information can be obtained from the `wb_camera_get_image` function.
 The red, green and blue channels (RGB) can be extracted from the resulting image by the `wb_camera_image_get_*`-like functions.
 
 Each time a camera is refreshed, an OpenGL rendering is performed, and the color information is copied into the buffer returned by the `wb_camera_get_image` function.
-The format of this buffers is BGRA (32 bits).
+The contents of the buffer are subject to change between a call to `wb_robot_step_begin` and the subsequent call to `wb_robot_step_end`.
+As a result, if you want to access the buffer during a step, you should copy it before the step begins and access the copy.
+The format of this buffer is BGRA (32 bits).
 We recommend to use the `wb_camera_image_get_*`-like functions to access the buffer because the internal format could change.
 
 > **Note** [MATLAB]: The MATLAB API uses a language-specific representation of color images consisting of a 3D array of RGB triplets.
@@ -129,29 +162,46 @@ In comparison with the frustum description above, the near and the far planes ar
 
 ### Noise
 
-It is possible to add quickly a white noise on the cameras by using the `noise` field.
+It is possible to quickly add some noise on the cameras by using the `noise` field.
 A value of `0.0` corresponds to an image without noise.
 For each channel of the image and at each camera refresh, a gaussian noise is computed and added to the channel.
 This gaussian noise has a standard deviation corresponding to the noise field times the channel range.
 The channel range is 256 for a color camera.
 
-### Spherical Projection
+### Spherical and Cylindrical Projections
 
 OpenGL is designed to have only planar projections.
-However spherical projections are very useful for simulating a camera pointing on a curved mirror or a fisheye effect as found in many biological eyes.
-Therefore we implemented a camera mode rendering spherical projections.
-It can be enabled simply by switching on the corresponding `spherical` field described above.
+However cylindrical and spherical projections are very useful for simulating a camera pointing on a curved mirror or a fisheye effect as found in many biological eyes.
+Therefore we implemented a camera mode rendering spherical and cylindrical projections.
+It can be enabled simply by switching on the corresponding `projection` field described above.
 
-Internally, depending on the field of view, a spherical camera is implemented by using between 1 to 6 OpenGL cameras oriented towards the faces of a cube (the activated cameras are displayed by magenta squares when the `View|Optional Rendering|Show Camera Frustums` menu item is enabled).
-Moreover an algorithm computing the spherical projection is applied on the result of the subcameras.
+Internally, depending on the field of view, a spherical and cylindrical cameras are implemented by using between 1 to 6 OpenGL cameras oriented towards the faces of a cube (the activated cameras are displayed by magenta squares when the `View|Optional Rendering|Show Camera Frustums` menu item is enabled).
+Moreover an algorithm computing the spherical or cylindrical projection is applied on the result of the subcameras.
 
 So this mode is costly in terms of performance! Reducing the resolution of the cameras and using a `fieldOfView` which minimizes the number of activated cameras helps a lot to improve the performance if needed.
 
-When the camera is spherical, the image returned by the `wb_camera_get_image` function is a 2-dimensional array (s,t) in spherical coordinates.
+%figure "Spherical and cylindrical camera images"
 
-Let `hFov` be the horizontal field of view, and let `theta` be the angle in radian between the `(0, 0, -z)` relative coordinate and the relative coordinate of the target position along the `xz` plane relative to the camera, then `s=0` corresponds to a `theta` angle of `-hFov/2`, `s=(width-1)/2` corresponds to a `theta` angle of 0, and `s=width-1` corresponds to a `theta` angle of `hFov/2`.
+![spherical_and_cylindrical_camera_images.png](images/spherical_and_cylindrical_camera_images.thumbnail.jpg)
 
-Similarly, let `vFov` be the vertical field of view (defined just above), and `phi` the angle in radian between the `(0, 0, -z)` relative coordinate and the relative coordinate of the target position along the `xy` plane relative to the camera, `t=0` corresponds to a `phi` angle of `-vFov/2`, `t=(height-1)/2` corresponds to a `phi` angle of 0, and `t=height-1` corresponds to a `phi` angle of `vFov/2`).
+%end
+
+When the camera is spherical, the image returned by the `wb_camera_get_image` function is a 2-dimensional array (s,t) representing the projection of the scene on a sphere.
+Respectively, when the camera projection is cylindrical, the image returned by the `wb_camera_get_image` function is a 2-dimensional array (s,t) representing the projection of the scene on a cylinder.
+
+%figure "Spherical (left) and cylindrical (right) projections"
+
+![camera_projection_model.png](images/camera_projection_model.thumbnail.png)
+
+%end
+
+Let assume a 3D target point is located at coordinates `(X, Y, Z)` relative to the camera origin.
+
+Let `hFov` be the horizontal field of view, and let `theta` be the angle in radian between vector `(X, 0, 0)` and vector `(X, Y, 0)`.
+Then `s=0` corresponds to a `theta` angle of `hFov/2`, `s=(width-1)/2` corresponds to a `theta` angle of 0, and `s=width-1` corresponds to a `theta` angle of `-hFov/2`.
+
+Similarly, let `vFov` be the vertical field of view (defined just above), and `phi` the angle in radian between vector `(X, 0, 0)` and vector `(X, 0, Z)`.
+Then `t=0` corresponds to a `phi` angle of `vFov/2`, `t=(height-1)/2` corresponds to a `phi` angle of 0, and `t=height-1` corresponds to a `phi` angle of `-vFov/2`.
 
 ### Overlay Image
 
@@ -164,6 +214,7 @@ Similarly, let `vFov` be the vertical field of view (defined just above), and `p
 The camera image is shown by default on top of the 3D window with a magenta border, see [this figure](#camera-overlay-image).
 The user can move this camera image at the desired position using the mouse drag and drop and resize it by clicking on the icon at the bottom right corner.
 Additionally a close button is available on the top right corner to hide the image.
+If the mouse cursor is over the overlay image and the simulation is paused, the RGB value of the selected pixel is displayed in the status bar at the bottom of the Webots window.
 Once the robot is selected, it is also possible to show or hide the overlay images from the `Camera Devices` item in `Robot` menu.
 
 It is also possible to show the camera image in an external window by double-clicking on it.
@@ -172,10 +223,11 @@ Then, after closing the window, the overlay will be automatically restored.
 
 When the [recognition mode](#wb_camera_has_recognition) is enabled, rectangles surround the recognized objects.
 If the mouse cursor is over one of these rectangles and the simulator is paused, then a complete description of the recognized object is displayed in red, as shown in [the following figure](#display-of-a-recognized-object).
+If the [Recognition](recognition.md).`segmentation` field is also set to TRUE, a mask representing the segmentation ground truth image is applied on the camera image displayed in the overlay.
 
 %figure "Display of a recognized object."
 
-![camera_recognition.png](images/camera_recognition.png)
+![camera_recognition.png](images/camera_recognition.thumbnail.jpg)
 
 %end
 
@@ -185,7 +237,7 @@ If the mouse cursor is over one of these rectangles and the simulator is paused,
 #### `wb_camera_disable`
 #### `wb_camera_get_sampling_period`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -247,21 +299,11 @@ public class Camera extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_camera_enable(tag, sampling_period)
 wb_camera_disable(tag)
 period = wb_camera_get_sampling_period(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/image` | `topic` | [`sensor_msgs::Image`](http://docs.ros.org/api/sensor_msgs/html/msg/Image.html) | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`uint32 height`<br/>`uint32 width`<br/>`string encoding`<br/>`uint8 is_bigendian`<br/>`uint32 step`<br/>`uint8[] data` |
-| `/<device_name>/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/<device_name>/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -272,6 +314,8 @@ period = wb_camera_get_sampling_period(tag)
 *enable and disable camera updates*
 
 The `wb_camera_enable` function allows the user to enable a camera.
+Once the camera is enabled, it will copy images from GPU memory to CPU memory at each time step, regardless of `wb_camera_get_image` calls.
+
 The `sampling_period` argument specifies the sampling period of the sensor and is expressed in milliseconds.
 Note that the first measurement will be available only after the first sampling period elapsed.
 
@@ -286,7 +330,7 @@ The `wb_camera_get_sampling_period` function returns the period given to the `wb
 #### `wb_camera_get_max_fov`
 #### `wb_camera_set_fov`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -352,22 +396,12 @@ public class Camera extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 fov = wb_camera_get_fov(tag)
 fov = wb_camera_get_min_fov(tag)
 fov = wb_camera_get_max_fov(tag)
 wb_camera_set_fov(tag, fov)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_info` | `service` | `webots_ros::camera_get_info` | `uint8 ask`<br/>`---`<br/>`uint32 width`<br/>`uint32 height`<br/>`float64 Fov`<br/>`float64 nearRange` |
-| `/<device_name>/set_fov` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_zoom_info` | `service` | `webots_ros::camera_get_zoom_info` | `uint8 ask`<br/>`---`<br/>`float64 minFov`<br/>`float64 maxFov` |
 
 %tab-end
 
@@ -384,13 +418,92 @@ The minimum and maximum values for the field of view are defined in this [Zoom](
 
 ---
 
+#### `wb_camera_get_exposure`
+#### `wb_camera_set_exposure`
+
+%tab-component "language"
+
+%tab "C"
+
+```c
+#include <webots/camera.h>
+
+double wb_camera_get_exposure(WbDeviceTag tag);
+void wb_camera_set_exposure(WbDeviceTag tag, double exposure);
+```
+
+%tab-end
+
+%tab "C++"
+
+```cpp
+#include <webots/Camera.hpp>
+
+namespace webots {
+  class Camera : public Device {
+    double getExposure() const;
+    virtual void setExposure(double exposure);
+    // ...
+  }
+}
+```
+
+%tab-end
+
+%tab "Python"
+
+```python
+from controller import Camera
+
+class Camera (Device):
+    def getExposure(self):
+    def setExposure(self, exposure):
+    # ...
+```
+
+%tab-end
+
+%tab "Java"
+
+```java
+import com.cyberbotics.webots.controller.Camera;
+
+public class Camera extends Device {
+  public double getExposure();
+  public void setExposure(double exposure);
+  // ...
+}
+```
+
+%tab-end
+
+%tab "MATLAB"
+
+```MATLAB
+exposure = wb_camera_get_exposure(tag)
+wb_camera_set_exposure(tag, exposure)
+```
+
+%tab-end
+
+%end
+
+##### Description
+
+*get and set exposure of a camera*
+
+These functions allow the controller to get and set the value of the exposure of a camera.
+The original value for this exposure is defined in the [Camera](#camera) node, as `exposure`.
+
+---
+
 #### `wb_camera_get_focal_length`
 #### `wb_camera_get_focal_distance`
 #### `wb_camera_get_max_focal_distance`
 #### `wb_camera_get_min_focal_distance`
 #### `wb_camera_set_focal_distance`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -460,22 +573,13 @@ public class Camera extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 fov = wb_camera_get_focal_length(tag)
 fov = wb_camera_get_focal_distance(tag)
 fov = wb_camera_get_max_focal_distance(tag)
 fov = wb_camera_get_min_focal_distance(tag)
 wb_camera_set_focal_distance(tag, focal_distance)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_focus_info` | `service` | `webots_ros::camera_get_focus_info` | `uint8 ask`<br/>---<br/>`float64 focalLength`<br/>`float64 focalDistance`<br/>`float64 maxFocalDistance`<br/>`float64 minFocalDistance` |
-| `/<device_name>/set_focal_distance` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -493,7 +597,7 @@ Note that if the camera device has no [Focus](focus.md) node defined in its `foc
 #### `wb_camera_get_width`
 #### `wb_camera_get_height`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -551,18 +655,10 @@ public class Camera extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 width = wb_camera_get_width(tag)
 height = wb_camera_get_height(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_info` | `service` | `webots_ros::camera_get_info` | `uint8 ask`<br/>`---`<br/>`uint32 width`<br/>`uint32 height`<br/>`float64 Fov`<br/>`float64 nearRange` |
 
 %tab-end
 
@@ -578,7 +674,7 @@ These functions return the width and height of a camera image as defined in the 
 
 #### `wb_camera_get_near`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -632,17 +728,9 @@ public class Camera extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 near = wb_camera_get_near(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_info` | `service` | `webots_ros::camera_get_info` | `uint8 ask`<br/>`---`<br/>`uint32 width`<br/>`uint32 height`<br/>`float64 Fov`<br/>`float64 nearRange` |
 
 %tab-end
 
@@ -662,7 +750,7 @@ This function returns the near parameter of a camera device as defined in the co
 #### `wb_camera_image_get_blue`
 #### `wb_camera_image_get_gray`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -703,16 +791,16 @@ namespace webots {
 from controller import Camera
 
 class Camera (Device):
-    def getImage(self):
-    def getImageArray(self):
+    def getImage(self) -> bytes:
+    def getImageArray(self) -> list[list[list[int]]]:
     @staticmethod
-    def imageGetRed(image, width, x, y):
+    def imageGetRed(image: bytes, width: int, x: int, y: int) -> int:
     @staticmethod
-    def imageGetGreen(image, width, x, y):
+    def imageGetGreen(image: bytes, width: int, x: int, y: int) -> int:
     @staticmethod
-    def imageGetBlue(image, width, x, y):
+    def imageGetBlue(image: bytes, width: int, x: int, y: int) -> int:
     @staticmethod
-    def imageGetGray(image, width, x, y):
+    def imageGetGray(image: bytes, width: int, x: int, y: int) -> int:
     # ...
 ```
 
@@ -741,17 +829,9 @@ public class Camera extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 image = wb_camera_get_image(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/image` | `topic` | `sensor_msgs::Image` | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`uint32 height`<br/>`uint32 width`<br/>`string encoding`<br/>`uint8 is_bigendian`<br/>`uint32 step`<br/>`uint8[] data` |
 
 %tab-end
 
@@ -762,7 +842,7 @@ image = wb_camera_get_image(tag)
 *get the image data from a camera*
 
 The `wb_camera_get_image` function reads the last image grabbed by the camera.
-The image is coded as a sequence of three bytes representing the red, green and blue levels of a pixel.
+The image is coded as a sequence of four bytes representing the blue, green, red and alpha levels of a pixel.
 Pixels are stored in horizontal lines ranging from the top left hand side of the image down to bottom right hand side.
 The memory chunk returned by this function must not be freed, as it is handled by the camera itself.
 The size in bytes of this memory chunk can be computed as follows:
@@ -771,8 +851,11 @@ The size in bytes of this memory chunk can be computed as follows:
 byte_size = camera_width * camera_height * 4
 ```
 
-Internal pixel format of the buffer is BGRA (32 bits).
 Attempting to read outside the bounds of this chunk will cause an error.
+The contents of the image are subject to change between a call to `wb_robot_step_begin` and the subsequent call to `wb_robot_step_end`.
+As a result, if you want to access the image during a step, you should copy it before the step begins and access the copy.
+Internal pixel format of the buffer is BGRA (32 bits).
+Note that the Java API uses little-endian format and stores the pixel integer value in ARGB format.
 
 The `wb_camera_image_get_red`, `wb_camera_image_get_green` and `wb_camera_image_get_blue` macros can be used for directly accessing the pixel RGB levels from the pixel coordinates.
 The `wb_camera_image_get_gray` macro works in a similar way but returns the gray level of the specified pixel by averaging the three RGB components.
@@ -792,8 +875,9 @@ for (int x = 0; x < image_width; x++)
 
 > **Note** [Java]: The `Camera.getImage` function returns an array of int (`int[]`).
 The length of this array corresponds to the number of pixels in the image, that is the width multiplied by the height of the image.
-Each `int` element of the array represents one pixel coded in BGRA (32 bits).
-For example red is `0x0000ff00`, green is `0x00ff0000`, etc. The `Camera.pixelGetRed`, `Camera.pixelGetGreen` and `Camera.pixelGetBlue` functions can be used to decode a pixel value for the red, green and blue components.
+Each `int` element of the array represents one pixel coded in ARGB (32 bits).
+For example red is `0x00ff0000`, green is `0x0000ff00`, etc.
+The `Camera.pixelGetRed`, `Camera.pixelGetGreen` and `Camera.pixelGetBlue` functions can be used to decode a pixel value for the red, green and blue components.
 The `Camera.pixelGetGray` function works in a similar way, but returns the gray level of the pixel by averaging the three RGB components.
 Each of these four functions take an `int` pixel argument and return an `int` color/gray component in the range [0..255].
 Here is an example:
@@ -811,8 +895,8 @@ Here is an example:
 
 <!-- -->
 
-> **Note** [Python]: The `getImage` function returns a `string`.
-This `string` is closely related to the `const char *` of the C API.
+> **Note** [Python]: The `getImage` function returns a byte array (`bytes`).
+This `bytes` is closely related to the `const char *` of the C API.
 `imageGet*`-like functions can be used to get the channels of the camera Here is an example:
 
 > ```python
@@ -823,20 +907,21 @@ This `string` is closely related to the `const char *` of the C API.
 > gray = Camera.imageGetGray(cameraData, camera.getWidth(), 5, 10)
 > ```
 
-> Another way to use the camera in Python is to get the image by the `getImageArray` function which returns a `list<list<list<int>>>`.
-This three dimensional list can be directly used for accessing to the pixels.
+> Another way to get the camera image in Python is to use the `getImageArray` method which returns a `list<list<list<int>>>`.
+This three dimensional list can be directly used for accessing the RGB pixels value. However, this method runs significantly slower than the `getImage` method.
 Here is an example:
 
 > ```python
 > image = camera.getImageArray()
-> # display the components of each pixel
-> for x in range(0,camera.getWidth()):
->   for y in range(0,camera.getHeight()):
->     red   = image[x][y][0]
->     green = image[x][y][1]
->     blue  = image[x][y][2]
->     gray  = (red + green + blue) / 3
->     print 'r='+str(red)+' g='+str(green)+' b='+str(blue)
+> if image:
+>     # display the components of each pixel
+>     for x in range(0,camera.getWidth()):
+>         for y in range(0,camera.getHeight()):
+>             red   = image[x][y][0]
+>             green = image[x][y][1]
+>             blue  = image[x][y][2]
+>             gray  = (red + green + blue) / 3
+>             print('r='+str(red)+' g='+str(green)+' b='+str(blue))
 > ```
 
 <!-- -->
@@ -846,7 +931,7 @@ The first two dimensions of the array are the width and the height of camera's i
 The `wb_camera_get_range_image` function returns a 2-dimensional array of `float('single')`.
 The dimensions of the array are the width and the length of camera's image and the float values are the metric distance values deduced from the OpenGL z-buffer.
 
-> ```matlab
+> ```MATLAB
 > camera = wb_robot_get_device('camera');
 > wb_camera_enable(camera,TIME_STEP);
 > half_width = floor(wb_camera_get_width(camera) / 2);
@@ -869,7 +954,7 @@ The dimensions of the array are the width and the length of camera's image and t
 
 #### `wb_camera_save_image`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -923,17 +1008,9 @@ public class Camera extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 success = wb_camera_save_image(tag, 'filename', quality)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/save_image` | `service` | `webots_ros::save_image` | `string filename`<br/>`int32 quality`<br/>`---`<br/>`int8 success` |
 
 %tab-end
 
@@ -955,6 +1032,9 @@ The `quality` parameter should be in the range 1 (worst quality) to 100 (best qu
 Low quality JPEG files will use less disk space.
 For PNG images, the `quality` parameter is ignored.
 
+`wb_camera_save_image` should not be called between a call to `wb_robot_step_begin` and the subsequent call to `wb_robot_step_end`,
+because the image is subject to change during that period.
+
 The return value of the `wb_camera_save_image` function is 0 in case of success.
 It is -1 in case of failure (unable to open the specified file or unrecognized image file extension).
 
@@ -966,8 +1046,13 @@ It is -1 in case of failure (unable to open the specified file or unrecognized i
 #### `wb_camera_recognition_get_sampling_period`
 #### `wb_camera_recognition_get_number_of_objects`
 #### `wb_camera_recognition_get_objects`
+#### `wb_camera_recognition_has_segmentation`
+#### `wb_camera_recognition_enable_segmentation`
+#### `wb_camera_recognition_disable_segmentation`
+#### `wb_camera_recognition_get_segmentation_image`
+#### `wb_camera_recognition_save_segmentation_image`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -980,6 +1065,12 @@ void wb_camera_recognition_disable(WbDeviceTag tag);
 int wb_camera_recognition_get_sampling_period(WbDeviceTag tag);
 int wb_camera_recognition_get_number_of_objects(WbDeviceTag tag);
 const WbCameraRecognitionObject *wb_camera_recognition_get_objects(WbDeviceTag tag);
+bool wb_camera_recognition_has_segmentation(WbDeviceTag tag);
+void wb_camera_recognition_enable_segmentation(WbDeviceTag tag);
+void wb_camera_recognition_disable_segmentation(WbDeviceTag tag);
+void wb_camera_recognition_is_segmentation_enabled(WbDeviceTag tag);
+const unsigned char* wb_camera_recognition_get_segmentation_image(WbDeviceTag tag);
+int wb_camera_recognition_save_segmentation_image(WbDeviceTag tag, const char *filename, int quality);
 ```
 
 %tab-end
@@ -997,6 +1088,12 @@ namespace webots {
     int getRecognitionSamplingPeriod() const;
     int getRecognitionNumberOfObjects() const;
     const CameraRecognitionObject *getRecognitionObjects() const;
+    bool hasRecognitionSegmentation() const;
+    void enableRecognitionSegmentation();
+    void disableRecognitionSegmentation();
+    bool isRecognitionSegmentationEnabled() const;
+    const unsigned char *getRecognitionSegmentationImage() const;
+    int saveRecognitionSegmentationImage(const std::string &filename, int quality) const;
     // ...
   }
 }
@@ -1016,6 +1113,13 @@ class Camera (Device):
     def getRecognitionSamplingPeriod(self):
     def getRecognitionNumberOfObjects(self):
     def getRecognitionObjects(self):
+    def hasRecognitionSegmentation(self):
+    def enableRecognitionSegmentation(self):
+    def disableRecognitionSegmentation(self):
+    def isRecognitionSegmentationEnabled(self):
+    def getRecognitionSegmentationImage(self):
+    def getRecognitionSegmentationImageArray(self):
+    def saveRecognitionSegmentationImage(self, filename, quality):
     # ...
 ```
 
@@ -1033,6 +1137,12 @@ public class Camera extends Device {
   public int getRecognitionSamplingPeriod();
   public int getRecognitionNumberOfObjects();
   public CameraRecognitionObject[] getRecognitionObjects();
+  public boolean hasRecognitionSegmentation();
+  public void enableRecognitionSegmentation();
+  public void disableRecognitionSegmentation();
+  public boolean isRecognitionSegmentationEnabled();
+  public int[] getRecognitionSegmentationImage();
+  public int saveRecognitionSegmentationImage(String filename, int quality);
   // ...
 }
 ```
@@ -1041,25 +1151,20 @@ public class Camera extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 value = wb_camera_has_recognition(tag)
 wb_camera_recognition_disable(tag)
 wb_camera_recognition_enable(tag, sampling_period)
 number = wb_camera_recognition_get_number_of_objects(tag)
 objects = wb_camera_recognition_get_objects(tag)
 period = wb_camera_recognition_get_sampling_period(tag)
+value = wb_camera_recognition_has_segmentation(tag)
+wb_camera_recognition_enable_segmentation(tag)
+wb_camera_recognition_disable_segmentation(tag)
+wb_camera_recognition_is_segmentation_enabled(tag)
+image = wb_camera_recognition_get_segmentation_image(tag)
+success = wb_camera_recognition_save_segmentation_image(tag, 'filename', quality)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/has_recognition` | `service`| `webots_ros::get_bool` | |
-| `/<device_name>/recognition_enable` | `service`| `webots_ros::set_int` | |
-| `/<device_name>/recognition_get_sampling_period` | `service`| `webots_ros::get_int` | |
-| `/<device_name>/recognition_objects` | `topic`| `webots_ros::RecognitionObject` | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>[`geometry_msgs/Vector3`](http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html) `relative_position`<br/>[`geometry_msgs/Quaternion`](http://docs.ros.org/api/geometry_msgs/html/msg/Quaternion.html) `relative_orientation`<br/>[`geometry_msgs/Vector3`](http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html) `position_on_image`<br/>[`geometry_msgs/Vector3`](http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html) `size_on_image`<br/>`int32 numberofcolors`<br/>`int32[] test`<br/>[`geometry_msgs/Vector3`](http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html)`[]` `colors`<br/>`String model`<br/><br/>Note: the z value of `position_on_image` and `size_on_image` should be ignored |
 
 %tab-end
 
@@ -1081,12 +1186,40 @@ The `wb_camera_recognition_disable` function turns off the recognition, saving c
 The `wb_camera_recognition_get_sampling_period` function returns the period given to the `wb_camera_recognition_enable` function, or 0 if the recognition is disabled.
 
 The `wb_camera_recognition_get_number_of_objects` and `wb_camera_recognition_get_objects` functions allow the user to get the current number of recognized objects and the objects array.
+The objects array is allocated and automatically released by the controller library at each call to the `step` function.
+Therefore it should not be released by the controller program.
+Moreover, object data should be copied to avoid dangling pointer problems if it needs to be used after the next call to the `step` function.
 
-##### Camera Recognition Object
+*camera recognition segmentation functions*
+
+If a [Recognition](recognition.md) node is present in the `recognition` field and the [Recognition](recognition.md).`segmentation` field is set to TRUE, the camera generates a segmentation ground truth image corresponding to the camera image.
+The segmented image is generated at the same sampling period as the recognition objects.
+For the segmentation to work it is necessary to enable the recognition, but it is not necessary to enable the camera.
+Even if the [Recognition](recognition.md).`segmentation` field is TRUE, the generation of the segmented image is not automatically enabled when calling the [`wb_camera_recognition_enable`](#wb_camera_recognition_enable) function and it is necessary to call explicitly the [`wb_camera_recognition_enable_segmentation`](#wb_camera_recognition_enable_segmentation).
+
+The `wb_camera_recognition_has_segmentation` function can be used to check if the [Recognition](recognition.md).`segmentation` field is set to TRUE.
+If the [Recognition](recognition.md) node is not defined, the function returns FALSE.
+
+The `wb_camera_recognition_enable_segmentation` and `wb_camera_recognition_disable_segmentation` functions toggle the generation of the segmented image.
+Note that the generation of the segmented image can only be enabled if the recognition functionality is enabled (see [`wb_camera_has_recognition`](#wb_camera_has_recognition) and [`wb_camera_recognition_enable`](#wb_camera_recognition_enable)).
+Once the camera segmentation is enabled, it will copy images from GPU memory to CPU memory at each time step, regardless of `wb_camera_recognition_get_segmentation_image` calls.
+
+The `wb_camera_recognition_is_segmentation_enabled` function returns TRUE if the generation of the segmented image is enabled and FALSE otherwise.
+If the recognition functionality is disabled, the segmentation functionality will be disabled as well.
+
+The `wb_camera_recognition_get_segmentation_image` reads the last generated segmentation image.
+The segmentation image has the exact same properties as the camera image retrieved using the [`wb_camera_get_image`](#wb_camera_get_image).
+It is also possible to extract the different channels using the [`wb_camera_image_get_red`](#wb_camera_image_get_red), [`wb_camera_image_get_green`](#wb_camera_image_get_green), [`wb_camera_image_get_blue`](#wb_camera_image_get_blue) and [`wb_camera_image_get_gray`](#wb_camera_image_get_gray) functions.
+Sample code showing how to use the returned segmentation image object in the different programming languages can be find in the [`wb_camera_get_image`](#wb_camera_get_image) function description.
+
+The `wb_camera_recognition_save_segmentation_image` function allows the user to save the latest segmentation image.
+Further details about the arguments and the return value can be found in the description of the [`wb_camera_save_image`](#wb_camera_save_image) function.
+
+### Camera Recognition Object
 
 A camera recognition object is defined by the following structure:
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1136,15 +1269,15 @@ namespace webots {
 from controller import CameraRecognitionObject
 
 class CameraRecognitionObject:
-    def get_id(self):
-    def get_position(self):
-    def get_orientation(self):
-    def get_size(self):
-    def get_position_on_image(self):
-    def get_size_on_image(self):
-    def get_number_of_colors(self):
-    def get_colors(self):
-    def get_model(self):
+    def getId(self):
+    def getPosition(self):
+    def getOrientation(self):
+    def getSize(self):
+    def getPositionOnImage(self):
+    def getSizeOnImage(self):
+    def getNumberOfColors(self):
+    def getColors(self):
+    def getModel(self):
 ```
 
 %tab-end
@@ -1171,7 +1304,7 @@ public class CameraRecognitionObject {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 structs.WbCameraRecognitionObject.members = struct(
   'id', 'int32',
   'position', 'double#3',
@@ -1187,17 +1320,11 @@ structs.WbCameraRecognitionObject.members = struct(
 
 %tab-end
 
-%tab "ROS"
-
-> `CameraRecognitionObject` data is directly accessible from the related [`/<device_name>/recognition_objects`](#wb_camera_recognition_get_objects) topic.
-
-%tab-end
-
 %end
 
 The `id` represents the node id corresponding to the object, and it is possible to use this id directly in the [`wb_supervisor_node_get_from_id`](supervisor.md#wb_supervisor_node_get_from_def) supervisor function.
 The `position` and `orientation` are expressed relatively to the camera (the relative position is the one of the center of the object which can differ from its origin) and the units are meter and radian.
-The `size` represents the X and Y sizes in meters relatively to the camera (it is of course impossible to know the depth of the object).
+The `size` represents the Y and Z sizes in meters relatively to the camera (it is of course impossible to know the depth of the object along the [Camera](camera.md) X axis).
 The `position_on_image` and `size_on_image` can be used to determine the bounding box of the object in the camera image, the units are pixels.
 The `number_of_colors` and `colors` returns respectively the number of colors of the objects and pointer to the colors array, each color is represented by 3 doubles (R, G and B), therefore the size of the array is equal to 3 * `number_of_colors`.
 Finally `model` returns the `model` field of the [Solid](solid.md) node.

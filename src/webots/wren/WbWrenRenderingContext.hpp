@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,9 +35,8 @@ public:
   // visibility flags and masks
   enum {
     // rendering triggered by mouse selection
-    VF_OUTLINE = 0x00000001,  // flag for bounding objects, axes and centers of mass, i.e. outlines that should not be rendered
-                              // by a WbCamera
-    VF_SELECTED_OUTLINE = 0x00000002,  // flag for selected outlines
+    VF_INVISIBLE_FROM_CAMERA = 0x00000002,  // flag for selected outlines and billboards
+
     // optional rendering from the menu (up to 30 flags)
     VF_ALL_BOUNDING_OBJECTS = 0x00000004,   // flag for the lines defining a bounding object
     VF_CAMERA_FRUSTUMS = 0x00000008,        // flag for camera frustum
@@ -55,17 +54,18 @@ public:
     VF_LIDAR_RAYS_PATHS = 0x00008000,       // flag for lidar ray path
     VF_RADAR_FRUSTUMS = 0x00010000,         // flag for radar frustum
     VF_SKIN_SKELETON = 0x00020000,          // flag for skin skeleton
+    VF_NORMALS = 0x00040000,                // Display mesh normals
 
     // distance sensors laser beam
-    VF_LASER_BEAM = 0x00040000,
+    VF_LASER_BEAM = 0x00080000,
 
     // sugar for cameras definition
     VM_ALL = 0xFFFFFFFF,
     VM_NONE = 0x00000000,
     VM_REGULAR = 0xFFF00000,  // no special renderings, i.e. no outlines and no optional renderings from menu selection
     VM_MAIN = 0xFFFFFFFE,
-    VM_WEBOTS_CAMERA = 0xFFFE0000,       // mask for WbCamera (all WREN MovableObjects)
-    VM_WEBOTS_RANGE_CAMERA = 0xFFFC0000  // mask for WbRangeFinder and WbLidar (all WREN MovableObjects except laser beam)
+    VM_WEBOTS_CAMERA = 0xFFFA0000,       // mask for WbCamera (all WREN MovableObjects)
+    VM_WEBOTS_RANGE_CAMERA = 0xFFF80000  // mask for WbRangeFinder and WbLidar (all WREN MovableObjects except laser beam)
   };
 
   enum {
@@ -88,6 +88,7 @@ public:
 
   // post-processing effects for cameras
   enum {
+    PP_PASS_THROUGH,
     PP_GTAO,
     PP_SPHERICAL_CAMERA_MERGE,
     PP_LENS_DISTORTION,

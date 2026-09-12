@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,18 +37,20 @@ public:
   explicit WbPropeller(WbTokenizer *tokenizer = NULL);
   WbPropeller(const WbPropeller &other);
   explicit WbPropeller(const WbNode &other);
-  virtual ~WbPropeller();
+  virtual ~WbPropeller() override;
 
   // reimplemented public functions
   int nodeType() const override { return WB_NODE_PROPELLER; }
+  void downloadAssets() override;
   void preFinalize() override;
   void postFinalize() override;
   void createOdeObjects() override;
   void createWrenObjects() override;
   void propagateSelection(bool selected) override;
   void setMatrixNeedUpdate() override;
-  void write(WbVrmlWriter &writer) const override;
-  void reset() override;
+  void write(WbWriter &writer) const override;
+  void reset(const QString &id) override;
+  QList<const WbBaseNode *> findClosestDescendantNodesWithDedicatedWrenNode() const override;
 
   void prePhysicsStep(double ms);
 
@@ -65,12 +67,16 @@ public:
   WbLogicalDevice *device() const;
   double position() const { return mPosition; }
 
+  double currentThrust() const { return mCurrentThrust; }
+  double currentTorque() const { return mCurrentTorque; }
+
 private:
   // Scene Tree fields
   WbSFVector3 *mShaftAxis;
   WbSFVector3 *mCenterOfThrust;
   WbSFVector2 *mThrustConstants;
   WbSFVector2 *mTorqueConstants;
+  WbSFDouble *mFastHelixThreshold;
   WbSFNode *mDevice;
   WbSFNode *mFastHelix;
   WbSFNode *mSlowHelix;
@@ -79,6 +85,9 @@ private:
   HelixType mHelixType;
 
   WbVector3 mNormalizedAxis;
+
+  double mCurrentThrust;
+  double mCurrentTorque;
 
   WrTransform *mTransform;
   WrRenderable *mRenderable;

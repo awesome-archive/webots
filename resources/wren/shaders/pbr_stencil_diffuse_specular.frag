@@ -1,9 +1,11 @@
-#version 330
+#version 330 core
+
+precision highp float;
 
 // These constants must be kept in sync with the values in Constants.hpp
-const int maxDirectionalLights = 256;
-const int maxPointLights = 256;
-const int maxSpotLights = 256;
+const int maxDirectionalLights = 48;
+const int maxPointLights = 48;
+const int maxSpotLights = 48;
 
 in vec3 fragmentPosition;
 in vec3 fragmentNormal;
@@ -13,6 +15,7 @@ in vec2 penTexUv;
 out vec4 fragColor;
 
 uniform sampler2D inputTextures[9];
+uniform bool reverseNormals;
 
 struct PBRInfo {
   float NdotL;                // cos angle between normal and light direction
@@ -92,6 +95,9 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
   vec2 duv1 = dFdx(uv);
   vec2 duv2 = dFdy(uv);
 
+  if (duv1 == vec2(0.0) && duv2 == vec2(0.0))
+    return mat3(vec3(0.0), vec3(0.0), N);
+
   // solve the linear system
   vec3 dp2perp = cross(dp2, N);
   vec3 dp1perp = cross(N, dp1);
@@ -99,7 +105,10 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
   vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
 
   // construct a scale-invariant frame
-  float invmax = inversesqrt(max(dot(T, T), dot(B, B)));
+  float scale = max(dot(T, T), dot(B, B));
+  if (scale <= 0.0)  // inversesqrt result is undefined for value <= 0
+    return mat3(T, B, N);
+  float invmax = inversesqrt(scale);
   return mat3(T * invmax, B * invmax, N);
 }
 
@@ -170,7 +179,7 @@ vec3 PBRpass(vec3 l, vec3 n, vec3 v, vec3 h, vec4 lightColorAndIntensity, float 
 
 void main() {
   // sample from normal map if one exists
-  vec3 viewFragmentNormal = normalize(fragmentNormal);
+  vec3 viewFragmentNormal = normalize(reverseNormals ? -fragmentNormal : fragmentNormal);
   if (material.normalBrdfEmissiveBackgroundFlags.x > 0.0)
     viewFragmentNormal = perturbNormal(viewFragmentNormal, normalize(-fragmentPosition));
 

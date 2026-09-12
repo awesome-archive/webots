@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,10 @@
 #include "WbRobot.hpp"
 
 #include "WbAbstractCamera.hpp"
+#include "WbApplicationInfo.hpp"
 #include "WbBinaryIncubator.hpp"
 #include "WbControllerPlugin.hpp"
+#include "WbDataStream.hpp"
 #include "WbDisplay.hpp"
 #include "WbJoint.hpp"
 #include "WbJoystickInterface.hpp"
@@ -27,13 +29,13 @@
 #include "WbMFDouble.hpp"
 #include "WbMFNode.hpp"
 #include "WbMouse.hpp"
+#include "WbNodeUtilities.hpp"
 #include "WbPreferences.hpp"
 #include "WbProject.hpp"
 #include "WbPropeller.hpp"
-#include "WbProtoList.hpp"
+#include "WbProtoManager.hpp"
 #include "WbProtoModel.hpp"
 #include "WbRenderingDevice.hpp"
-#include "WbResizeManipulator.hpp"
 #include "WbSensor.hpp"
 #include "WbSimulationState.hpp"
 #include "WbSkin.hpp"
@@ -41,6 +43,7 @@
 #include "WbSolidDevice.hpp"
 #include "WbStandardPaths.hpp"
 #include "WbSupervisorUtilities.hpp"
+#include "WbTokenizer.hpp"
 #include "WbTrack.hpp"
 #include "WbWorld.hpp"
 #include "WbWrenRenderingContext.hpp"
@@ -48,12 +51,15 @@
 #include "../../../include/controller/c/webots/keyboard.h"
 #include "../../../include/controller/c/webots/robot.h"
 #include "../../../include/controller/c/webots/supervisor.h"
-#include "../../lib/Controller/api/messages.h"
+#include "../../controller/c/messages.h"
 
+#include <QtCore/QCryptographicHash>
 #include <QtCore/QDataStream>
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
+#include <QtCore/QUrl>
 
+#include <algorithm>
 #include <limits>
 
 static QHash<int, int> createSpecialKeys() {
@@ -98,8 +104,12 @@ void WbRobot::init() {
   mUserInputEventTimer = NULL;
   mJoyStickLastValue = NULL;
   mMouse = NULL;
+  mNextTag = 0;
 
+  mNeedToWriteUrdf = false;
   mControllerStarted = false;
+  mControllerTerminated = false;
+  mNeedToRestartController = false;
   mConfigureRequest = true;
   mSimulationModeRequested = false;
   mMonitoredUserInputEventTypes = -1;
@@ -108,7 +118,9 @@ void WbRobot::init() {
 
   mJoystickConfigureRequest = false;
 
-  mPreviousTime = 0.0;
+  mPreviousTime = -1.0;
+  mSupervisorUtilitiesNeedUpdate = false;
+  mSupervisorUtilities = NULL;
   mKinematicDifferentialWheels = NULL;
 
   mMessageFromWwi = NULL;
@@ -117,6 +129,7 @@ void WbRobot::init() {
   mWaitingForWindow = false;
   mUpdateWindowMessage = false;
   mDataNeedToWriteAnswer = false;
+  mSupervisorNeedToWriteAnswer = false;
   mModelNeedToWriteAnswer = false;
 
   mPin = false;
@@ -126,25 +139,23 @@ void WbRobot::init() {
   mSupervisor = findSFBool("supervisor");
   mSynchronization = findSFBool("synchronization");
   mController = findSFString("controller");
-  mControllerArgs = findSFString("controllerArgs");
+  mControllerArgs = findMFString("controllerArgs");
   mCustomData = findSFString("customData");
   mBattery = findMFDouble("battery");
   mCpuConsumption = findSFDouble("cpuConsumption");
   mSelfCollision = findSFBool("selfCollision");
-  mShowWindow = findSFBool("showWindow");
   mWindow = findSFString("window");
   mRemoteControl = findSFString("remoteControl");
 
   WbSFString *data = findSFString("data");
   if (data->value() != "") {  // Introduced in Webots 2018a
-    warn("Deprecated 'data' field, please use the 'customData' field instead.");
+    parsingWarn("Deprecated 'data' field, please use the 'customData' field instead.");
     if (mCustomData->value() == "")
       mCustomData->setValue(data->value());
     data->setValue("");
   }
 
-  mBatteryInitialValue = (mBattery->size() > CURRENT_ENERGY) ? mBattery->item(CURRENT_ENERGY) : -1.0;
-  mSupervisorUtilities = supervisor() ? new WbSupervisorUtilities(this) : NULL;
+  mBatteryInitialValues[stateId()] = (mBattery->size() > CURRENT_ENERGY) ? mBattery->item(CURRENT_ENERGY) : -1.0;
 }
 
 WbRobot::WbRobot(WbTokenizer *tokenizer) : WbSolid("Robot", tokenizer) {
@@ -172,11 +183,9 @@ WbRobot::~WbRobot() {
   delete mJoystickTimer;
   delete mUserInputEventTimer;
   delete mJoyStickLastValue;
-  delete mKinematicDifferentialWheels;
   if (mMouse)
     WbMouse::destroy(mMouse);
-  if (mSupervisorUtilities)
-    delete mSupervisorUtilities;
+  delete mSupervisorUtilities;
   mPressedKeys.clear();
   WbWorld::instance()->removeRobotIfPresent(this);
 }
@@ -187,6 +196,40 @@ void WbRobot::preFinalize() {
   mKeyboardSensor = new WbSensor();
   mJoystickSensor = new WbSensor();
 
+  if ((WbTokenizer::worldFileVersion() < WbVersion(2020, 1, 0) ||
+       (proto() && proto()->fileVersion() < WbVersion(2020, 1, 0))) &&
+      mControllerArgs->value().size() == 1 && mControllerArgs->value()[0].contains(' ')) {
+    // we need to split the controllerArgs[0] at space boundaries into a list of strings
+    // taking into account quotes and double quotes to avoid splitting in the middle of a quoted (or double quoted) string
+    QStringList arguments;
+    const QString args = mControllerArgs->value()[0].trimmed();
+    const int l = args.length();
+    bool insideDoubleQuote = false;
+    bool insideSingleQuote = false;
+    int previous = 0;
+    for (int i = 0; i < l; i++) {
+      if (!insideSingleQuote && args[i] == '"' && ((i == 0) || args[i - 1] != '\\'))
+        insideDoubleQuote = !insideDoubleQuote;
+      else if (!insideDoubleQuote && args[i] == '\'' && ((i == 0) || args[i - 1] != '\\'))
+        insideSingleQuote = !insideSingleQuote;
+      else if (args[i] == ' ' && !(insideSingleQuote || insideDoubleQuote)) {
+        if (args[i - 1] != ' ')
+          arguments << args.mid(previous, i - previous).remove('"').remove('\'');
+        previous = i + 1;
+      }
+    }
+    arguments << args.mid(previous).remove('"').remove('\'');
+    QString message;
+    if (WbNodeUtilities::isTemplateRegeneratorField(
+          findField("controllerArgs", true)))  // it would crash to change controllerArgs from here
+      message = tr("Unable to split arguments automatically, please update your world file manually.");
+    else {
+      mControllerArgs->setValue(arguments);
+      message = tr("Splitting arguments at space boundaries.");
+    }
+    parsingWarn(tr("Robot.controllerArgs data type changed from SFString to MFString in Webots R2020b. %1").arg(message));
+  }
+  updateSupervisor();
   updateWindow();
   updateRemoteControl();
   updateControllerDir();
@@ -202,25 +245,25 @@ void WbRobot::postFinalize() {
   connect(mWindow, &WbSFString::changed, this, &WbRobot::updateWindow);
   connect(mRemoteControl, &WbSFString::changed, this, &WbRobot::updateRemoteControl);
   connect(mCustomData, &WbSFString::changed, this, &WbRobot::updateData);
+  connect(mSupervisor, &WbSFString::changed, this, &WbRobot::updateSupervisor);
   connect(this, &WbMatter::matterModelChanged, this, &WbRobot::updateModel);
   connect(WbSimulationState::instance(), &WbSimulationState::modeChanged, this, &WbRobot::updateSimulationMode);
-
-  if (absoluteScale() != WbVector3(1.0, 1.0, 1.0))
-    warn(tr("This Robot node is scaled: this is discouraged as it could compromise the correct physical behavior."));
+  connect(mBattery, &WbMFDouble::itemInserted, this, [this]() { this->updateBattery(true); });
+  connect(mBattery, &WbMFDouble::itemRemoved, this, [this]() { this->updateBattery(false); });
 }
 
-void WbRobot::reset() {
-  WbSolid::reset();
+void WbRobot::reset(const QString &id) {
+  WbSolid::reset(id);
+  mPreviousTime = -1.0;
   // restore battery level
-  if (mBatteryInitialValue > 0)
-    mBattery->setItem(CURRENT_ENERGY, mBatteryInitialValue);
-  if (mSupervisorUtilities)
-    mSupervisorUtilities->reset();
+  if (mBatteryInitialValues[id] > 0)
+    mBattery->setItem(CURRENT_ENERGY, mBatteryInitialValues[id]);
+  emit wasReset();
 }
 
-void WbRobot::save() {
-  WbSolid::save();
-  mBatteryInitialValue = (mBattery->size() > CURRENT_ENERGY) ? mBattery->item(CURRENT_ENERGY) : -1.0;
+void WbRobot::save(const QString &id) {
+  WbSolid::save(id);
+  mBatteryInitialValues[id] = (mBattery->size() > CURRENT_ENERGY) ? mBattery->item(CURRENT_ENERGY) : -1.0;
 }
 
 void WbRobot::addDevices(WbNode *node) {
@@ -232,6 +275,7 @@ void WbRobot::addDevices(WbNode *node) {
 
   WbGroup *group = dynamic_cast<WbGroup *>(node);
   if (group) {
+    // cppcheck-suppress constVariablePointer
     WbSolidDevice *solidDevice = dynamic_cast<WbSolidDevice *>(node);
     if (solidDevice) {
       mDevices.append(solidDevice);
@@ -240,12 +284,18 @@ void WbRobot::addDevices(WbNode *node) {
 
       WbRenderingDevice *renderingDevice = dynamic_cast<WbRenderingDevice *>(node);
       if (renderingDevice) {
-        connect(renderingDevice, &WbBaseNode::isBeingDestroyed, this, &WbRobot::removeRenderingDevice, Qt::UniqueConnection);
+        connect(renderingDevice, &WbNode::isBeingDestroyed, this, &WbRobot::removeRenderingDevice, Qt::UniqueConnection);
         mRenderingDevices.append(renderingDevice);
+        WbAbstractCamera *camera = dynamic_cast<WbAbstractCamera *>(renderingDevice);
+        if (camera) {
+          connect(camera, &WbAbstractCamera::enabled, this, &WbRobot::updateActiveCameras, Qt::UniqueConnection);
+          if (camera->isEnabled())
+            mActiveCameras.append(camera);
+        }
       }
     }
 
-    WbTrack *const track = dynamic_cast<WbTrack *>(group);
+    const WbTrack *const track = dynamic_cast<WbTrack *>(group);
     if (track) {
       const QVector<WbLogicalDevice *> trackDevices = track->devices();
       for (int i = 0; i < trackDevices.size(); ++i) {
@@ -269,7 +319,7 @@ void WbRobot::addDevices(WbNode *node) {
     return;
   }
 
-  WbSlot *const slot = dynamic_cast<WbSlot *>(node);
+  const WbSlot *const slot = dynamic_cast<WbSlot *>(node);
   if (slot) {
     addDevices(slot->endPoint());
     return;
@@ -277,7 +327,7 @@ void WbRobot::addDevices(WbNode *node) {
 
   WbBasicJoint *const basicJoint = dynamic_cast<WbBasicJoint *>(node);
   if (basicJoint) {
-    WbJoint *const joint = dynamic_cast<WbJoint *>(basicJoint);
+    const WbJoint *const joint = dynamic_cast<WbJoint *>(basicJoint);
     if (joint) {
       const QVector<WbLogicalDevice *> &jointDevices = joint->devices();
       foreach (WbLogicalDevice *const jointDevice, jointDevices) {
@@ -307,12 +357,12 @@ void WbRobot::addDevices(WbNode *node) {
   // check if there are duplicated names, and print a warning if necessary
   if (dynamic_cast<const WbRobot *>(node)) {  // top node
     QStringList displayedWarnings;
-    foreach (WbDevice *deviceA, mDevices) {
-      foreach (WbDevice *deviceB, mDevices) {
+    foreach (const WbDevice *deviceA, mDevices) {
+      foreach (const WbDevice *deviceB, mDevices) {
         if (deviceA != deviceB && deviceA->deviceName() == deviceB->deviceName() &&
             !displayedWarnings.contains(deviceA->deviceName())) {
-          warn(tr("At least two devices are sharing the same name (\"%1\") while unique names are required.")
-                 .arg(deviceA->deviceName()));
+          parsingWarn(tr("At least two devices are sharing the same name (\"%1\") while unique names are required.")
+                        .arg(deviceA->deviceName()));
           displayedWarnings << deviceA->deviceName();
         }
       }
@@ -321,22 +371,31 @@ void WbRobot::addDevices(WbNode *node) {
 }
 
 void WbRobot::clearDevices() {
-  foreach (const WbDevice *device, mDevices)
-    disconnect(dynamic_cast<const WbBaseNode *>(device), &WbBaseNode::destroyed, this, &WbRobot::updateDevicesAfterDestruction);
-  foreach (const WbRenderingDevice *device, mRenderingDevices)
-    disconnect(device, &WbBaseNode::isBeingDestroyed, this, &WbRobot::removeRenderingDevice);
   mDevices.clear();
   mRenderingDevices.clear();
+  mActiveCameras.clear();
+}
+
+void WbRobot::updateControllerStatusInDevices() {
+  if (isBeingDeleted())
+    return;
+  foreach (WbDevice *const d, mDevices)
+    d->setIsControllerRunning(mControllerStarted && !mControllerTerminated);
 }
 
 void WbRobot::updateDevicesAfterDestruction() {
+  if (isBeingDeleted())
+    return;
   clearDevices();
   addDevices(this);
+  updateControllerStatusInDevices();
 }
 
 void WbRobot::updateDevicesAfterInsertion() {
   clearDevices();
   addDevices(this);
+  updateControllerStatusInDevices();
+  assignDeviceTags(false);
 }
 
 void WbRobot::pinToStaticEnvironment(bool pin) {
@@ -356,6 +415,7 @@ void WbRobot::pinToStaticEnvironment(bool pin) {
 QString WbRobot::protoModelProjectPath() const {
   if (isProtoInstance())
     return proto()->projectPath();
+
   return QString();
 }
 
@@ -383,7 +443,7 @@ QString WbRobot::searchDynamicLibraryAbsolutePath(const QString &key, const QStr
         }
       }
       // search in project folder associated with parent PROTO models
-      WbProtoModel *protoModel = proto();
+      const WbProtoModel *protoModel = proto();
       while (protoModel) {
         if (!protoModel->projectPath().isEmpty()) {
           QDir protoDir(protoModel->projectPath() + "/plugins/" + pluginSubdirectory + "/" + key);
@@ -393,7 +453,7 @@ QString WbRobot::searchDynamicLibraryAbsolutePath(const QString &key, const QStr
               return protoDir.absolutePath() + "/" + libBasename;
           }
         }
-        protoModel = WbProtoList::current()->findModel(protoModel->ancestorProtoName(), "");
+        protoModel = WbProtoManager::instance()->findModel(protoModel->ancestorProtoName(), "", protoModel->diskPath());
       }
     }
 
@@ -410,28 +470,31 @@ QString WbRobot::searchDynamicLibraryAbsolutePath(const QString &key, const QStr
 }
 
 void WbRobot::updateWindow() {
+  emit windowChanged();
   mAbsoluteWindowFilename = "";
 
   if (mConfigureRequest) {
     QString key = mWindow->value().trimmed();
-    if (!key.isEmpty()) {
+    if (key == "<none>")
+      return;
+    else if (!key.isEmpty() && key != "<generic>") {
       const QString &absoluteFilePath = searchDynamicLibraryAbsolutePath(key, "robot_windows");
       if (absoluteFilePath.isEmpty() && windowFile().isEmpty())  // not a HTML robot window
-        warn(tr("The robot window library has not been found."));
+        warn(tr("The '") + key + tr("' robot window library has not been found."));
       else
         mAbsoluteWindowFilename = absoluteFilePath;
     }
   } else
-    warn(tr("The robot 'window' cannot be modified after the controller is initialized."));
+    warn(tr("The robot window will not be connected until the controller is initialized or restarted."));
 
-  if (!mWindow->value().isEmpty())
+  if (!mWindow->value().isEmpty() && mWindow->value() != "<generic>")
     return;  // HTML robot window without plugin case.
 
   if (mAbsoluteWindowFilename.isEmpty()) {
     mAbsoluteWindowFilename = WbStandardPaths::resourcesRobotWindowsPluginsPath() + "generic/" +
                               WbStandardPaths::dynamicLibraryPrefix() + "generic" + WbStandardPaths::dynamicLibraryExtension();
     if (!QFile::exists(mAbsoluteWindowFilename))
-      warn(tr("The generic robot window is not found. Please check your Webots installation."));
+      warn(tr("The <generic> robot window is not found. Please check your Webots installation."));
   }
 
   if (!mAbsoluteWindowFilename.isEmpty())
@@ -443,7 +506,7 @@ void WbRobot::updateRemoteControl() {
 
   if (mConfigureRequest) {
     QString key = mRemoteControl->value().trimmed();
-    if (!key.isEmpty()) {
+    if (!key.isEmpty() && key != "<none>") {
       const QString &absoluteFilePath = searchDynamicLibraryAbsolutePath(key, "remote_controls");
       if (absoluteFilePath.isEmpty())
         warn(tr("The remote control library has not been found."));
@@ -458,15 +521,21 @@ void WbRobot::updateRemoteControl() {
 }
 
 void WbRobot::updateControllerDir() {
-  const QString controllerName = mController->value();
-  if (!controllerName.isEmpty()) {
+  if (controllerName().isEmpty()) {
+    warn("The controller has not been set.");
+    mControllerDir = "";
+  } else if (controllerName() == "<generic>") {
+    mControllerDir = WbStandardPaths::resourcesControllersPath() + "generic/";
+  } else if (controllerName() != "<none>" && controllerName() != "<extern>") {
     QStringList path;
-    path << WbProject::current()->controllersPath() + controllerName + '/';
+    path << WbProject::current()->controllersPath() + controllerName() + '/';
     const WbProtoModel *const protoModel = proto();
     if (protoModel)
-      path << QDir::cleanPath(protoModelProjectPath() + "/controllers/" + controllerName) + '/';
-    path << WbProject::defaultProject()->controllersPath() + controllerName + '/';
-    path << WbProject::system()->controllersPath() + controllerName + '/';
+      path << QDir::cleanPath(protoModelProjectPath() + "/controllers/" + controllerName()) + '/';
+    foreach (const WbProject *extraProject, *WbProject::extraProjects())
+      path << extraProject->controllersPath() + controllerName() + '/';
+    path << WbProject::defaultProject()->controllersPath() + controllerName() + '/';
+    path << WbProject::system()->controllersPath() + controllerName() + '/';
     path.removeDuplicates();
 
     mControllerDir = "";
@@ -480,8 +549,8 @@ void WbRobot::updateControllerDir() {
 
     if (mControllerDir.isEmpty()) {
       QString warning(tr("The controller directory has not been found, searched the following locations:"));
-      const int size = path.size();
-      for (int i = 0; i < size; ++i)
+      const int otherSize = path.size();
+      for (int i = 0; i < otherSize; ++i)
         warning += "\n" + path[i];
       warn(warning);
     }
@@ -489,10 +558,12 @@ void WbRobot::updateControllerDir() {
 
   if (isPostFinalizedCalled()) {
     emit controllerChanged();
-    foreach (WbRenderingDevice *device, mRenderingDevices) {
-      WbAbstractCamera *ac = dynamic_cast<WbAbstractCamera *>(device);
-      if (ac)
-        ac->resetSharedMemory();  // shared memory automatically deleted at new controller start
+    if (controllerName() != "<none>") {
+      foreach (WbRenderingDevice *renderingDevice, mRenderingDevices) {
+        WbAbstractCamera *ac = dynamic_cast<WbAbstractCamera *>(renderingDevice);
+        if (ac)
+          ac->resetMemoryMappedFile();  // memory mapped file is automatically deleted at new controller start
+      }
     }
   }
 }
@@ -506,14 +577,15 @@ const QString &WbRobot::controllerDir() {
 
 void WbRobot::restartController() {
   mControllerStarted = false;
-
   emit controllerChanged();
 
-  foreach (WbDevice *device, mDevices) {
-    WbAbstractCamera *ac = dynamic_cast<WbAbstractCamera *>(device);
+  foreach (WbDevice *deviceObject, mDevices) {
+    WbAbstractCamera *ac = dynamic_cast<WbAbstractCamera *>(deviceObject);
     if (ac)
-      ac->resetSharedMemory();  // shared memory automatically deleted at new controller restart
+      ac->resetMemoryMappedFile();  // memory mapped file is automatically deleted at new controller restart
   }
+  if (mSupervisorUtilities)
+    mSupervisorUtilities->reset();
 }
 
 bool WbRobot::isWaitingForUserInputEvent() const {
@@ -532,19 +604,47 @@ void WbRobot::updateData() {
   mDataNeedToWriteAnswer = true;
 }
 
+void WbRobot::updateSupervisor() {
+  mSupervisorNeedToWriteAnswer = true;
+  if (mConfigureRequest) {
+    delete mSupervisorUtilities;
+    mSupervisorUtilities = supervisor() ? new WbSupervisorUtilities(this) : NULL;
+  } else
+    mSupervisorUtilitiesNeedUpdate = true;
+}
+
 void WbRobot::updateModel() {
   mModelNeedToWriteAnswer = true;
 }
 
-void WbRobot::removeRenderingDevice() {
-  mRenderingDevices.removeOne(static_cast<WbRenderingDevice *>(sender()));
+void WbRobot::updateBattery(bool itemInserted) {
+  if (mBattery->size() > (ENERGY_UPLOAD_SPEED + 1))
+    warn(tr("'battery' field can only contain three values. Remaining values are ignored."));
+  if (!itemInserted || mBattery->isEmpty())
+    return;
+
+  foreach (WbDevice *const d, mDevices) {
+    // setup motor joint feedback needed to compute energy consumption
+    WbMotor *motor = dynamic_cast<WbMotor *>(d);
+    if (motor)
+      motor->setupJointFeedback();
+  }
 }
 
-// reassign tags to devices (when device config changed)
-void WbRobot::assignDeviceTags() {
-  int i = 1;  // device tag 0 is reserved for the robot
-  foreach (WbDevice *const device, mDevices)
-    device->setTag(i++);
+void WbRobot::removeRenderingDevice() {
+  mRenderingDevices.removeOne(dynamic_cast<WbRenderingDevice *>(sender()));
+}
+
+void WbRobot::assignDeviceTags(bool reset) {
+  int i = reset ? 1 : mNextTag;  // device tag 0 is reserved for the robot
+  foreach (WbDevice *const d, mDevices) {
+    if (reset || !d->hasTag()) {
+      d->setTag(i++);
+      if (!reset)
+        mNewlyAddedDevices << d;
+    }
+  }
+  mNextTag = i;
 }
 
 double WbRobot::currentEnergy() const {
@@ -572,8 +672,8 @@ double WbRobot::energyUploadSpeed() const {
 
 double WbRobot::energyConsumption() const {
   double e = mCpuConsumption->value();
-  foreach (WbDevice *device, mDevices)  // add energy consumption for each device
-    e += device->energyConsumption();
+  foreach (const WbDevice *deviceObject, mDevices)  // add energy consumption for each device
+    e += deviceObject->energyConsumption();
   return e;
 }
 
@@ -595,98 +695,99 @@ void WbRobot::postPhysicsStep() {
     double s = WbWorld::instance()->basicTimeStep() * 0.001;
     energy -= energyConsumption() * s;
     if (energy <= 0.0) {
+      info(tr("Battery is empty."));
       energy = 0.0;
       mBatterySensor->updateTimer();  // so that the battery sensor returns 0
     }
     setCurrentEnergy(energy);
+  }
+  if (mNeedToRestartController) {
+    restartController();
+    mNeedToRestartController = false;
   }
   if (mSupervisorUtilities)
     mSupervisorUtilities->postPhysicsStep();
 }
 
 WbDevice *WbRobot::findDevice(WbDeviceTag tag) const {
-  foreach (WbDevice *const device, mDevices)
-    if (device->tag() == tag)
-      return device;
+  foreach (WbDevice *const d, mDevices)
+    if (d->tag() == tag)
+      return d;
 
   return NULL;  // not found
 }
 
 void WbRobot::powerOn(bool e) {
   mPowerOn = e;
-  foreach (WbDevice *const device, mDevices)
-    device->powerOn(e);
+  foreach (WbDevice *const d, mDevices)
+    d->powerOn(e);
 }
 
-void WbRobot::keyPressed(const QString &text, int key, int modifiers) {
-  int pressedKeys = modifiers;
-
-  if (gSpecialKeys.contains(key))
-    // special key
-    pressedKeys += gSpecialKeys.value(key);
-  else if (!text.isEmpty())
-    // normal key
-    pressedKeys += key & WB_KEYBOARD_KEY;
-  else
-    // unknown key
-    return;
+void WbRobot::keyPressed(int key, int modifiers) {
+  const int pressedKeys = modifiers + (gSpecialKeys.contains(key) ? gSpecialKeys.value(key) : key & WB_KEYBOARD_KEY);
 
   if (pressedKeys && !mPressedKeys.contains(pressedKeys)) {
-    mPressedKeys.append(pressedKeys);
+    mPressedKeys.prepend(pressedKeys);
     mKeyboardHasChanged = true;
     emit keyboardChanged();
   }
 }
 
-void WbRobot::keyReleased(const QString &text, int key) {
-  bool reset = true;
+void WbRobot::keyReleased(int key) {
+  bool resetKey = true;
   QMutableListIterator<int> it(mPressedKeys);
   while (it.hasNext()) {
     int i = it.next();
     if ((i & 0xffff) == (gSpecialKeys.value(key) & 0xffff)) {
       // remove all sequences containing the released special key
       it.remove();
-      reset = false;
-    } else if (!text.isEmpty()) {
-      if ((i & 0xffff) == (key & 0xffff)) {
-        // remove all sequences containing the released key
-        it.remove();
-        reset = false;
-      }
+      resetKey = false;
+    } else if ((i & 0xffff) == (key & 0xffff)) {
+      // remove all sequences containing the released key
+      it.remove();
+      resetKey = false;
     }
   }
 
-  if (reset)
+  if (resetKey)
     mPressedKeys.clear();
 
   mKeyboardHasChanged = true;
   emit keyboardChanged();
 }
 
-void WbRobot::writeConfigure(QDataStream &stream) {
-  mBatterySensor->connectToRobotSignal(this);
-  stream << (short unsigned int)0;
-  stream << (unsigned char)C_CONFIGURE;
-  stream << (unsigned char)(supervisor() ? 1 : 0);
-  stream << (unsigned char)(synchronization() ? 1 : 0);
-  stream << (short int)(1 + deviceCount());
-  stream << (short int)nodeType();
-  stream << (double)0.001 * WbSimulationState::instance()->time();
-
-  QByteArray n = name().toUtf8();
-  stream.writeRawData(n.constData(), n.size() + 1);
-
-  foreach (WbDevice *const device, mDevices) {
-    stream << (short int)device->deviceNodeType();
-    n = device->deviceName().toUtf8();
+void WbRobot::writeDeviceConfigure(QList<WbDevice *> devices, WbDataStream &stream) const {
+  QListIterator<WbDevice *> it(devices);
+  while (it.hasNext()) {
+    const WbDevice *d = it.next();
+    stream << (short int)d->deviceNodeType();
+    QByteArray n(d->deviceName().toUtf8());
     stream.writeRawData(n.constData(), n.size() + 1);
-    WbSolidDevice *solidDevice = dynamic_cast<WbSolidDevice *>(device);
+    const WbSolidDevice *solidDevice = dynamic_cast<const WbSolidDevice *>(d);
     if (solidDevice)
       n = solidDevice->model().toUtf8();
     else
       n = "";
     stream.writeRawData(n.constData(), n.size() + 1);
   }
+}
+
+void WbRobot::writeConfigure(WbDataStream &stream) {
+  mBatterySensor->connectToRobotSignal(this);
+  stream << (short unsigned int)0;
+  stream << (unsigned char)C_CONFIGURE;
+  QByteArray n = name().toUtf8();
+  stream.writeRawData(n.constData(), n.size() + 1);
+  n = WbApplicationInfo::version().toString().toUtf8();
+  stream.writeRawData(n.constData(), n.size() + 1);
+  stream << (unsigned char)(mSupervisorUtilities ? 1 : 0);
+  stream << (unsigned char)(synchronization() ? 1 : 0);
+  stream << (short int)(1 + deviceCount());
+  stream << (short int)nodeType();
+  stream << (double)0.001 * WbSimulationState::instance()->time();
+
+  writeDeviceConfigure(mDevices, stream);
+
   stream << (double)WbWorld::instance()->basicTimeStep();
 
   QString projectPath = WbProject::current()->path();
@@ -708,13 +809,11 @@ void WbRobot::writeConfigure(QDataStream &stream) {
   stream.writeRawData(n.constData(), n.size() + 1);
   n = controllerName().toUtf8();
   stream.writeRawData(n.constData(), n.size() + 1);
-  n = controllerArgs().toUtf8();
-  stream.writeRawData(n.constData(), n.size() + 1);
   n = customData().toUtf8();
   stream.writeRawData(n.constData(), n.size() + 1);
 
   // show the robot window at step 0
-  stream << (unsigned char)(mShowWindow->value() || mShowWindowMessage);
+  stream << (unsigned char)(mShowWindowMessage);
   stream << (unsigned char)(!windowFile().isEmpty());
   stream << (int)computeSimulationMode();
 
@@ -729,9 +828,9 @@ void WbRobot::writeConfigure(QDataStream &stream) {
 void WbRobot::dispatchMessage(QDataStream &stream) {
   while (!stream.atEnd()) {
     WbDeviceTag tag;
-    stream >> (short unsigned int &)tag;
+    stream >> tag;
     int size;
-    stream >> (int &)size;
+    stream >> size;
 
     if (tag == 0) {
       const int end = stream.device()->pos() + size;
@@ -739,11 +838,11 @@ void WbRobot::dispatchMessage(QDataStream &stream) {
         handleMessage(stream);
       while (stream.device()->pos() < end);
     } else {
-      WbDevice *const device = findDevice(tag);
-      if (device) {
+      WbDevice *const d = findDevice(tag);
+      if (d) {
         const int end = stream.device()->pos() + size;
         do  // handle all requests for this device
-          device->handleMessage(stream);
+          d->handleMessage(stream);
         while (stream.device()->pos() < end);
       } else  // device was deleted in Webots (but the controller does not know about it)
         stream.skipRawData(size);
@@ -752,20 +851,31 @@ void WbRobot::dispatchMessage(QDataStream &stream) {
 }
 
 void WbRobot::handleMessage(QDataStream &stream) {
-  QIODevice *const device = stream.device();
+  QIODevice *const deviceObject = stream.device();
 
   char byte;
   unsigned char pin;
-  device->getChar(&byte);
+  deviceObject->getChar(&byte);
 
   switch (byte) {
     case C_CONFIGURE:
       updateDevicesAfterInsertion();
       mConfigureRequest = true;
       return;
+    case C_ROBOT_URDF: {
+      short size;
+
+      mNeedToWriteUrdf = true;
+      stream >> size;
+      char data[size];
+      stream.readRawData(data, size);
+      setUrdfPrefix(QString(data));
+
+      return;
+    }
     case C_SET_SAMPLING_PERIOD:  // for the scene tracker
       /*
-      stream >> (short &)mRefreshRate;
+      stream >> mRefreshRate;
       if (needSceneTracker==false) {
         A_SceneTracker::addNeed();
         needSceneTracker = true;
@@ -774,13 +884,15 @@ void WbRobot::handleMessage(QDataStream &stream) {
       return;
     case C_ROBOT_SET_BATTERY_SAMPLING_PERIOD: {
       short rate;
-      stream >> (short &)rate;
+      stream >> rate;
       mBatterySensor->setRefreshRate(rate);
+      if (mBattery->isEmpty())
+        warn(tr("'wb_robot_battery_sensor_enable' called while the 'battery' field is empty."));
       return;
     }
     case C_ROBOT_SET_DATA: {
       short size;
-      stream >> (short &)size;
+      stream >> size;
       char data[size];
       stream.readRawData(data, size);
       mCustomData->setValue(data);
@@ -788,13 +900,13 @@ void WbRobot::handleMessage(QDataStream &stream) {
     }
     case C_ROBOT_SET_KEYBOARD_SAMPLING_PERIOD: {
       short rate;
-      stream >> (short &)rate;
+      stream >> rate;
       mKeyboardSensor->setRefreshRate(rate);
       return;
     }
     case C_ROBOT_SET_JOYSTICK_SAMPLING_PERIOD: {
       short rate;
-      stream >> (short &)rate;
+      stream >> rate;
       mJoystickSensor->setRefreshRate(rate);
       if (rate > 0) {
         if (!mJoystickInterface) {
@@ -825,7 +937,7 @@ void WbRobot::handleMessage(QDataStream &stream) {
     }
     case C_ROBOT_SET_MOUSE_SAMPLING_PERIOD: {
       short rate;
-      stream >> (short &)rate;
+      stream >> rate;
       if (rate <= 0 && mMouse != NULL) {
         WbMouse::destroy(mMouse);
         mMouse = NULL;
@@ -838,51 +950,50 @@ void WbRobot::handleMessage(QDataStream &stream) {
     }
     case C_ROBOT_MOUSE_ENABLE_3D_POSITION: {
       unsigned char enable;
-      stream >> (unsigned char &)enable;
+      stream >> enable;
       if (mMouse)
         mMouse->set3dPositionEnabled(enable);
       return;
     }
     case C_ROBOT_SET_JOYSTICK_FORCE_FEEDBACK: {
       short level;
-      stream >> (short &)level;
+      stream >> level;
       if (mJoystickInterface && mJoystickInterface->isCorrectlyInitialized())
         mJoystickInterface->addForce(level);
       return;
     }
     case C_ROBOT_SET_JOYSTICK_FORCE_FEEDBACK_DURATION: {
       double duration;
-      stream >> (double &)duration;
+      stream >> duration;
       if (mJoystickInterface && mJoystickInterface->isCorrectlyInitialized())
         mJoystickInterface->setConstantForceDuration(duration);
       return;
     }
     case C_ROBOT_SET_JOYSTICK_AUTO_CENTERING_GAIN: {
       double gain;
-      stream >> (double &)gain;
+      stream >> gain;
       if (mJoystickInterface && mJoystickInterface->isCorrectlyInitialized())
         mJoystickInterface->setAutoCenteringGain(gain);
       return;
     }
     case C_ROBOT_SET_JOYSTICK_RESISTANCE_GAIN: {
       double gain;
-      stream >> (double &)gain;
+      stream >> gain;
       if (mJoystickInterface && mJoystickInterface->isCorrectlyInitialized())
         mJoystickInterface->setResistanceGain(gain);
       return;
     }
     case C_ROBOT_SET_JOYSTICK_FORCE_AXIS: {
       int axis;
-      stream >> (int &)axis;
+      stream >> axis;
       if (mJoystickInterface && mJoystickInterface->isCorrectlyInitialized())
         mJoystickInterface->setForceAxis(axis);
     }
     case C_ROBOT_CLIENT_EXIT_NOTIFY:
-      /*
-      C_Controller::displayControllerProcesses();
-      A_Application::addRobotConsolePrint(name->getValue(), _("controller has terminated.\n"), 1);
-      A_Application::setControllerRequest(this, NULL);
-      */
+      emit controllerExited();
+      // notify devices that controller has terminated
+      mControllerTerminated = true;
+      updateControllerStatusInDevices();
       return;
     case C_ROBOT_REMOTE_ON:
       emit toggleRemoteMode(true);
@@ -891,20 +1002,21 @@ void WbRobot::handleMessage(QDataStream &stream) {
       emit toggleRemoteMode(false);
       return;
     case C_ROBOT_PIN:
-      stream >> (unsigned char &)pin;
+      stream >> pin;
       pinToStaticEnvironment((bool)pin);
       return;
     case C_CONSOLE_MESSAGE: {
-      unsigned char streamChannel;
-      stream >> (unsigned char &)streamChannel;
+      unsigned char streamChannel = 0;
+      stream >> streamChannel;
       unsigned int size;
-      stream >> (unsigned int &)size;
+      stream >> size;
       char nativeMessage[size];
       stream.readRawData(nativeMessage, size);
       QString message(nativeMessage);
       if (!message.endsWith('\n'))
         message += '\n';
-      emit appendMessageToConsole(message, streamChannel == 0);
+      // cppcheck-suppress knownConditionTrueFalse
+      emit appendMessageToConsole(message, streamChannel == 1);  // 1 is stdout
       return;
     }
     case C_ROBOT_WWI_MESSAGE: {
@@ -918,8 +1030,8 @@ void WbRobot::handleMessage(QDataStream &stream) {
     }
     case C_ROBOT_WAIT_FOR_USER_INPUT_EVENT: {
       int timeout;
-      stream >> (int &)mMonitoredUserInputEventTypes;
-      stream >> (int &)timeout;
+      stream >> mMonitoredUserInputEventTypes;
+      stream >> timeout;
       mNeedToWriteUserInputEventAnswer = false;
       if (mMonitoredUserInputEventTypes >= 0) {
         if (!mUserInputEventTimer) {
@@ -952,34 +1064,59 @@ void WbRobot::handleMessage(QDataStream &stream) {
     }
     default:
       // if it was not catched, then this message is apparently for a subclass of WbRobot
-      // we must rewind 1 byte so the DifferentialWheels or Supervisor can read the command
-      device->ungetChar(byte);
+      // we must rewind 1 byte so the Supervisor can read the command
+      deviceObject->ungetChar(byte);
   }
   if (mSupervisorUtilities)
     mSupervisorUtilities->handleMessage(stream);
 }
 
-void WbRobot::dispatchAnswer(QDataStream &stream, bool includeDevices) {
+void WbRobot::dispatchAnswer(WbDataStream &stream, bool includeDevices) {
   if (mConfigureRequest) {
-    assignDeviceTags();
+    assignDeviceTags(true);
     writeConfigure(stream);
     if (includeDevices) {
-      foreach (WbDevice *const device, mDevices) {
-        if (device->hasTag())
-          device->writeConfigure(stream);
+      foreach (WbDevice *const d, mDevices) {
+        assert(d->hasTag());
+        d->writeConfigure(stream);
       }
     }
+    mNewlyAddedDevices.clear();
   } else {
-    if (includeDevices) {
-      foreach (WbDevice *const device, mDevices)
-        if (device->hasTag())
-          device->writeAnswer(stream);
-    }
     writeAnswer(stream);
+    if (includeDevices) {
+      foreach (WbDevice *const d, mDevices) {
+        assert(d->hasTag());
+        d->writeAnswer(stream);
+      }
+    }
   }
 }
 
-void WbRobot::writeAnswer(QDataStream &stream) {
+QString WbRobot::encodedName() const {
+  QString encodedName = QUrl::toPercentEncoding(name());
+  // the robot name is used to connect to the libController and in this process there are indirect
+  // limitations such as QLocalServer only accepting strings up to 91 characters long for server names
+  // on some platforms.
+  // Since the server name also contains the tmp path and that includes the user's username and,
+  // in the case of a Snap, the user's home directory, we need to limit the length of the encoded
+  // robot name based on the tmp path. If it is longer than that, then we compute a hashed version
+  // of the name and use as much of it as we can. If that would be less than 4 chars, we try to use
+  // 4 chars and hope we are on a platform where QLocalServer accepts longer names. 4 chars makes the
+  // chance of a name collision 1/65536.
+  // Note: It is critical that the same logic is used in robot.c
+  const QString &tmpPath = WbStandardPaths::webotsTmpPath();
+  qsizetype maxNameLength = std::max((qsizetype)4, 91 - (tmpPath.length() + (qsizetype)strlen("ipc//extern")));
+  // Round down to the next multiple of 2 because it makes the code in robot.c easier.
+  maxNameLength = maxNameLength / 2 * 2;
+  if (encodedName.length() > maxNameLength) {
+    encodedName = QString(QCryptographicHash::hash(encodedName.toUtf8(), QCryptographicHash::Sha1).toHex());
+    encodedName.truncate(maxNameLength);
+  }
+  return encodedName;
+}
+
+void WbRobot::writeAnswer(WbDataStream &stream) {
   const double time = 0.001 * WbSimulationState::instance()->time();
   if (time != mPreviousTime) {
     stream << (short unsigned int)0;
@@ -998,7 +1135,7 @@ void WbRobot::writeAnswer(QDataStream &stream) {
   if (refreshBatterySensorIfNeeded() || mBatterySensor->hasPendingValue()) {
     stream << (short unsigned int)0;
     stream << (unsigned char)C_ROBOT_BATTERY_VALUE;
-    stream << (double)mBattery->item(CURRENT_ENERGY);
+    stream << (double)currentEnergy();
     mBatterySensor->resetPendingValue();
   }
 
@@ -1011,6 +1148,20 @@ void WbRobot::writeAnswer(QDataStream &stream) {
     mDataNeedToWriteAnswer = false;
   }
 
+  if (mSupervisorNeedToWriteAnswer) {
+    if (mSupervisorUtilitiesNeedUpdate) {
+      mSupervisorUtilitiesNeedUpdate = false;
+      delete mSupervisorUtilities;
+      mSupervisorUtilities = supervisor() ? new WbSupervisorUtilities(this) : NULL;
+    }
+
+    stream << (short unsigned int)0;
+    stream << (unsigned char)C_ROBOT_SUPERVISOR;
+    stream << (unsigned char)(mSupervisorUtilities ? 1 : 0);
+
+    mSupervisorNeedToWriteAnswer = false;
+  }
+
   if (mModelNeedToWriteAnswer) {
     stream << (short unsigned int)0;
     stream << (unsigned char)C_ROBOT_MODEL;
@@ -1018,6 +1169,20 @@ void WbRobot::writeAnswer(QDataStream &stream) {
     stream.writeRawData(n.constData(), n.size() + 1);
 
     mModelNeedToWriteAnswer = false;
+  }
+
+  if (!mNewlyAddedDevices.isEmpty()) {
+    stream << (short unsigned int)0;
+    stream << (unsigned char)C_ROBOT_NEW_DEVICE;
+    stream << (short int)mNewlyAddedDevices.size();
+    writeDeviceConfigure(mNewlyAddedDevices, stream);
+    QListIterator<WbDevice *> it(mNewlyAddedDevices);
+    while (it.hasNext()) {
+      WbDevice *deviceObject = it.next();
+      assert(deviceObject->hasTag());
+      deviceObject->writeConfigure(stream);
+    }
+    mNewlyAddedDevices.clear();
   }
 
   int userInputEvents = 0;
@@ -1033,7 +1198,7 @@ void WbRobot::writeAnswer(QDataStream &stream) {
     }
     if (mMonitoredUserInputEventTypes & WB_EVENT_KEYBOARD) {
       if (mKeyboardHasChanged)
-        userInputEvents = userInputEvents | WB_EVENT_KEYBOARD;
+        userInputEvents |= WB_EVENT_KEYBOARD;
       disconnect(this, &WbRobot::keyboardChanged, this, &WbRobot::userInputEventNeedUpdate);
     }
     if (mJoystickInterface &&
@@ -1116,6 +1281,22 @@ void WbRobot::writeAnswer(QDataStream &stream) {
 
   if (mSupervisorUtilities)
     mSupervisorUtilities->writeAnswer(stream);
+
+  if (mNeedToWriteUrdf) {
+    stream << (short unsigned int)0;
+    stream << (unsigned char)C_ROBOT_URDF;
+
+    QString urdfContent;
+    WbWriter writer(&urdfContent, modelName() + ".urdf");
+
+    writer.writeHeader(name());
+    write(writer);
+    writer.writeFooter();
+
+    stream.writeRawData(urdfContent.toLocal8Bit(), urdfContent.size() + 1);
+
+    mNeedToWriteUrdf = false;
+  }
 }
 
 bool WbRobot::hasImmediateAnswer() const {
@@ -1124,7 +1305,7 @@ bool WbRobot::hasImmediateAnswer() const {
   return mShowWindowMessage || mUpdateWindowMessage || mMessageFromWwi;
 }
 
-void WbRobot::writeImmediateAnswer(QDataStream &stream) {
+void WbRobot::writeImmediateAnswer(WbDataStream &stream) {
   if (mConfigureRequest)
     return;
   if (mShowWindowMessage) {
@@ -1194,8 +1375,8 @@ void WbRobot::handleJoystickChange() {
   }
 }
 
-QString WbRobot::windowFile(const QString &extension) {
-  if (window().isEmpty())
+QString WbRobot::windowFile(const QString &extension) const {
+  if (window().isEmpty() || window() == "<generic>")
     return WbStandardPaths::resourcesRobotWindowsPluginsPath() + "generic/generic." + extension;
 
   const QString fileName = window() + "/" + window() + "." + extension;
@@ -1210,7 +1391,7 @@ QString WbRobot::windowFile(const QString &extension) {
     if (file.exists() && file.isFile() && file.isReadable())
       return path;
     // search in project folder associated with parent PROTO models
-    WbProtoModel *protoModel = proto();
+    const WbProtoModel *protoModel = proto();
     while (protoModel) {
       if (!protoModel->projectPath().isEmpty()) {
         path = protoModel->projectPath() + "/plugins/robot_windows/" + fileName;
@@ -1218,7 +1399,7 @@ QString WbRobot::windowFile(const QString &extension) {
         if (file.exists() && file.isFile() && file.isReadable())
           return path;
       }
-      protoModel = WbProtoList::current()->findModel(protoModel->ancestorProtoName(), "");
+      protoModel = WbProtoManager::instance()->findModel(protoModel->ancestorProtoName(), "", protoModel->diskPath());
     }
   }
 
@@ -1247,8 +1428,13 @@ void WbRobot::startController() {
 }
 
 void WbRobot::receiveFromJavascript(const QByteArray &message) {
-  delete mMessageFromWwi;
-  mMessageFromWwi = new QByteArray(message);
+  if (mMessageFromWwi) {
+    mMessageFromWwi->append('\0');
+    mMessageFromWwi->append(QByteArray(message));
+  } else {
+    delete mMessageFromWwi;
+    mMessageFromWwi = new QByteArray(message);
+  }
   emit immediateMessageAdded();
 }
 
@@ -1262,6 +1448,21 @@ void WbRobot::descendantNodeInserted(WbBaseNode *decendant) {
     updateDevicesAfterInsertion();
 }
 
+void WbRobot::updateActiveCameras(WbAbstractCamera *camera, bool isActive) {
+  if (isActive) {
+    if (!mActiveCameras.contains(camera))
+      mActiveCameras.append(camera);
+    return;
+  }
+
+  mActiveCameras.removeOne(camera);
+}
+
+void WbRobot::renderCameras() {
+  for (int i = 0; i < mActiveCameras.size(); ++i)
+    mActiveCameras[i]->updateCameraTexture();
+}
+
 void WbRobot::updateSensors() {
   refreshBatterySensorIfNeeded();
   refreshKeyboardSensorIfNeeded();
@@ -1270,8 +1471,8 @@ void WbRobot::updateSensors() {
   if (mDevices.isEmpty())
     return;
 
-  foreach (WbDevice *const device, mDevices)
-    device->refreshSensorIfNeeded();
+  foreach (WbDevice *const d, mDevices)
+    d->refreshSensorIfNeeded();
 }
 
 bool WbRobot::refreshBatterySensorIfNeeded() {
@@ -1326,26 +1527,61 @@ bool WbRobot::refreshJoyStickSensorIfNeeded() {
   return false;
 }
 
-void WbRobot::exportNodeFields(WbVrmlWriter &writer) const {
-  WbSolid::exportNodeFields(writer);
-  if (writer.isX3d()) {
-    if (findField("controller") && !controllerName().isEmpty())
-      writer << " controller='" << controllerName() << "'";
-    if (findField("window") && !window().isEmpty())
-      writer << " window='" << window() << "'";
+void WbRobot::fixMissingResources() const {
+  if (controllerName()[0] != '<' && mControllerDir != (WbProject::current()->controllersPath() + controllerName() + "/")) {
+    mController->setValue("<generic>");
+    WbLog::info(tr("The 'controller' field of the robot has been changed to \"<generic>\"."));
+  }
+
+  if (window()[0] != '<' &&
+      windowFile() != (WbProject::current()->robotWindowPluginsPath() + window() + "/" + window() + ".html")) {
+    mWindow->blockSignals(true);
+    mWindow->setValue("<generic>");
+    mWindow->blockSignals(false);
+    WbLog::info(tr("The 'window' field of the robot has been changed to \"<generic>\"."));
   }
 }
 
+const QString WbRobot::urdfName() const {
+  return getUrdfPrefix() + QString("base_link");
+}
+
 int WbRobot::computeSimulationMode() {
-  WbSimulationState *state = WbSimulationState::instance();
+  const WbSimulationState *state = WbSimulationState::instance();
   switch (state->mode()) {
     case WbSimulationState::REALTIME:
       return WB_SUPERVISOR_SIMULATION_MODE_REAL_TIME;
-    case WbSimulationState::RUN:
-      return WB_SUPERVISOR_SIMULATION_MODE_RUN;
     case WbSimulationState::FAST:
       return WB_SUPERVISOR_SIMULATION_MODE_FAST;
     default:
       return WB_SUPERVISOR_SIMULATION_MODE_PAUSE;
+  }
+}
+
+void WbRobot::notifyExternControllerChanged() {
+  foreach (WbRenderingDevice *renderingDevice, mRenderingDevices) {
+    WbAbstractCamera *ac = dynamic_cast<WbAbstractCamera *>(renderingDevice);
+    if (ac)
+      ac->externControllerChanged();  // memory mapped file should be sent to new extern controller
+  }
+
+  if (WbSimulationState::instance()->hasStarted())
+    // close old robot window if already configured
+    emit externControllerChanged();
+}
+
+void WbRobot::newRemoteExternController() {
+  foreach (WbRenderingDevice *renderingDevice, mRenderingDevices) {
+    WbAbstractCamera *ac = dynamic_cast<WbAbstractCamera *>(renderingDevice);
+    if (ac)
+      ac->newRemoteExternController();  // data should be serialized and sent in the data stream (no mapped file)
+  }
+}
+
+void WbRobot::removeRemoteExternController() {
+  foreach (WbRenderingDevice *renderingDevice, mRenderingDevices) {
+    WbAbstractCamera *ac = dynamic_cast<WbAbstractCamera *>(renderingDevice);
+    if (ac)
+      ac->removeRemoteExternController();
   }
 }

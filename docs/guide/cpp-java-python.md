@@ -15,7 +15,6 @@ Therefore the class and method names, as well as the number of parameters and th
 graph BT
   Java[SWIG generated Java API] --> CPP[C++ API]
   Python[SWIG generated Python API] --> CPP
-  Ros[ROS API] --> CPP
     CPP --> C["C API (implemented in libcontroller)"]
     MATLAB[MATLAB API] --> C
       C --> Webots["Webots (binary interface)"]
@@ -38,7 +37,7 @@ For example it won't be possible to call the `worldReload` function from a `Robo
 
 %figure "A small subset of Webots oriented-object APIs"
 
-![oo_api.png](images/oo_api.png)
+![oo_api.png](images/oo_api.thumbnail.png)
 
 %end
 
@@ -63,16 +62,16 @@ There is no `WbDeviceTag` in C++/Java/Python.
 
 using namespace webots;
 
-int main(int argc, char **argv) {
-  Robot *robot = new Robot();
+int main() {
+  Robot robot;
 
-  int timeStep = (int) robot->getBasicTimeStep();
-  LED *led = robot->getLED("ledName");
-  DistanceSensor *distanceSensor = robot->getDistanceSensor("distanceSensorName");
+  int timeStep = (int) robot.getBasicTimeStep();
+  LED *led = robot.getLED("ledName");
+  DistanceSensor *distanceSensor = robot.getDistanceSensor("distanceSensorName");
   distanceSensor->enable(timeStep);
 
   // Main control loop
-  while (robot->step(timeStep) != -1) {
+  while (robot.step(timeStep) != -1) {
     // Read the sensors
     double val = distanceSensor->getValue();
 
@@ -82,7 +81,6 @@ int main(int argc, char **argv) {
     led->set(1);
   }
 
-  delete robot;
   return 0;
 }
 ```
@@ -128,8 +126,8 @@ robot = Robot()
 
 timestep = int(robot.getBasicTimeStep())
 
-led = robot.getLED('ledName')
-distanceSensor = robot.getDistanceSensor('distanceSensorName')
+led = robot.getDevice('ledName')
+distanceSensor = robot.getDevice('distanceSensorName')
 distanceSensor.enable(timestep)
 
 while (robot.step(timestep) != -1):

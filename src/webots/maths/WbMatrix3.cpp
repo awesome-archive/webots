@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,17 +13,14 @@
 // limitations under the License.
 
 #include "WbMatrix3.hpp"
+
+#include "WbMathsUtilities.hpp"
 #include "WbQuaternion.hpp"
-#include "WbRotation.hpp"
 
 static const double IDENTITY[9] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
 
 void WbMatrix3::setIdentity() {
   memcpy(mM, IDENTITY, sizeof(mM));
-}
-
-void WbMatrix3::fromAxisAngle(const WbRotation &r) {
-  fromAxisAngle(r.x(), r.y(), r.z(), r.angle());
 }
 
 void WbMatrix3::fromQuaternion(const WbQuaternion &q) {
@@ -71,4 +68,26 @@ WbQuaternion WbMatrix3::toQuaternion() const {
   s *= sqrt(1.0 + mM[8] - mM[0] - mM[4]);  // s = 4z
   invS = 1.0 / s;
   return WbQuaternion((mM[3] - mM[1]) * invS, (mM[6] + mM[2]) * invS, (mM[5] + mM[7]) * invS, 0.25 * s);
+}
+
+// Reference: https://www.geometrictools.com/Documentation/EulerAngles.pdf
+WbVector3 WbMatrix3::toEulerAnglesZYX() const {
+  WbVector3 angles;
+
+  if (mM[6] < 1) {
+    if (mM[6] > -1) {
+      angles.setX(atan2(mM[7], mM[8]));
+      angles.setY(WbMathsUtilities::clampedAsin(-mM[6]));
+      angles.setZ(atan2(mM[3], mM[0]));
+    } else {
+      angles.setX(0);
+      angles.setY(-M_PI / 2);
+      angles.setZ(atan2(-mM[5], mM[4]));
+    }
+  } else {
+    angles.setX(0);
+    angles.setY(-M_PI / 2);
+    angles.setZ(atan2(-mM[5], mM[4]));
+  }
+  return angles;
 }

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,17 +15,19 @@
 #ifndef WB_WAVE_FILE_HPP
 #define WB_WAVE_FILE_HPP
 
+#include <QtCore/QIODevice>
 #include <QtCore/QString>
 
 class WbWaveFile {
 public:
-  explicit WbWaveFile(const QString &filename);
+  explicit WbWaveFile(const QString &filename, QIODevice *device);
   WbWaveFile(qint16 *buffer, int bufferSize, int channelNumber, int bitsPerSample, int rate);
   virtual ~WbWaveFile();
 
-  void loadFromFile(int side = 0);
+  void loadFromFile(const QString &extension, int side = 0);
 
   void loadConvertedFile(int side);
+  void loadConvertedFile(int side, const QString &filename);
 
   // balance: -1 = only left, +1 = only right
   void convertToMono(double balance = 0);
@@ -39,11 +41,11 @@ public:
   int nChannels() const { return mNChannels; }
   int bitsPerSample() const { return mBitsPerSample; }
   int rate() const { return mRate; }
-  QString filename() const { return mFilename; }
+  const QString &filename() const { return mFilename; }
 
 private:
   QString mFilename;
-
+  QIODevice *mDevice;
   qint16 *mBuffer;
   qint64 mBufferSize;  // number of 'qint16' in the buffer
 

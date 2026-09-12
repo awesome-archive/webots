@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,19 +24,23 @@
 
 class WbFieldDoubleSpinBox;
 class QLabel;
+class QPushButton;
 
 class WbRotationEditor : public WbValueEditor {
   Q_OBJECT
 
 public:
   explicit WbRotationEditor(QWidget *parent = NULL);
-  virtual ~WbRotationEditor();
+  virtual ~WbRotationEditor() override;
+
+  enum RotationType { AXIS_ANGLE = 0, QUATERNIONS };
 
   void recursiveBlockSignals(bool block) override;
 
   QWidget *lastEditorWidget() override;
 
 public slots:
+  // cppcheck-suppress virtualCallInConstructor
   void applyIfNeeded() override;
 
 protected:
@@ -45,15 +49,22 @@ protected:
 
 protected slots:
   void apply() override;
+  void normalize();
+  void updateRotationType(int index);
 
 private:
   void updateSpinBoxes();
   void takeKeyboardFocus() override;
+  WbRotation computeRotation();
 
   WbRotation mRotation;
+  QLabel *mRotationTypeLabel;
+  QComboBox *mRotationTypeComboBox;
+  int mCurrentRotationType;
   WbFieldDoubleSpinBox *mSpinBoxes[4];
   QLabel *mLabel[4];
   QLabel *mUnitLabel[4];
+  QPushButton *mNormalizeButton;
 
   bool mApplied;
 };

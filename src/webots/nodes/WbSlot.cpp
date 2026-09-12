@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -52,14 +52,20 @@ void WbSlot::validateProtoNode() {
     solid->validateProtoNode();
 }
 
+void WbSlot::downloadAssets() {
+  WbBaseNode::downloadAssets();
+  if (hasEndPoint())
+    static_cast<WbBaseNode *>(endPoint())->downloadAssets();
+}
+
 void WbSlot::preFinalize() {
   WbBaseNode::preFinalize();
 
   connect(mEndPoint, &WbSFString::changed, this, &WbSlot::endPointChanged);
-  WbGroup *pg = dynamic_cast<WbGroup *>(parent());
+  WbGroup *pg = dynamic_cast<WbGroup *>(parentNode());
   if (pg)  // parent is a group
-    connect(this, &WbSlot::endPointInserted, pg, &WbGroup::insertChildFromSlot);
-  WbSlot *ps = dynamic_cast<WbSlot *>(parent());
+    connect(this, &WbSlot::endPointInserted, pg, &WbGroup::insertChildFromSlotOrJoint);
+  WbSlot *ps = dynamic_cast<WbSlot *>(parentNode());
   if (ps)  // parent is another slot
     connect(this, &WbSlot::endPointInserted, ps, &WbSlot::endPointInserted);
 
@@ -80,7 +86,7 @@ void WbSlot::postFinalize() {
 
 void WbSlot::updateType() {
   QString connectedType;
-  const WbSlot *const parentSlot = dynamic_cast<WbSlot *>(parent());
+  const WbSlot *const parentSlot = dynamic_cast<WbSlot *>(parentNode());
   const WbSlot *const childSlot = slotEndPoint();
   if (parentSlot)
     connectedType = parentSlot->slotType();
@@ -91,7 +97,7 @@ void WbSlot::updateType() {
 
   QString errorMessage;
   if (!WbNodeUtilities::isSlotTypeMatch(slotType(), connectedType, errorMessage))
-    warn(tr("Invalid 'type' changed to '%1': %2").arg(slotType()).arg(errorMessage));
+    parsingWarn(tr("Invalid 'type' changed to '%1': %2").arg(slotType()).arg(errorMessage));
 }
 
 WbSolid *WbSlot::solidEndPoint() const {
@@ -161,7 +167,7 @@ void WbSlot::setSleepMaterial() {
 }
 
 WbBoundingSphere *WbSlot::boundingSphere() const {
-  WbBaseNode *const baseNode = static_cast<WbBaseNode *>(mEndPoint->value());
+  const WbBaseNode *const baseNode = static_cast<WbBaseNode *>(mEndPoint->value());
   if (baseNode)
     return baseNode->boundingSphere();
 
@@ -171,25 +177,41 @@ WbBoundingSphere *WbSlot::boundingSphere() const {
 void WbSlot::endPointChanged() {
   WbBaseNode *const e = static_cast<WbBaseNode *>(mEndPoint->value());
   if (e) {
-    e->setParent(this);
+    e->setParentNode(this);
     emit endPointInserted(e);
   }
 }
 
-void WbSlot::reset() {
-  WbBaseNode::reset();
+QString WbSlot::endPointName() const {
+  if (!mEndPoint->value())
+    return QString();
 
-  WbNode *const e = mEndPoint->value();
-  if (e)
-    e->reset();
+  QString name = mEndPoint->value()->computeName();
+  if (name.isEmpty())
+    name = mEndPoint->value()->endPointName();
+  return name;
 }
 
-void WbSlot::save() {
-  WbBaseNode::save();
+void WbSlot::reset(const QString &id) {
+  WbBaseNode::reset(id);
 
   WbNode *const e = mEndPoint->value();
   if (e)
-    e->save();
+    e->reset(id);
+}
+
+void WbSlot::save(const QString &id) {
+  WbBaseNode::save(id);
+
+  WbNode *const e = mEndPoint->value();
+  if (e)
+    e->save(id);
+}
+
+void WbSlot::updateSegmentationColor(const WbRgb &color) {
+  WbBaseNode *const e = static_cast<WbBaseNode *>(mEndPoint->value());
+  if (e)
+    e->updateSegmentationColor(color);
 }
 
 //////////////////////////////////////////////////////////////
@@ -203,16 +225,24 @@ void WbSlot::attachResizeManipulator() {
 }
 
 void WbSlot::detachResizeManipulator() const {
-  WbBaseNode *const e = static_cast<WbBaseNode *>(mEndPoint->value());
+  const WbBaseNode *const e = static_cast<WbBaseNode *>(mEndPoint->value());
   if (e)
     e->detachResizeManipulator();
 }
 
-void WbSlot::write(WbVrmlWriter &writer) const {
+void WbSlot::write(WbWriter &writer) const {
   if (writer.isWebots())
     WbBaseNode::write(writer);
   else {
-    if (hasEndpoint())
+    if (hasEndPoint())
       mEndPoint->value()->write(writer);
   }
+}
+
+QList<const WbBaseNode *> WbSlot::findClosestDescendantNodesWithDedicatedWrenNode() const {
+  QList<const WbBaseNode *> list;
+  const WbBaseNode *const e = static_cast<WbBaseNode *>(mEndPoint->value());
+  if (e)
+    list << e->findClosestDescendantNodesWithDedicatedWrenNode();
+  return list;
 }

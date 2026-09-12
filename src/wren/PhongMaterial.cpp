@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,7 +25,12 @@
 
 #include <wren/material.h>
 
+#ifdef __EMSCRIPTEN__
+#include <GL/gl.h>
+#include <GLES3/gl3.h>
+#else
 #include <glad/glad.h>
+#endif
 
 namespace wren {
 
@@ -40,13 +45,25 @@ namespace wren {
   }
 
   size_t PhongMaterial::sortingId() const {
-    const size_t programId = static_cast<size_t>(mDefaultProgram->glName());
+    const unsigned long long programId = static_cast<unsigned long long>(mDefaultProgram->glName());
 
     size_t textureId = 0;
     if (mTextures[0].first)
       textureId = static_cast<size_t>(mTextures[0].first->glName());
 
-    return static_cast<size_t>(mCacheData->id() << 1) | (textureId << 16) | (programId << 32) | mHasPremultipliedAlpha;
+    return static_cast<size_t>(mCacheData->id() << 1) | (textureId << 16) | (programId << 32) |
+           (mHasPremultipliedAlpha ? 1 : 0);
+  }
+
+  PhongMaterial *PhongMaterial::createMaterial() {
+    PhongMaterial *material = new PhongMaterial();
+    material->init();
+    return material;
+  }
+
+  void PhongMaterial::deleteMaterial(PhongMaterial *material) {
+    material->releaseMaterial();
+    delete material;
   }
 
   void PhongMaterial::clearMaterial() {
@@ -141,14 +158,6 @@ namespace wren {
     updateMaterial(material);
   }
 
-  void PhongMaterial::linearDiffuse(float *returnColor) const {
-    GlslLayout::PhongMaterial material(mCacheData->mMaterial);
-
-    for (int i = 0; i < 4; ++i) {
-      returnColor[i] = material.mDiffuse[i];
-    }
-  }
-
   void PhongMaterial::bind(bool bindProgram) const {
     if (bindProgram)
       Material::useProgram();
@@ -160,18 +169,23 @@ namespace wren {
     Material::bindTextures();
   }
 
-  PhongMaterial::PhongMaterial() : Material(), mColorPerVertex(false) {
+  PhongMaterial::PhongMaterial() : Material(), mColorPerVertex(false), mCacheData(NULL) {
+    mMaterialStructure = new WrMaterial;
+    mMaterialStructure->type = WR_MATERIAL_PHONG;
+    mMaterialStructure->data = reinterpret_cast<void *>(this);
+  }
+
+  PhongMaterial::~PhongMaterial() {
+    delete mMaterialStructure;
+  }
+
+  void PhongMaterial::init() {
     GlslLayout::PhongMaterial material;
     material.mAmbient = glm::vec4(gVec3Ones, 1.0f);
     material.mDiffuse = glm::vec4(gVec3Ones, 1.0f);
     material.mSpecularAndExponent = glm::vec4(gVec3Ones, 25.0f);
     material.mEmissiveAndOpacity = glm::vec4(gVec3Zeros, 1.0f);
     material.mTextureFlags = glm::vec4(0.0f);
-
-    mMaterialStructure = new WrMaterial;
-    mMaterialStructure->type = WR_MATERIAL_PHONG;
-    mMaterialStructure->data = reinterpret_cast<void *>(this);
-
     updateMaterial(material);
   }
 
@@ -251,11 +265,6 @@ void wr_phong_material_set_color(WrMaterial *material, const float *color) {
 void wr_phong_material_set_ambient(WrMaterial *material, const float *ambient) {
   assert(material && material->type == WR_MATERIAL_PHONG);
   reinterpret_cast<wren::PhongMaterial *>(material->data)->setAmbient(glm::make_vec3(ambient), false);
-}
-
-void wr_phong_material_get_linear_diffuse(WrMaterial *material, float *diffuse) {
-  assert(material && material->type == WR_MATERIAL_PHONG);
-  reinterpret_cast<wren::PhongMaterial *>(material->data)->linearDiffuse(diffuse);
 }
 
 void wr_phong_material_set_diffuse(WrMaterial *material, const float *diffuse) {

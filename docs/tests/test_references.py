@@ -2,17 +2,18 @@
 import unittest
 from books import Books
 
-from email.utils import parseaddr
 import os
 import re
+import sys
 
 
 def slugify(txt):
     """Slugify function."""
     output = txt.lower()
+    output = re.sub(r'\]\([^)]*\)', ']', output)  # remove the content of parenthesis if reference
     output = re.sub(r'<[^>]+>', '', output)
     output = output.replace('+', 'p')
-    output = re.sub(r"[\(\):`']", '', output)
+    output = re.sub(r"[\(\):`'=]", '', output)
     output = re.sub(r'\\_', '_', output)
     output = re.sub(r'[\W-]+', '-', output)
     output = re.sub(r'^-*', '', output)
@@ -28,16 +29,30 @@ class TestReferences(unittest.TestCase):
         books = Books()
         self.anchors = {}
         for book in books.books:
+
+            # we are not responsible of the content of the discord chats
+            if book.name == 'discord':
+                continue
+
             for md_path in book.md_paths:
                 anchors = []
-                with open(md_path) as f:
+                args = {} if sys.version_info[0] < 3 else {'encoding': 'utf-8'}
+                with open(md_path, **args) as f:
+                    skipUntil = ''
                     for line in f:
+                        if skipUntil:
+                            if skipUntil in line:
+                                skipUntil = ''
+                            continue
                         if '<a' in line and 'name=' in line:
                             for m in re.finditer(
                                     r'<a[^>]*name\s*=\s*"(.*)"[^>]*>',
                                     line.strip()):
                                 anchors.append(m.group(1))
-                        if line.startswith('#'):
+                        if re.match(r'```', line):
+                            skipUntil = '```'
+                            continue
+                        elif line.startswith('#'):
                             m = re.match(r'^#{1,4} .*$', line)
                             if m:
                                 title = re.sub(r'^#*', '', line)
@@ -59,6 +74,11 @@ class TestReferences(unittest.TestCase):
         """Test that the anchors are unique."""
         books = Books()
         for book in books.books:
+
+            # we are not responsible of the content of the discord chats
+            if book.name == 'discord':
+                continue
+
             for md_path in book.md_paths:
                 anchors = self.anchors[md_path]
                 s = set()
@@ -75,8 +95,14 @@ class TestReferences(unittest.TestCase):
         """Test that the MD files refer valid URLs."""
         books = Books()
         for book in books.books:
+
+            # we are not responsible of the content of the discord chats
+            if book.name == 'discord':
+                continue
+
             for md_path in book.md_paths:
-                with open(md_path) as f:
+                args = {} if sys.version_info[0] < 3 else {'encoding': 'utf-8'}
+                with open(md_path, **args) as f:
                     content = f.read()
                 for m in re.finditer(r"[^!]\[(.*?)\]\(([^\)]+)\)", content):
                     # remove parameters
@@ -93,14 +119,18 @@ class TestReferences(unittest.TestCase):
                         continue
                     # 4. mailto
                     if ref.startswith('mailto:'):
-                        mailto = ref[len('mailto:') + 1:]
-                        (name, address) = parseaddr(mailto)
-                        self.assertGreater(
-                            address, 0,
+                        mailto = ref[len('mailto:'):]
+                        m = re.match(r'^([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)$', mailto)
+                        self.assertIsNotNone(
+                            m,
                             msg='Invalid address "%s"' % (mailto)
                         )
                         continue
-                    # 5. link to another MD file
+                    # 5. variable (the variable should be in format `url.something`)
+                    if ref.startswith('{{'):
+                        if re.match(r'{{\s{0,}url\..*}}', ref) is not None:
+                            continue
+                    # 6. link to another MD file
                     link = ''
                     anchor = ''
                     if ref.startswith('#'):
@@ -121,7 +151,7 @@ class TestReferences(unittest.TestCase):
                             os.path.isfile(file_path),
                             msg='%s: "%s" not found' % (md_path, file_path)
                         )
-                    # 6. Anchor
+                    # 7. Anchor
                     if anchor != '':
                         file_path = ''
                         if link == '':

@@ -33,8 +33,8 @@ robot = Robot()
 timestep = int(robot.getBasicTimeStep())
 
 # Initializes the wheels.
-leftWheel = robot.getMotor('left wheel')
-rightWheel = robot.getMotor('right wheel')
+leftWheel = robot.getDevice('left wheel')
+rightWheel = robot.getDevice('right wheel')
 leftWheel.setVelocity(0)
 rightWheel.setVelocity(0)
 leftWheel.setPosition(float('inf'))
@@ -44,7 +44,7 @@ rightWheel.setPosition(float('inf'))
 # Initializes the sensors.
 sonarSensor = [None] * 16
 for i in range(0, 16):
-    sonarSensor[i] = robot.getDistanceSensor("so%d" % i)
+    sonarSensor[i] = robot.getDevice("so%d" % i)
     sonarSensor[i].enable(timestep)
 
 
@@ -77,8 +77,8 @@ def updateDistances():
     """
     # We don't iterate over all the sensors because some are never used.
     # If you need to use those sensors you will have to add them here.
-    for i in range(0, 7):
-        distance[i] = getDistance(sonarSensor[i])
+    for j in range(0, 7):
+        distance[j] = getDistance(sonarSensor[j])
     distance[15] = getDistance(sonarSensor[15])
 
 

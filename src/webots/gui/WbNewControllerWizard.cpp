@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,6 +14,7 @@
 
 #include "WbNewControllerWizard.hpp"
 
+#include "WbDesktopServices.hpp"
 #include "WbFileUtil.hpp"
 #include "WbLanguage.hpp"
 #include "WbLineEdit.hpp"
@@ -23,8 +24,7 @@
 
 #include <QtCore/QUrl>
 
-#include <QtGui/QDesktopServices>
-#include <QtGui/QRegExpValidator>
+#include <QtGui/QRegularExpressionValidator>
 
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QRadioButton>
@@ -64,6 +64,7 @@ void WbNewControllerWizard::updateUI() {
       mIdeProjectFullPath << mControllerDir + mNameEdit->text() + ".sln";
       mIdeProjectFullPath << mControllerDir + mNameEdit->text() + ".vcxproj";
       mIdeProjectFullPath << mControllerDir + mNameEdit->text() + ".vcxproj.filter";
+      mIdeProjectFullPath << mControllerDir + mNameEdit->text() + ".vcxproj.user";
     } else
 #endif
       mIdeProjectFullPath << mControllerDir + "Makefile";
@@ -72,7 +73,9 @@ void WbNewControllerWizard::updateUI() {
 #ifdef _WIN32
   // update check box message
   if (mIdeButtonGroup->checkedId() == 1)  // Microsoft Visual Studio
-    mEditCheckBox->setText(tr("Open '%1.sln' in Microsoft Visual Studio.").arg(mNameEdit->text()));
+    mEditCheckBox->setText(tr("Open '%1.sln' in Microsoft Visual Studio (the controller need to be set to <extern> to be "
+                              "able to launch the controller from Microsoft Visual Studio.")
+                             .arg(mNameEdit->text()));
   else
 #endif
     mEditCheckBox->setText(tr("Open '%1.%2' in Text Editor.").arg(mNameEdit->text()).arg(mLanguage->defaultFileSuffix()));
@@ -94,20 +97,15 @@ bool WbNewControllerWizard::validateCurrentPage() {
       mNameEdit->setText("MyController");
   }
   if (currentId() == NAME) {
-    QStringList existingControllers = QDir(WbProject::current()->controllersPath()).entryList();
-    foreach (const QString filename, existingControllers) {
-#ifdef _WIN32
-      if (filename.compare(mNameEdit->text(), Qt::CaseInsensitive) == 0) {
-#else
-      if (filename.compare(mNameEdit->text(), Qt::CaseSensitive) == 0) {
-#endif
-        WbMessageBox::warning("A controller by this name exists already. Try renaming your controller.", this,
-                              "Controller Already Exists");
-        return false;
-      }
+    if (mNameEdit->text().isEmpty()) {
+      WbMessageBox::warning(tr("Please specify a controller name."), this, tr("Invalid controller name"));
+      return false;
     }
-    // allow to continue only if controller name is not empty
-    return !mNameEdit->text().isEmpty();
+    if (QDir(WbProject::current()->controllersPath() + mNameEdit->text()).exists()) {
+      WbMessageBox::warning(tr("A controller with this name already exists, please choose a different name."), this,
+                            tr("Invalid controller name"));
+      return false;
+    }
   }
   return true;
 }
@@ -141,6 +139,10 @@ void WbNewControllerWizard::accept() {
         success = WbFileUtil::copyAndReplaceString(src + mLanguage->defaultFileSuffix() + ".vcxproj.filter", ideProjectFullPath,
                                                    "template", mNameEdit->text()) &&
                   success;
+      else if (ideProjectFullPath.endsWith(".vcxproj.user"))
+        success = WbFileUtil::copyAndReplaceString(src + mLanguage->defaultFileSuffix() + ".vcxproj.user", ideProjectFullPath,
+                                                   "template", mNameEdit->text()) &&
+                  success;
 #endif
     }
   }
@@ -148,7 +150,7 @@ void WbNewControllerWizard::accept() {
     WbMessageBox::warning(tr("Some directories or files could not be created."), this, tr("Controller creation failed"));
 #ifdef _WIN32
   if (mIdeButtonGroup->checkedId() == 1 && mEditCheckBox->isChecked()) {  // Microsoft Visual Studio
-    QDesktopServices::openUrl(QUrl::fromLocalFile(mSlnFile));
+    WbDesktopServices::openUrl(QUrl::fromLocalFile(mSlnFile).toString());
     mNeedsEdit = false;
   } else
 #endif
@@ -167,6 +169,7 @@ const QString &WbNewControllerWizard::controllerName() const {
 QWizardPage *WbNewControllerWizard::createIntroPage() {
   QWizardPage *page = new QWizardPage(this);
   page->setTitle(tr("New controller creation"));
+  // cppcheck-suppress constVariablePointer
   QLabel *label = new QLabel(tr("This wizard will help you creating a new controller."), page);
   QVBoxLayout *layout = new QVBoxLayout(page);
   layout->addWidget(label);
@@ -215,7 +218,7 @@ QWizardPage *WbNewControllerWizard::createNamePage() {
   page->setSubTitle(tr("Please choose a name for your controller program."));
   QLabel *nameLabel = new QLabel(tr("Controller name:"), page);
   mNameEdit = new WbLineEdit("my_controller", page);
-  mNameEdit->setValidator(new QRegExpValidator(QRegExp("[a-zA-Z0-9_-]*"), page));
+  mNameEdit->setValidator(new QRegularExpressionValidator(QRegularExpression("[a-zA-Z0-9_-]*"), page));
   nameLabel->setBuddy(mNameEdit);
   QHBoxLayout *layout = new QHBoxLayout(page);
   layout->addWidget(nameLabel);

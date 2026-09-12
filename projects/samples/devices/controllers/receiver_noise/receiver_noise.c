@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,6 +26,7 @@
 #include <webots/motor.h>
 #include <webots/receiver.h>
 #include <webots/robot.h>
+#include <webots/utils/ansi_codes.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -34,6 +35,7 @@
 #define SPEED 6
 #define TIME_STEP 64
 #define COMMUNICATION_CHANNEL 1
+#define CLAMP(value, low, high) ((value) < (low) ? (low) : ((value) > (high) ? (high) : (value)))
 
 typedef enum { EMITTER, RECEIVER } robot_types;
 
@@ -64,12 +66,6 @@ int main() {
     robot_type = RECEIVER;
     communication = wb_robot_get_device("receiver");
     wb_receiver_enable(communication, TIME_STEP);
-
-    printf("Example usage of signalStrengthNoise and directionNoise in a Receiver.\n");
-    printf("The real position of the emitter robot obtained from a noise-free GPS is\n");
-    printf("compared to the position computed from the direction and signal strenght\n");
-    printf("information. Changing the 'signalStrengthNoise' or 'directionNoise' of the\n");
-    printf("Receiver should affect the results.\n\n");
   } else {
     printf("Unrecognized robot name '%s'. Exiting...\n", wb_robot_get_name());
     wb_robot_cleanup();
@@ -101,7 +97,8 @@ int main() {
       wb_emitter_send(communication, message, strlen(message) + 1);
       const double *gpsPosition = wb_gps_get_values(gps);
       /* print real position measured from the GPS */
-      printf("GPS position:     time = %.3lf   X = %.3lf Z = %.3lf\n\n", wb_robot_get_time(), gpsPosition[0], gpsPosition[2]);
+      ANSI_CLEAR_CONSOLE();
+      printf("GPS position: time = %.3lf   X = %.3lf Y = %.3lf\n", wb_robot_get_time(), gpsPosition[0], gpsPosition[1]);
 
     } else {
       /* is there at least one packet in the receiver's queue ? */
@@ -110,8 +107,9 @@ int main() {
         double signalStrength = wb_receiver_get_signal_strength(communication);
         const double *direction = wb_receiver_get_emitter_direction(communication);
         double dist = 1 / sqrt(signalStrength);
-        printf("Emitter position: time = %.3lf   X = %.3lf Z = %.3lf\n", wb_robot_get_time(), direction[0] * dist,
-               direction[2] * dist);
+        ANSI_CLEAR_CONSOLE();
+        printf("Emitter position: time = %.3lf   X = %.3lf Y = %.3lf\n", wb_robot_get_time(), direction[0] * dist,
+               direction[1] * dist);
 
         wb_receiver_next_packet(communication);
       }
@@ -131,7 +129,7 @@ int main() {
           right_speed = -SPEED;
         } else {
           /*
-           * we turn proportionnaly to the sensors value because the
+           * we turn proportionally to the sensors value because the
            * closer we are from the wall, the more we need to turn.
            */
           left_speed = -ds1_value / 100;
@@ -149,8 +147,8 @@ int main() {
       }
 
       /* set the motor speeds. */
-      wb_motor_set_velocity(left_motor, left_speed);
-      wb_motor_set_velocity(right_motor, right_speed);
+      wb_motor_set_velocity(left_motor, CLAMP(left_speed, -10.0, 10.0));
+      wb_motor_set_velocity(right_motor, CLAMP(right_speed, -10.0, 10.0));
     }
   }
 

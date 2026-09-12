@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "WbDistanceSensor.hpp"
+
+#include "WbDataStream.hpp"
 #include "WbFieldChecker.hpp"
 #include "WbGeometry.hpp"
 #include "WbLookupTable.hpp"
@@ -31,7 +33,7 @@
 #include "WbWrenRenderingContext.hpp"
 #include "WbWrenShaders.hpp"
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../controller/c/messages.h"
 
 #include <wren/config.h>
 #include <wren/dynamic_mesh.h>
@@ -54,10 +56,10 @@ static const double FIFTH = 2 * M_PI / 5;
 static const double SIXTH = M_PI / 3;
 static const double SEVENTH = 2 * M_PI / 7;
 
-// number of predifined configurations
+// number of predefined configurations
 static const int NUM_PREDEFINED = 10;
 
-// definition of predifined combinations
+// definition of predefined combinations
 static const double POLAR[NUM_PREDEFINED][NUM_PREDEFINED][2] = {
   {{0, 0}},
   {{QUARTER, 1}, {-QUARTER, 1}},
@@ -86,6 +88,12 @@ public:
     mGeom = NULL;
     mCollidedGeometry = NULL;
     mWeight = 1.0;
+    mContactPosition[0] = 0.0;
+    mContactPosition[1] = 0.0;
+    mContactPosition[2] = 0.0;
+    mContactNormal[0] = 0.0;
+    mContactNormal[1] = 0.0;
+    mContactNormal[2] = 0.0;
   };
 
   ~SensorRay() {
@@ -176,6 +184,7 @@ void WbDistanceSensor::init() {
   mNumberOfRays = findSFInt("numberOfRays");
   mGaussianWidth = findSFDouble("gaussianWidth");
   mResolution = findSFDouble("resolution");
+  mRedColorSensitivity = findSFDouble("redColorSensitivity");
 
   mTransform = NULL;
   mMesh = NULL;
@@ -240,6 +249,7 @@ void WbDistanceSensor::postFinalize() {
   connect(mNumberOfRays, &WbSFInt::changed, this, &WbDistanceSensor::updateRaySetup);
   connect(mGaussianWidth, &WbSFDouble::changed, this, &WbDistanceSensor::updateRaySetup);
   connect(mResolution, &WbSFDouble::changed, this, &WbDistanceSensor::updateRaySetup);
+  connect(mRedColorSensitivity, &WbSFDouble::changed, this, &WbDistanceSensor::updateRaySetup);
 }
 
 void WbDistanceSensor::updateRaySetup() {
@@ -255,16 +265,18 @@ void WbDistanceSensor::updateRaySetup() {
     mRayType = SONAR;
 
   // correct invalid input values
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mAperture, -mAperture->value()))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mAperture, -mAperture->value()))
     return;  // in order to avoiding passing twice in this function
-  if (WbFieldChecker::checkIntIsGreaterOrEqual(this, mNumberOfRays, 1, 1))
+  if (WbFieldChecker::resetIntIfLess(this, mNumberOfRays, 1, 1))
     return;  // in order to avoiding passing twice in this function
-  if (WbFieldChecker::checkDoubleIsPositive(this, mGaussianWidth, 1.0))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mGaussianWidth, 1.0))
     return;  // in order to avoiding passing twice in this function
-  if (WbFieldChecker::checkDoubleIsPositiveOrDisabled(this, mResolution, -1, -1))
+  if (WbFieldChecker::resetDoubleIfNonPositiveAndNotDisabled(this, mResolution, -1, -1))
+    return;  // in order to avoiding passing twice in this function
+  if (WbFieldChecker::resetDoubleIfNegative(this, mRedColorSensitivity, -mRedColorSensitivity->value()))
     return;  // in order to avoiding passing twice in this function
   if (mRayType == LASER && mNumberOfRays->value() > 1) {
-    warn(tr("'type' \"laser\" must have one single ray."));
+    parsingWarn(tr("'type' \"laser\" must have one single ray."));
     mNumberOfRays->setValue(1);
     return;  // in order to avoiding passing twice in this function
   }
@@ -322,11 +334,11 @@ void WbDistanceSensor::polarTo3d(double alpha, double theta, int i) {
 
   // first rotate around x-axis which is the sensors central ray axis
   const double x = cos(theta);
-  double z = -sin(theta);
+  double y = -sin(theta);
 
-  // then rotate around y-axis
-  const double y = -z * sin(alpha);
-  z *= cos(alpha);
+  // then rotate around z-axis
+  const double z = -y * sin(alpha);
+  y *= cos(alpha);
 
   mRays[i].setDirection(x, y, z);
 }
@@ -416,7 +428,7 @@ void WbDistanceSensor::createOdeObjects() {
 }
 
 void WbDistanceSensor::createOdeRays() {
-  const double lutMaxRange = absoluteScale().x() * mLut->maxMetricsRange();
+  const double lutMaxRange = mLut->maxMetricsRange();
   for (int i = 0; i < mNRays; i++) {
     dGeomID rayGeom = dCreateRay(WbOdeContext::instance()->space(), lutMaxRange);
     dGeomSetDynamicFlag(rayGeom);
@@ -432,7 +444,7 @@ void WbDistanceSensor::setSensorRays() {
     if (mRays[i].geom()) {  // NOT INFRA_RED
       // get ray direction
       const WbVector3 &dir = mRays[i].direction();
-      assert(dir != WbVector3(0, 0, 0));
+      assert(!dir.isNull());
 
       // apply sensor's coordinate system transformation to rays
       WbVector3 r = m.sub3x3MatrixDot(dir);
@@ -444,7 +456,7 @@ void WbDistanceSensor::setSensorRays() {
 }
 
 void WbDistanceSensor::updateRaysSetupIfNeeded() {
-  updateTransformAfterPhysicsStep();
+  updateTransformForPhysicsStep();
   setSensorRays();
 }
 
@@ -471,9 +483,9 @@ bool WbDistanceSensor::refreshSensorIfNeeded() {
   return false;
 }
 
-void WbDistanceSensor::reset() {
-  WbSolidDevice::reset();
-  wr_node_set_visible(WR_NODE(mTransform), false);
+void WbDistanceSensor::reset(const QString &id) {
+  WbSolidDevice::reset(id);
+  updateOptionalRendering(WbWrenRenderingContext::VF_DISTANCE_SENSORS_RAYS);
 }
 
 void WbDistanceSensor::computeValue() {
@@ -486,8 +498,7 @@ void WbDistanceSensor::computeValue() {
     return;
   }
 
-  const double s = absoluteScale().x();
-  const double lutMaxRange = s * mLut->maxMetricsRange();
+  const double lutMaxRange = mLut->maxMetricsRange();
 
   if (mRayType == GENERIC) {
     // average all ray collision distances using ray weights
@@ -512,9 +523,10 @@ void WbDistanceSensor::computeValue() {
         mRays[i].setDistance(distance);
 
         WbRgb pickedColor;
-        shape->pickColor(pickedColor, WbRay(trans, r));
+        double roughness, occlusion;
+        shape->pickColor(WbRay(trans, r), pickedColor, &roughness, &occlusion);
 
-        const double infraRedFactor = 0.8 * pickedColor.red() + 0.2;
+        const double infraRedFactor = 0.8 * pickedColor.red() * (1 - 0.5 * roughness) * (1 - 0.5 * occlusion) + 0.2;
         averageInfraRedFactor += infraRedFactor * mRays[i].weight();
       } else
         averageInfraRedFactor += mRays[i].weight();
@@ -522,8 +534,9 @@ void WbDistanceSensor::computeValue() {
       mDistance += distance * mRays[i].weight();
     }
 
-    // apply infrared reflection factor
-    mDistance = mDistance / averageInfraRedFactor;
+    // apply infrared reflection factor and red color sensitivity
+    // before adding of red color sensitivity factor it was calculated with mDistance = mDistance / averageInfraRedFactor
+    mDistance = mDistance + (mDistance / averageInfraRedFactor - mDistance) * mRedColorSensitivity->value();
   } else if (mRayType == SONAR) {
     // use only the nearest ray collision, ignore ray weight
     mDistance = lutMaxRange;
@@ -543,7 +556,7 @@ void WbDistanceSensor::computeValue() {
     // consider only one ray (there should be only one)
     mDistance = (mRays[0].collidedGeometry()) ? mRays[0].distance() : lutMaxRange;
 
-  mValue = mLut->lookup(mDistance / s);
+  mValue = mLut->lookup(mDistance);
   if (mResolution->value() != -1.0)
     mValue = WbMathsUtilities::discretize(mValue, mResolution->value());
 
@@ -560,6 +573,11 @@ void WbDistanceSensor::rayCollisionCallback(WbGeometry *object, dGeomID rayGeom,
   if (!mSensor->isEnabled())
     return;
 
+  if (object->isTransparent()) {
+    if (mRayType == LASER || mRayType == INFRA_RED)
+      return;
+  }
+
   for (int i = 0; i < mNRays; i++)
     if (rayGeom == mRays[i].geom()) {
       if (mRayType == GENERIC)
@@ -575,11 +593,11 @@ void WbDistanceSensor::rayCollisionCallback(WbGeometry *object, dGeomID rayGeom,
 void WbDistanceSensor::handleMessage(QDataStream &stream) {
   unsigned char command;
   short refreshRate;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SET_SAMPLING_PERIOD:
-      stream >> (short &)refreshRate;
+      stream >> refreshRate;
       mSensor->setRefreshRate(refreshRate);
       if (refreshRate == 0) {  // sensor disabled
         // update rays appearance
@@ -591,7 +609,7 @@ void WbDistanceSensor::handleMessage(QDataStream &stream) {
   }
 }
 
-void WbDistanceSensor::writeAnswer(QDataStream &stream) {
+void WbDistanceSensor::writeAnswer(WbDataStream &stream) {
   if (refreshSensorIfNeeded() || mSensor->hasPendingValue()) {
     stream << tag();
     stream << (unsigned char)C_DISTANCE_SENSOR_DATA;
@@ -604,17 +622,23 @@ void WbDistanceSensor::writeAnswer(QDataStream &stream) {
     addConfigure(stream);
 }
 
-void WbDistanceSensor::addConfigure(QDataStream &stream) {
+void WbDistanceSensor::addConfigure(WbDataStream &stream) {
   stream << (short unsigned int)tag();
   stream << (unsigned char)C_CONFIGURE;
   stream << (int)mRayType;
   stream << (double)mLut->minValue();
   stream << (double)mLut->maxValue();
   stream << (double)mAperture->value();
+  stream << (int)mLookupTable->size();
+  for (int i = 0; i < mLookupTable->size(); i++) {
+    stream << (double)mLookupTable->item(i).x();
+    stream << (double)mLookupTable->item(i).y();
+    stream << (double)mLookupTable->item(i).z();
+  }
   mNeedToReconfigure = false;
 }
 
-void WbDistanceSensor::writeConfigure(QDataStream &stream) {
+void WbDistanceSensor::writeConfigure(WbDataStream &stream) {
   mSensor->connectToRobotSignal(robot());
   addConfigure(stream);
 }
@@ -701,7 +725,6 @@ void WbDistanceSensor::applyOptionalRenderingToWren() {
   wr_dynamic_mesh_clear(mMesh);
 
   if (mRays) {
-    const float scale = absoluteScale().x();
     const float minValue = mLut->minMetricsRange();
     const float maxValue = mLut->maxMetricsRange();
 
@@ -719,7 +742,7 @@ void WbDistanceSensor::applyOptionalRenderingToWren() {
       const float *color = mSensor->isEnabled() ? redColor : greyColor;
 
       // start with a red/grey line segment
-      (direction * minValue / scale).toFloatArray(vertex);
+      (direction * minValue).toFloatArray(vertex);
       wr_dynamic_mesh_add_vertex(mMesh, vertex);
       wr_dynamic_mesh_add_index(mMesh, vertexIndex++);
       wr_dynamic_mesh_add_color(mMesh, color);
@@ -757,7 +780,7 @@ void WbDistanceSensor::applyOptionalRenderingToWren() {
       }
 
       // finish line segment
-      (direction * maxValue / scale).toFloatArray(vertex);
+      (direction * maxValue).toFloatArray(vertex);
       wr_dynamic_mesh_add_vertex(mMesh, vertex);
       wr_dynamic_mesh_add_index(mMesh, vertexIndex++);
       wr_dynamic_mesh_add_color(mMesh, color);
@@ -773,7 +796,7 @@ void WbDistanceSensor::updateLineScale() {
 }
 
 void WbDistanceSensor::applyLaserBeamToWren() {
-  if (mRayType == LASER && mAperture->value() > 0.0 && mRays[0].distance() < absoluteScale().x() * mLut->maxValue()) {
+  if (mRayType == LASER && mAperture->value() > 0.0 && mRays[0].distance() < mLut->maxValue()) {
     const dReal *contactPosition = mRays[0].contactPosition();
     const dReal *contactNormal = mRays[0].contactNormal();
 
@@ -824,9 +847,4 @@ void WbDistanceSensor::applyLaserBeamToWren() {
     }
   }
   wr_node_set_visible(WR_NODE(mLaserBeamTransform), false);
-}
-
-void WbDistanceSensor::propagateScale() {
-  WbSolid::propagateScale();
-  updateRaySetup();
 }

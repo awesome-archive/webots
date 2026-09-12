@@ -1,8 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.178256 0.983235 -0.0383914 5.70569
+  orientation 0.17825598517311697 0.9832349182170007 -0.03839139680670049 5.70569
   position -2.05173 0.237744 2.4162
 }
 Background {
@@ -18,7 +23,7 @@ DirectionalLight {
   ambientIntensity 1
   direction 0 -1 -1
 }
-Transform {
+Pose {
   translation 0 -0.5 -0.5
   children [
     DEF SHAPE Shape {
@@ -36,6 +41,7 @@ Transform {
 Robot {
   children [
     Camera {
+      rotation -0.577349935856137 0.577349935856137 0.5773509358560258 2.09439
       focus Focus {
         focalLength 0.1
         maxFocalDistance 0.2
@@ -45,7 +51,9 @@ Robot {
     }
   ]
   controller "camera_checker"
-  controllerArgs "camera_color_focus"
+  controllerArgs [
+    "camera_color_focus"
+  ]
 }
 TestSuiteSupervisor {
 }

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,17 +20,18 @@
 //
 
 #include "WbSingleValue.hpp"
-#include "WbVrmlWriter.hpp"
+#include "WbWriter.hpp"
 
 class WbSFString : public WbSingleValue {
   Q_OBJECT
 
 public:
-  WbSFString(WbTokenizer *tokenizer, const QString &worldPath) { read(tokenizer, worldPath); }
+  explicit WbSFString(const QString &s) : mValue(s) {}
+  WbSFString(WbTokenizer *tokenizer, const QString &worldPath) { readSFString(tokenizer, worldPath); }
   WbSFString(const WbSFString &other) : mValue(other.mValue) {}
-  virtual ~WbSFString() {}
-  void read(WbTokenizer *tokenizer, const QString &worldPath) override;
-  void write(WbVrmlWriter &writer) const override { writer.writeLiteralString(mValue); }
+  virtual ~WbSFString() override {}
+  void read(WbTokenizer *tokenizer, const QString &worldPath) override { readSFString(tokenizer, worldPath); }
+  void write(WbWriter &writer) const override { writer.writeLiteralString(mValue); }
   WbValue *clone() const override { return new WbSFString(*this); }
   bool equals(const WbValue *other) const override;
   void copyFrom(const WbValue *other) override;
@@ -45,6 +46,7 @@ public:
 
 private:
   QString mValue;
+  void readSFString(WbTokenizer *tokenizer, const QString &worldPath);
 };
 
 #endif

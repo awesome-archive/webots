@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,8 +36,9 @@ class WbBasicJoint : public WbBaseNode {
   Q_OBJECT
 
 public:
-  virtual ~WbBasicJoint();
+  virtual ~WbBasicJoint() override;
 
+  void downloadAssets() override;
   void preFinalize() override;
   void postFinalize() override;
   void createOdeObjects() override;
@@ -45,13 +46,14 @@ public:
   virtual void prePhysicsStep(double ms) {}
   virtual void postPhysicsStep() {}
   virtual bool setJoint();
-  void write(WbVrmlWriter &writer) const override;
+  void write(WbWriter &writer) const override;
   virtual bool resetJointPositions();
   void setMatrixNeedUpdate() override;
   virtual void updateOdeWorldCoordinates() {}
   virtual void computeEndPointSolidPositionFromParameters(WbVector3 &translation, WbRotation &rotation) const = 0;
-  void reset() override;
-  void save() override;
+  void reset(const QString &id) override;
+  void save(const QString &id) override;
+  void updateSegmentationColor(const WbRgb &color) override;
 
   void setSolidEndPoint(WbSolid *solid);
   void setSolidEndPoint(WbSolidReference *solid);
@@ -60,7 +62,7 @@ public:
   WbSolid *solidEndPoint() const;
   WbSolidReference *solidReference() const;
   WbSolid *solidParent() const;
-  dJointID jointID() const { return mJoint; }
+  virtual dJointID jointID() const { return mJoint; }
   // endPoint Solid translation and rotation if joint position is 0
   const WbVector3 &zeroEndPointTranslation() const { return mEndPointZeroTranslation; }
   const WbRotation &zeroEndPointRotation() const { return mEndPointZeroRotation; }
@@ -70,6 +72,10 @@ public:
   WbBoundingSphere *boundingSphere() const override;
 
   void updateAfterParentPhysicsChanged();
+  virtual void updateEndPointZeroTranslationAndRotation() = 0;
+
+  QList<const WbBaseNode *> findClosestDescendantNodesWithDedicatedWrenNode() const override;
+  QString endPointName() const override;
 
 public slots:
   void updateEndPoint();
@@ -97,7 +103,6 @@ protected:
   // variables and methods about the endPoint Solid translation and rotation when joint position is 0
   WbVector3 mEndPointZeroTranslation;
   WbRotation mEndPointZeroRotation;
-  virtual void updateEndPointZeroTranslationAndRotation() = 0;
   void retrieveEndPointSolidTranslationAndRotation(WbVector3 &it, WbRotation &ir) const;
   dJointID mSpringAndDamperMotor;  // ODE linear motor used to simulate spring and damper effects by means of stops
   virtual void applyToOdeSpringAndDampingConstants(dBodyID body, dBodyID parentBody) = 0;
@@ -109,10 +114,12 @@ protected:
   WrStaticMesh *mMesh;
   WrMaterial *mMaterial;
 
+  const bool isJoint() const override { return true; }
+
 protected slots:
   virtual void updateParameters() = 0;
   void updateSpringAndDampingConstants();
-  void updateOptionalRendering(int option);
+  virtual void updateOptionalRendering(int option);
 
 private:
   WbBasicJoint &operator=(const WbBasicJoint &);  // non copyable

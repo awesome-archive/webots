@@ -4,17 +4,32 @@ Webots GUI is composed of four principal windows: the *3D window* that displays 
 
 %figure "Webots GUI"
 
-![main_window.png](images/main_window.png)
+![main_window.png](images/main_window.thumbnail.jpg)
 
 %end
 
-The GUI has nine menus: `File, Edit, View, Simulation, Build, Overlays, Tools, Wizards` and `Help`.
+The GUI has eight menus: `File, Edit, View, Simulation, Build, Overlays, Tools` and `Help`.
 
 ### File Menu
 
 The **File** menu allows you to perform usual file operations: loading, saving, etc.
 
-- The **New World** menu item (and button) opens a new world in the simulation window containing only an [ElevationGrid](../reference/elevationgrid.md), displayed as a chessboard of 10 x 10 squares on a surface of 1 m x 1 m.
+- The **New** submenu allows you to create new simulation files:
+  - The **New Project Directory...** menu item first prompts you to choose a filesystem location and then it creates a project directory.
+  A project directory contains several subdirectories that are used to store the files related to a particular Webots project, i.e., world files, controller files, data files, plugins, etc. Webots remembers the current project directory and automatically opens and saves any type of file from the corresponding subdirectory of the current project directory.
+  - The **New World File...** menu item allows you to create a simple world file in the current simulation project, which may contain some optional components, including a rectangle arena.
+  - The **New Robot Controller...** menu item allows you to create a new robot controller program.
+  You will first be prompted to choose between a C, C++, Java, Python or *MATLAB*<sup>TM</sup> controller.
+  If you choose C or C++ on Windows, Webots will offer you the possibility to create a Makefile / gcc project or a Visual Studio project.
+  Then, Webots will ask you to enter the name of your controller and finally it will create all the necessary files (including a template source code file) in your current project directory.
+  - The **New Physics Plugin...** menu item will let you create a new physics plugin for your project.
+  Webots asks you to choose a programming language (C or C++) and a name for the new physics plugin.
+  Then it creates a directory, a template source code file and a Makefile in your current project.
+  - The **New PROTO...** menu item will let you create a new PROTO for your project.
+  Webots asks you to define a name for the PROTO node, the tags that should be included (if any), and the base node from which the PROTO itself will inherit.
+  Based on the choice of base node, Webots will ask you which among its fields should be exposed (i.e., visible from the scene tree) and will create the necessary parameters accordingly.
+  Then, Webots will propose you to open the PROTO file in the text editor, so that you can continue to edit it.
+  Finally, you will be able to insert an instance of your new PROTO in the scene tree as you would do for any other PROTO.
 
 - ![](images/open-button.png =26x26) The **Open World...** menu item (and button) opens a file selection dialog that allows you to choose a ".wbt" file to load.
 
@@ -29,6 +44,7 @@ On each `Save` the content of the ".wbt" file is overwritten and no backup copie
 Note that a ".wbt" file should always be saved in a Webots project directory, and in the "worlds" subdirectory, otherwise it will not be possible to reopen the file.
 
 - ![](images/revert-button.png =26x26) The **Reload World** menu item (and button) reloads the current world from the saved version and restarts the simulation from the beginning.
+Please refer to [Reset/Reload Matrix](../reference/supervisor.md#wb_supervisor_simulation_reset) for more details.
 
     > **Note**:
 When opening (or reloading) a world, if the world takes more than 2 seconds to
@@ -38,28 +54,7 @@ be opened instead.
 
 - ![](images/reset-simulation-button.png =26x26) The **Reset Simulation** menu item (and button) restores the initial state of the simulation.
 The simulation is not entirely destroyed and reconstructed as with a reload, but the initial state of all nodes is restored, which is much faster.
-
-    > **Note**:
-In order to reset the simulation, the following steps are performed:
-  - The simulation time is set to 00:00:00
-  - All nodes added during the simulation are removed.
-  - All sound sources are stopped.
-  - The random seeds used by Webots internally are reset.
-  - All the nodes are reset. This has the following implication depending on the node type:
-    - **[Brake](../reference/brake.md)**: The brake is released.
-    - **[Charger](../reference/charger.md)**: The `battery` field and the `emissiveColor` field of the [Material](../reference/material.md) node of the first [Shape](../reference/shape.md) child node are restored.
-    - **[Connector](../reference/connector.md)**: If attached, the connector is detached and the value of the `isLocked` field is restored.
-    - **[Display](../reference/display.md)**: The image is cleared.
-    - **[Emitter](../reference/emitter.md)/[Receiver](../reference/receiver.md)**: The message queue is cleared.
-    - **[Joint](../reference/joint.md)/[Motor](../reference/motor.md)**: The position, velocity, acceleration, available torque and available force are restored.
-    - **[LED](../reference/led.md)**: If the first child is a Light node, it's `color` field is restored and it is switched off. If the first child is a [Shape](../reference/shape.md) node, the `emissiveColor` field of its [Material](../reference/material.md) node is restored.
-    - **[Lidar](../reference/lidar.md)**: The position of the rotating head is restored.
-    - **[Pen](../reference/pen.md)**: All the painted textures are cleaned.
-    - **[Propeller](../reference/propeller.md)**: The slow helix and it's initial position are restored.
-    - **[Robot](../reference/robot.md)**: The `battery` field is restored, all the supervisor labels are removed, the nodes visibility is restored and the controller is restarted.
-    - **[Solid](../reference/solid.md)**: The `translation` and `rotation` fields are restored and the physics is reset.
-    - **[Track](../reference/track.md)**: The motor position is restored and the `translation` field of the textureTransform node of the [Appearance](../reference/appearance.md) node of the first [Shape](../reference/shape.md) children node is restored.
-    - **[Viewpoint](../reference/viewpoint.md)**: The `orientation` and `position` fields are restored.
+Please refer to [Reset/Reload Matrix](../reference/supervisor.md#wb_supervisor_simulation_reset) for more details.
 
 - ![](images/new-button.png =26x26) The **New Text File** menu item (and button) opens an empty text file in the text editor.
 
@@ -76,17 +71,6 @@ In order to reset the simulation, the following steps are performed:
 - The **Print Preview...** menu item opens a window allowing you to manage the page layout in order to print files from the text editor.
 
 - The **Print...** menu item opens a window allowing you to print the current file of the text editor.
-
-- The **Import VRML97...** menu item adds VRML97 objects at the end of the scene tree.
-These objects come from a VRML97 file you must specify.
-This feature is useful for importing complex shapes that were modeled in a 3D modelling program, then exported to VRML97 (previously called VRML 2.0).
-Most 3D modelling software, like 3D Studio Max, Maya, AutoCAD, Pro Engineer, AC3D, or Art Of Illusion, include the VRML97 (or VRML 2.0) export feature.
-Be aware that Webots cannot import files in VRML 1.0 format.
-Once imported, these objects appear as [Group](../reference/group.md), [Transform](../reference/transform.md) or [Shape](../reference/shape.md) nodes at the bottom of the scene tree.
-You can then either turn these objects into Webots nodes (like [Solid](../reference/solid.md), [Robot](../reference/robot.md), etc.) or cut and paste them into the `children` list of existing Webots nodes.
-
-- The **Export VRML97...** item allows you to save the currently loaded world as a ".wrl" file, conforming to the VRML97 standard.
-Such a file can, in turn, be opened with any VRML97 viewer and most 3D modeling software.
 
 - ![](images/screenshot-button.png =26x26) The **Take Screenshot...** item allows you to take a screenshot of the current view in Webots.
 It opens a file dialog to save the current view as a PNG or JPG image.
@@ -107,12 +91,10 @@ Checking the video caption option will display the acceleration value in the top
 
 %end
 
-- The **Export HTML5 Model...** item allows you to export the current world as an interactive 3D ".html" file.
-You can get more information about this topic in [this section](web-scene.md).
-
-- ![](images/animation-button.png =26x26) The **Make HTML5 Animation...** item allows you to record a simulation as a 3D animation and publish it on a HTML5 web page.
-Once the animation recording is started, this item is changed to `Stop HTML5 Animation...` and can be used to stop the animation recording.
-You can get more information about this topic in [this section](web-animation.md).
+- ![](images/share-button.png =26x26) The **Share...** item allows you to export the current world as an interactive 3D scene (more information about this topic in [this section](web-scene.md)), or to record a simulation as a 3D animation and publish it on a HTML5 web page.
+For both options, it is possible to save the result locally or to upload it automatically to [webots.cloud](https://webots.cloud) where it can be easily shared and seen by other people.
+If the animation recording is started, this item is changed to `Stop HTML5 Animation recording.` and can be used to stop the animation recording.
+You can get more information about animations in [this section](web-animation.md).
 
 - **Quit** terminates the current simulation and closes Webots.
 
@@ -126,13 +108,9 @@ The **Edit** menu provides usual text edition functions to manipulate files open
 
 The **View** menu allows you to control the viewing in the simulation window.
 
-- The **Follow Object** menu item allows you to switch between a fixed (static) viewpoint and a viewpoint that follows a mobile object (usually a robot).
-If you want the viewpoint to follow an object, first you need to select the object with the mouse and then check the `Follow Object` menu item.
-Note that the `Follow Object` state is saved in the ".wbt" file.
-By default, the viewpoint will follow the object smoothly, mitigating shaking or jerky movements of the object.
-You can change this behavior by changing the `followSmoothness` field of the [Viewpoint](../reference/viewpoint.md) node in the scene tree.
-
-- The **Follow Object and Rotate** menu item is similar to the `Follow Object` but it makes the viewpoint follow also the orientation of an object (in addition to its position).
+- The **Follow Object** submenu allows you to switch between a fixed (static) viewpoint and a viewpoint that follows a mobile object (usually a robot).
+If you want the viewpoint to follow an object, first you need to select the object with the mouse and then check one of the items of the submenu depending on the following behavior you want.
+Refer to the [Viewpoint](../reference/viewpoint.md) documentation for more information about the different following behaviors.
 
 - ![](images/restore_viewpoint.png =26x26) The **Restore [Viewpoint](../reference/viewpoint.md)** item restores the viewpoint's position and orientation to their initial settings when the file was loaded or reverted.
 This feature is handy when you get lost while navigating in the scene, and want to return to the original viewpoint.
@@ -141,9 +119,11 @@ This feature is handy when you get lost while navigating in the scene, and want 
 If the selected item is a field, the upper parent node will be targeted.
 The object will be at the center of the 3D view and will be completely visible.
 
+- The **Align View to Object** submenu moves and rotates the viewpoint to center the selected node and align the viewpoint on any of the six object-align axes
+
 - ![](images/front_view.png =26x26) The **Change View** submenu moves the viewpoint to align it on any of the six world-aligned axes around the selected object.
 If no object is selected, the viewpoint will be centered on the world origin.
-The available options are ![](images/front_view.png =26x26) **Front View**, ![](images/back_view.png =26x26) **Back View**, ![](images/left_view.png =26x26) **Left View**, ![](images/right_view.png =26x26) **Right View**, ![](images/top_view.png =26x26) **Top View** and ![](images/bottom_view.png =26x26) **Bottom View**.
+The available options are ![](images/front_view.png =26x26) **East View**, ![](images/back_view.png =26x26) **West View**, ![](images/left_view.png =26x26) **North View**, ![](images/right_view.png =26x26) **South View**, ![](images/top_view.png =26x26) **Top View** and ![](images/bottom_view.png =26x26) **Bottom View**.
 
 - The **Fullscreen** item enables and disables displaying the 3D window on the entire screen.
 
@@ -230,6 +210,8 @@ If the light sensor device is disabled or the first measurement is not available
   - The **Show Pen Painting Rays** allows you to display, or to hide, the rays in which the pen devices paint.
 These rays are drawn as violet lines if painting is enabled, otherwise as gray lines.
 
+  - The **Show Normals** allows you to display, or to hide, the normals of the [IndexedFaceSet](../reference/indexedfaceset.md) and [Mesh](../reference/mesh.md) nodes. The color of a normal is magenta if it was not creased using the [IndexedFaceSet](../reference/indexedfaceset.md) `creaseAngle`, otherwise, it is yellow. The length of the normal representation is proportional to the [WorldInfo](../reference/worldinfo.md) `lineScale` parameter.
+
   - The **Show Radar Frustums** allows you to display, or to hide, the radar frustum.
 If the radar device is enabled the frustum is drawn in blue, otherwise if the radar is disabled or the first measurement is not available yet, the frustum is drawn in gray.
 The radar frustum represents the volume in which a target can be detected by the radar.
@@ -245,14 +227,31 @@ By support polygon we mean the projection of the convex hull of the solid's cont
 In addition, the projection of the center of mass in the latter plane is rendered in green if it lies inside the support polygon (static equilibrium), red otherwise.
 This rendering option can be activated only for solids with no other solid at their top.
 
-- If the **Disable selection** option is enabled, it prevents you from changing the selected solid node when clicking on the 3D window.
-This is particularly useful during the modeling phase, when you want to change the viewpoint without modifying the visible and selected fields in the scene tree.
+- The **Scene Interactions** submenu allows you to disable some user interactions with the 3D scene, like selecting or moving objects or moving the viewpoint.
+These options can be used to improve interacting with the 3D scene by disabling some unneeded functionalities, or to prevent some interactions for example when streaming a simulation over the web.
 
-- If the **Lock Viewpoint** option is enabled, it prevents you from changing the position and orientation of the [Viewpoint](../reference/viewpoint.md) node when dragging the mouse or moving the mouse wheel on the 3D window.
-This is particularly useful when you don't want to change accidently the position and orientation of the viewpoint.
+  - If the **Lock Viewpoint** option is enabled, it prevents you from changing the position and orientation of the [Viewpoint](../reference/viewpoint.md) node when dragging the mouse or moving the mouse wheel on the 3D window.
+  This is particularly useful when you don't want to change accidentally the position and orientation of the viewpoint.
+
+  - If the **Disable Selection** option is enabled, it prevents you from changing the selected solid node when clicking on the 3D window.
+  This is particularly useful during the modeling phase, when you want to change the viewpoint without modifying the visible and selected fields in the scene tree.
+
+  - The **Disable 3D View Context Menu** option prevents opening the node context menu when right-clicking on the 3D window.
+  But the context menu can still be open right-clicking on the node in the scene tree.
+  This is particularly useful during web streaming, where the context menu is opened directly on client web interface and it is not needed to open in on the Webots server instance.
+
+  - The **Disable Object Move** option prevents moving object from the 3D window using the translation and rotations handles or the `SHIFT + mouse drag/mouse wheel` method.
+  Objects can still be moved by changing the translation and rotation fields from the scene tree.
+  This is particularly useful during online competitions, where users should achieve a task without cheating and moving objects or robots manually.
+
+  - The **Disable Force and Torque** option prevents applying a force or torque to an object from the 3D window.
+  This is particularly useful during online competitions, where users should achieve a task without cheating and moving objects or robots manually.
+
+  - The **Disable Fast Mode** option prevents running the simulation in fast mode.
+  This option could be useful in case of web streaming to save computer power on the server side and making only the stop, step and the real-time modes available to the clients.
 
 > **Note**:
-The *Follow Object*, *Follow Object and Rotate*, *Projection*, *Rendering*, *Optional Rendering Items*, *Disable Selection* and *Lock Viewpoint* options are saved per world whereas the other options are global.
+The *Follow Object*, *Follow Object and Rotate*, *Projection*, *Rendering*, *Optional Rendering Items*, and *Scene Interactions Items* options are saved per world whereas the other options are global.
 
 ### Simulation Menu
 
@@ -264,12 +263,12 @@ The **Simulation** menu is used to control the simulation mode.
 The duration of this step is defined in the **basicTimeStep** field of the [WorldInfo](../reference/worldinfo.md) node, and can be adjusted in the scene tree window to suit your needs.
 
 - ![](images/realtime-button.png =26x26) The **Real-time** menu item (and button) runs the simulation at real-time until it is interrupted by `Pause` or `Step`.
-In run mode, the 3D display of the scene is refreshed every *n* basic time steps, where *n* is defined in the `displayRefresh` field of the [WorldInfo](../reference/worldinfo.md) node.
+In fast mode, the 3D display of the scene is refreshed every *n* basic time steps, where *n* is defined in the `displayRefresh` field of the [WorldInfo](../reference/worldinfo.md) node.
 
-- ![](images/run-button.png =26x26) The **Run** menu item (and button) is like `Real-time`, except that it runs as fast as possible.
+- ![](images/fast-button.png =26x26) The **Fast** menu item (and button) is like `Real-time`, except that it runs as fast as possible.
 
-- ![](images/fast-button.png =26x26) The **Fast** menu item (and button) is like `Run`, except that no graphical rendering is performed.
-As the graphical rendering is disabled (black screen) this allows for a faster simulation and therefore is well suited for cpu-intensive simulations (genetic algorithms, vision, learning, etc.).
+- ![](images/rendering-button.png =26x26) The **Rendering** menu item (and button) disables or enables graphical rendering.
+Disabled (black screen) graphical rendering allows for a faster simulation and therefore is well suited for cpu-intensive simulations (genetic algorithms, vision, learning, etc.).
 
 ### Build Menu
 
@@ -279,7 +278,7 @@ The build menu is described in more details [here](webots-built-in-editor.md).
 ### Overlays Menu
 
 The **Overlays** menu provides actions specific to rendering device overlays ([Camera](../reference/camera.md), [Display](../reference/display.md), `Rangefinder`).
-Some actions of this menu are active only when a robot is selected in the 3D window or when there is only one robot in the simulation:
+Some actions of this menu are active only when a robot is selected in the 3D window:
 
 - The **Camera Devices** submenu contains the list of all the camera devices of the selected robot and its descendant robots and lets the user show or hide single camera overlay images by checking or unchecking the corresponding item.
 Camera overlays differ from the display overlays because of their magenta border.
@@ -316,35 +315,17 @@ Alternatively it is also possible to double-click on some of the objects in the 
 - The **Text Editor** menu item opens the Webots text editor.
 This editor can be used for editing and compiling controller source code.
 
-- The **Console** menu item opens the Webots Console, which is a read-only console that is used to display Webots error messages and controller outputs.
-
 - The **Documentation** menu item shows or hides the offline Webots documentation window.
 
 - The **Restore Layout** menu item restores the factory layout of the panels of the main window.
 
-- The **Clear Console** menu item clears the console.
+- The **Clear All Consoles** menu item clears the content of all the opened consoles.
+
+- The **New Console** menu item opens a new console which by default displays all the logs.
 
 - The **Edit Physics Plugin** menu item opens the source code of the physics plugin in the text editor.
 
 - The **Preferences** item pops up a window described in [this section](preferences.md).
-
-- The **Check for updates...** item pops up a window informing if the Webots version in use is the latest one and providing the link to download the latest version if needed.
-
-### Wizards Menu
-
-The **Wizards** menu makes it easier to create new projects and new controllers.
-
-- The **New Project Directory...** menu item first prompts you to choose a filesystem location and then it creates a project directory.
-A project directory contains several subdirectories that are used to store the files related to a particular Webots project, i.e. world files, controller files, data files, plugins, etc. Webots remembers the current project directory and automatically opens and saves any type of file from the corresponding subdirectory of the current project directory.
-
-- The **New Robot Controller...** menu item allows you to create a new controller program.
-You will first be prompted to choose between a C, C++, Java, Python or *MATLAB*<sup>TM</sup> controller.
-If you choose C or C++ on Windows, Webots will offer you the possibility to create a Makefile / gcc project or a Visual Studio project.
-Then, Webots will ask you to enter the name of your controller and finally it will create all the necessary files (including a template source code file) in your current project directory.
-
-- The **New Physics Plugin...** menu item will let you create a new physics plugin for your project.
-Webots asks you to choose a programming language (C or C++) and a name for the new physics plugin.
-Then it creates a directory, a template source code file and a Makefile in your current project.
 
 ### Help Menu
 
@@ -353,6 +334,8 @@ The **Help** menu makes it easier to access the documentation, support and gener
 - The **About...** item opens the `About...` window that displays the license information.
 
 - The **Webots Guided Tour...** menu item starts a guided tour that demonstrates Webots capabilies through a series of examples.
+
+- The **Check for updates...** item pops up a window informing if the Webots version in use is the latest one and providing the link to download the latest version if needed.
 
 - The **OpenGL Information...** menu item gives you information about your current OpenGL hardware and driver.
 It can be used to diagnose rendering problems.
@@ -366,11 +349,23 @@ The main toolbar contains a button for adding new nodes to the world, the speedo
 - ![](images/show_scene_tree-button.png =26x26) **Hide/Show Scene Tree**: shows or hides the Scene Tree and resizes the 3D window consequently.
 
 - ![](images/add-button.png =26x26) **Add**: Adds a node or an object.
-For nodes, this triggers a dialog that will let you choose a node type from a list.
-The new node is created with default values that can be modified afterwards.
-You can only insert a node suitable for the corresponding field.
-The dialog also gives the possibility to load a previously exported node by clicking on the **Import...** button.
-Further information about how to export a node are available [here](the-scene-tree.md#field-editor).
+More information is available [here](#add-node-window).
+
+### Add Node Window
+
+%figure "Add node"
+
+![addnode.png](images/addnode.thumbnail.png)
+
+%end
+
+The add node window appears when the **Add** ![](images/add-button.png =26x26) node button is pressed.
+This window allows you to insert nodes or objects from the vast Webots library into your world.
+The list of nodes shown in the window comprises only the nodes which it is possible to insert at the scene tree item position selected prior to opening the add node window.
+Therefore if you cannot find a specific node, it is likely because it is not possible for it to be inserted in that position.
+The inserted node is created with default values that can be modified afterwards.
+When selecting a PROTO node, the **Export** button appears and it allows you to create a local copy of the selected node in the `protos` folder of your project.
+The dialog also gives the possibility to load a previously exported node, be it as `.wbo` or `.wrl` format, by clicking on the **Import...** button (more details [here](the-scene-tree.md#field-editor)).
 
 ### Speedometer and Virtual Time
 

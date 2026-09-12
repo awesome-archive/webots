@@ -4,14 +4,15 @@ Derived from [Device](device.md) and [Solid](solid.md).
 
 ```
 Emitter {
-  SFString type       "radio"   # {"radio", "serial", "infra-red"}
-  SFFloat  range      -1        # {-1, [0, inf)}
-  SFFloat  maxRange   -1        # {-1, [0, inf)}
-  SFFloat  aperture   -1        # {-1 ,[0, 2*pi]}
-  SFInt32  channel    0         # [0, inf)
-  SFInt32  baudRate   -1        # {-1, [0, inf)}
-  SFInt32  byteSize   8         # [8, inf)
-  SFInt32  bufferSize -1        # {-1, [0, inf)}
+  SFString type             "radio"   # {"radio", "serial", "infra-red"}
+  SFFloat  range            -1        # {-1, [0, inf)}
+  SFFloat  maxRange         -1        # {-1, [0, inf)}
+  SFFloat  aperture         -1        # {-1 ,[0, 2*pi]}
+  SFInt32  channel          0         # [0, inf)
+  SFInt32  baudRate         -1        # {-1, [0, inf)}
+  SFInt32  byteSize         8         # [8, inf)
+  SFInt32  bufferSize       -1        # {-1, [0, inf)}
+  MFInt32  allowedChannels  [ ]       # [0, inf)
 }
 ```
 
@@ -42,7 +43,7 @@ This field defines the maximum value that can be set using the `wb_emitter_set_r
 A value of -1 (the default) for `maxRange` is considered to be infinite.
 
 - `aperture` opening angle of the emission cone (in radians); for "infra-red" only.
-The cone's apex is located at the origin ([0 0 0]) of the emitter's coordinate system and the cone's axis coincides with the *z*-axis of the emitter coordinate system.
+The cone's apex is located at the origin ([0 0 0]) of the emitter's coordinate system and the cone's axis coincides with the x-axis of the emitter coordinate system.
 An "infra-red" emitter can only send data to receivers currently located within its emission cone.
 An `aperture` of -1 (the default) is considered to be infinite, meaning that the emitted signals are omni-directional.
 For "radio" and "serial" emitters, this field is ignored.
@@ -71,6 +72,9 @@ This is usually 8 (the default), but can be more if control bits are used.
 The total number of bytes in the packets enqueued in the emitter cannot exceed this number.
 A `bufferSize` of -1 (the default) is regarded as unlimited buffer size.
 
+- `allowedChannels`: specifies allowed channels [Emitter](#emitter) is allowed to emit to.
+Empty list (default) gives unlimited access.
+
 > **Note**: [Emitter](#emitter) nodes can also be used to communicate with the physics plugin (see [this chapter](physics-plugin.md)).
 In this case the channel must be set to 0 (the default).
 In addition it is highly recommended to choose -1 for the baudRate, in order to enable the fastest possible communication; the `type, range` and `aperture` will be ignored.
@@ -79,7 +83,7 @@ In addition it is highly recommended to choose -1 for the baudRate, in order to 
 
 #### `wb_emitter_send`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -133,17 +137,9 @@ public class Emitter extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 success = wb_emitter_send(tag, data)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/send` | `service` | [`webots_ros::set_string`](ros-api.md#common-services) |
 
 %tab-end
 
@@ -205,12 +201,20 @@ Here is an example of sending a Java string in a way that is compatible with a C
 > }
 > ```
 
+<!-- -->
+
+> **Note** [Matlab]: If you want to send strings you have to convert them to unsigned integer arrays:
+
+> ```MATLAB
+>   wb_emitter_send(emitter, uint8('Hello World'));
+> ```
+
 ---
 
 #### `wb_emitter_set_channel`
 #### `wb_emitter_get_channel`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -276,21 +280,12 @@ public class Emitter extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_CHANNEL_BROADCAST
 
 wb_emitter_set_channel(tag, channel)
 channel = wb_emitter_get_channel(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/set_channel` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) |
-| `/<device_name>/get_channel` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) |
 
 %tab-end
 
@@ -301,6 +296,7 @@ channel = wb_emitter_get_channel(tag)
 *set and get the emitter's channel.*
 
 The `wb_emitter_set_channel` function allows the controller to change the transmission channel.
+The target channel must be included in `allowedChannels` or `allowedChannels` should be empty.
 This modifies the `channel` field of the corresponding [Emitter](#emitter) node.
 Normally, an emitter can send data only to receivers that use the same channel.
 However, the special WB\_CHANNEL\_BROADCAST value can be used for broadcasting to all channels.
@@ -314,7 +310,7 @@ The `wb_emitter_get_channel` function returns the current channel number of the 
 #### `wb_emitter_set_range`
 #### `wb_emitter_get_range`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -372,19 +368,10 @@ public class Emitter extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_emitter_set_range(tag, range)
 range = wb_emitter_get_range(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/set_range` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) |
-| `/<device_name>/get_range` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) |
 
 %tab-end
 
@@ -405,7 +392,7 @@ For both the `wb_emitter_set_range` and `emitter_get_range` functions, a value o
 
 #### `wb_emitter_get_buffer_size`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -459,17 +446,9 @@ public class Emitter extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 size = wb_emitter_get_buffer_size(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_buffer_size` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) |
 
 %tab-end
 

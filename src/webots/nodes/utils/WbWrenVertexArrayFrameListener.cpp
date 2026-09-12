@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,14 +13,25 @@
 // limitations under the License.
 
 #include "WbWrenVertexArrayFrameListener.hpp"
+
 #include "WbMuscle.hpp"
+#include "WbSimulationState.hpp"
 #include "WbTrack.hpp"
 
 #include <wren/scene.h>
 
 WbWrenVertexArrayFrameListener *WbWrenVertexArrayFrameListener::cInstance = NULL;
+static double lastUpdateTime = -1.0;
+
+void WbWrenVertexArrayFrameListener::resetLastUpdateTime() {
+  lastUpdateTime = -1.0;
+}
 
 static void processEvent() {
+  const double currentTime = WbSimulationState::instance()->time();
+  if (currentTime == lastUpdateTime)
+    return;
+  lastUpdateTime = currentTime;
   WbWrenVertexArrayFrameListener::instance()->frameStarted();
 }
 
@@ -46,6 +57,7 @@ WbWrenVertexArrayFrameListener::~WbWrenVertexArrayFrameListener() {
     wr_scene_remove_frame_listener(wr_scene_get_instance(), &processEvent);
 }
 
+// cppcheck-suppress constParameterPointer
 void WbWrenVertexArrayFrameListener::subscribeTrack(WbTrack *track) {
   if (mTrackList.contains(track))
     return;
@@ -53,6 +65,7 @@ void WbWrenVertexArrayFrameListener::subscribeTrack(WbTrack *track) {
   updateListening();
 }
 
+// cppcheck-suppress constParameterPointer
 void WbWrenVertexArrayFrameListener::subscribeMuscle(WbMuscle *muscle) {
   if (mMuscleList.contains(muscle))
     return;
@@ -60,11 +73,13 @@ void WbWrenVertexArrayFrameListener::subscribeMuscle(WbMuscle *muscle) {
   updateListening();
 }
 
+// cppcheck-suppress constParameterPointer
 void WbWrenVertexArrayFrameListener::unsubscribeTrack(WbTrack *track) {
   mTrackList.removeAll(track);
   updateListening();
 }
 
+// cppcheck-suppress constParameterPointer
 void WbWrenVertexArrayFrameListener::unsubscribeMuscle(WbMuscle *muscle) {
   mMuscleList.removeAll(muscle);
   updateListening();
@@ -80,8 +95,12 @@ void WbWrenVertexArrayFrameListener::frameStarted() {
 }
 
 void WbWrenVertexArrayFrameListener::updateListening() {
-  if (!mListening && (mMuscleList.size() > 0 || mTrackList.size() > 0))
+  bool need = mMuscleList.size() > 0 || mTrackList.size() > 0;
+  if (need && !mListening) {
     wr_scene_add_frame_listener(wr_scene_get_instance(), &processEvent);
-  else
+    mListening = true;
+  } else if (!need && mListening) {
     wr_scene_remove_frame_listener(wr_scene_get_instance(), &processEvent);
+    mListening = false;
+  }
 }

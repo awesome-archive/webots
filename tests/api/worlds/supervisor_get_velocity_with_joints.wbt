@@ -1,5 +1,11 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
   orientation -0.677054996936791 0.6976775315778075 0.23418495479944731 0.7564855562113971
@@ -15,6 +21,7 @@ DirectionalLight {
   direction 0.1 -0.5 0.3
 }
 Floor {
+  rotation 1 0 0 -1.5708
 }
 DEF DYNAMIC_ROBOT Robot {
   translation 0 0.05 0
@@ -106,14 +113,14 @@ DEF DYNAMIC_ROBOT Robot {
     TestSuiteEmitter {
     }
   ]
-  name "robot"
   boundingObject USE BODY
   physics Physics {
   }
   controller "supervisor_get_velocity_with_joints"
-  controllerArgs "supervisor_get_velocity_with_joints"
+  controllerArgs [
+    "supervisor_get_velocity_with_joints"
+  ]
   supervisor TRUE
-  cpuConsumption 10
 }
 TestSuiteSupervisor {
 }

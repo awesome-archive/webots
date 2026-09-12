@@ -1,8 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.5671063 -0.78578759 -0.24683658 5.2967541
+  orientation 0.5671063030272717 -0.785787594194615 -0.24683658131763905 5.2967541
   position 1.7353279 1.6908869 1.2356903
 }
 Background {
@@ -21,7 +26,7 @@ Robot {
     TestSuiteEmitter {
     }
     Radar {
-      rotation 0 -1 0 0
+      rotation -0.577349935856137 0.577349935856137 0.5773509358560258 2.09439
       children [
         Solid {
           children [

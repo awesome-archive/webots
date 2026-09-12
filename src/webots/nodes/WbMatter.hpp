@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,9 +15,9 @@
 #ifndef WB_MATTER_HPP
 #define WB_MATTER_HPP
 
+#include "WbPose.hpp"
 #include "WbSFBool.hpp"
 #include "WbSFString.hpp"
-#include "WbTransform.hpp"
 
 class WbGeometry;
 
@@ -26,21 +26,18 @@ struct WrTransform;
 struct WrMaterial;
 struct WrStaticMesh;
 
-class WbMatter : public WbTransform {
+class WbMatter : public WbPose {
   Q_OBJECT
 
 public:
   // constructors and destructor
-  virtual ~WbMatter();
+  virtual ~WbMatter() override;
 
   // reimplemented public functions
   void createWrenObjects() override;
   void postFinalize() override;
-  void reset() override;
-  void save() override;
-
-  int constraintType() const override;
-  void setScaleNeedUpdate() override;
+  void reset(const QString &id) override;
+  void save(const QString &id) override;
 
   // field accessors
   const QString &name() const { return mName->value(); }
@@ -61,10 +58,11 @@ public:
   bool boundingObjectHasChanged() const { return mBoundingObjectHasChanged; }
   void setBoundingObjectFlag(bool changed) { mBoundingObjectHasChanged = changed; }
   bool hasAvalidBoundingObject() const { return boundingObject() && boundingObject()->isAValidBoundingObject(); }
+  void setBoundingObject(WbNode *boundingObject);
 
   // for wb_supervisor_simulation_reset_physics()
-  virtual void resetPhysics() {}
-  virtual void pausePhysics() {}
+  virtual void resetPhysics(bool recursive = true) {}
+  virtual void pausePhysics(bool resumeAutomatically = false) {}
   virtual void resumePhysics() {}
 
   // handle artifical moves triggered by the user or a Supervisor
@@ -72,12 +70,14 @@ public:
   void forwardJerk() override { mNeedToHandleJerk = true; }
 
   // selection
-  void select(bool s);
+  void select(bool selected);
   bool isSelected() const { return mSelected; }
   bool isLocked() const { return mLocked->value(); }
 
   // ODE positioning
   void updateOdeGeomPosition() { updateOdeGeomPosition(odeGeom()); }
+
+  static void enableShowMatterCenter(bool enabled) { cShowMatterCenter = enabled; }
 
 signals:
   void matterNameChanged();
@@ -86,6 +86,7 @@ signals:
 public slots:
   // recursions through bounding objects for material updates
   virtual void propagateBoundingObjectMaterialUpdate(bool onSelection = false) = 0;
+  virtual void updateBoundingObject() = 0;
 
 protected:
   // Abstract class: constructors are reserved for derived classes only
@@ -97,12 +98,6 @@ protected:
   virtual void applyVisibilityFlagsToWren(bool selected);
   virtual void applyChangesToWren();
   void applyMatterCenterToWren();
-
-  // Scale
-  void createScaleManipulator() override;
-  bool checkScalingPhysicsConstraints(WbVector3 &correctedScale, int constraintType, bool warning) const override;
-  virtual void propagateScale();
-  bool checkScaleAtLoad(bool warning);
 
   WbSFString *mName;
   WbSFNode *mBoundingObject;
@@ -123,7 +118,6 @@ protected:
   void updateSleepFlag();
 
 protected slots:
-  void updateScale(bool warning = false) override = 0;
   virtual void updateLineScale();
   void updateTranslation() override;
   void updateRotation() override;
@@ -152,12 +146,10 @@ private:
 
   dGeomID createOdeGeomFromGroup(dSpaceID space, WbGroup *group);
   dGeomID createOdeGeomFromGeometry(dSpaceID space, WbGeometry *geometry, bool setOdeData = true);
-  dGeomID createOdeGeomFromTransform(dSpaceID space, WbTransform *transform);
+  dGeomID createOdeGeomFromPose(dSpaceID space, WbPose *pose);
   void disconnectFromBoundingObjectUpdates(const WbNode *node) const;
 
   virtual void createOdeGeoms() = 0;
-  virtual void applyToOdeScale() = 0;  // rescale all the ODE dGeoms lying inside the Bounding Object when the WbMatter's scale
-                                       // field has changed
 
   virtual void setGeomMatter(dGeomID g, WbBaseNode *node = NULL) = 0;
 
@@ -168,10 +160,11 @@ private:
 
   void connectNameUpdates() const;
 
+  static bool cShowMatterCenter;
+
 private slots:
-  virtual void updateBoundingObject() = 0;
   virtual void createOdeGeomFromInsertedGroupItem(WbBaseNode *node) = 0;
-  void createOdeGeomFromInsertedTransformItem();
+  void createOdeGeomFromInsertedPoseItem();
   void createOdeGeomFromInsertedShapeItem();
   void insertValidGeometryInBoundingObject();
   void updateManipulatorVisibility();

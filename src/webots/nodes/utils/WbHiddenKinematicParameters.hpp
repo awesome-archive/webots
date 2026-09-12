@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -61,15 +61,24 @@ namespace WbHiddenKinematicParameters {
     const WbVector3 *linearVelocity() const { return mLinearVelocity; }
     const WbVector3 *angularVelocity() const { return mAngularVelocity; }
     void createTranslation(double x, double y, double z) {
+      delete mTranslation;
       mTranslation = new WbVector3(x, y, z);
       mTranslationIsCreated = true;
     }
     void createRotation(double x, double y, double z, double angle) {
+      delete mRotation;
       mRotation = new WbRotation(x, y, z, angle);
       mRotationIsCreated = true;
     }
-    void createLinearVelocity(double x, double y, double z) { mLinearVelocity = new WbVector3(x, y, z); }
-    void createAngularVelocity(double x, double y, double z) { mAngularVelocity = new WbVector3(x, y, z); }
+    void createLinearVelocity(double x, double y, double z) {
+      delete mLinearVelocity;
+      mLinearVelocity = new WbVector3(x, y, z);
+    }
+    void createAngularVelocity(double x, double y, double z) {
+      delete mAngularVelocity;
+      mAngularVelocity = new WbVector3(x, y, z);
+    }
+    // cppcheck-suppress constParameterPointer
     void insertPositions(int index, WbVector3 *positions) {
       if (mPositions == NULL)
         mPositions = new PositionMap;
@@ -88,7 +97,7 @@ namespace WbHiddenKinematicParameters {
   };
 
   typedef QMap<int, HiddenKinematicParameters *> HiddenKinematicParametersMap;
-  void createHiddenKinematicParameter(WbField *field, HiddenKinematicParametersMap &map);
+  void createHiddenKinematicParameter(const WbField *field, HiddenKinematicParametersMap &map);
 };  // namespace WbHiddenKinematicParameters
 
 #endif  // WB_HIDDEN_KINEMATIC_PARAMETERS_HPP

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,7 +27,7 @@
 //              or WbGeometry instance have a bounding sphere including bounding
 //              objects.
 //
-//              The WbBoundingSphere is also included in a tree of WbBounsingSphere
+//              The WbBoundingSphere is also included in a tree of WbBoundingSphere
 //              instances using the 'parent' and 'subBoundingSphere' concepts.
 //              But the sphere's radius and center are expressed in the owner node
 //              coordinate system.
@@ -46,8 +46,9 @@
 
 class WbBoundingSphere;
 class WbShape;
+class WbSkin;
 
-class WbAbstractTransform;
+class WbPose;
 class WbBaseNode;
 class WbGeometry;
 class WbRay;
@@ -64,10 +65,10 @@ public:
   WbBoundingSphere(const WbBaseNode *owner, const WbVector3 &center, double radius);
   virtual ~WbBoundingSphere();
 
-  double radius();
+  double scaledRadius();
   const WbVector3 &center();
 
-  void computeSphereInGlobalCoordinates(WbVector3 &center, double &radius);
+  void computeSphereInGlobalCoordinates(WbVector3 &center, double &radius) const;
 
   // Set the bound space to be empty.
   void empty();
@@ -115,15 +116,15 @@ public:
 private:
   WbVector3 mCenter;
   double mRadius;
-  WbBoundingSphere *mParent;
+  WbBoundingSphere *mParentBoundingSphere;
   QList<WbBoundingSphere *> mSubBoundingSpheres;
   const WbBaseNode *mOwner;
   const WbGeometry *mGeomOwner;
-  const WbAbstractTransform *mTransformOwner;
+  const WbSkin *mSkinOwner;
+  const WbPose *mPoseOwner;
 
   // Cached values
   bool mBoundSpaceDirty;  // center and radius update required
-  bool mGeomSphereDirty;
   // to speed-up recomputation
   bool mParentCoordinatesDirty;
   WbVector3 mCenterInParentCoordinates;
@@ -138,7 +139,7 @@ private:
   double radiusInParentCoordinates();
   const WbVector3 &centerInParentCoordinates();
   void parentUpdateNotification() const;
-  void setParent(WbBoundingSphere *parent) { mParent = parent; }
+  void setParentBoundingSphere(WbBoundingSphere *parent) { mParentBoundingSphere = parent; }
 
   // setOwner doesn't work correctly if called from the 'node' constructors
   // because of dynamic_cast

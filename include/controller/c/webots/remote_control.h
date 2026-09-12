@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,7 +35,6 @@ void *wb_remote_control_custom_function(void *);
 
 // Sensor functions (values read by the controller)
 void wbr_robot_battery_sensor_set_value(double value);
-void wbr_differential_wheels_set_encoders(double left, double right);
 
 void wbr_accelerometer_set_values(WbDeviceTag tag, const double *values);
 void wbr_camera_recognition_set_object(WbDeviceTag tag, const WbCameraRecognitionObject *objects, int object_number);
@@ -43,6 +42,7 @@ void wbr_compass_set_values(WbDeviceTag tag, const double *values);
 void wbr_distance_sensor_set_value(WbDeviceTag tag, double value);
 void wbr_gps_set_values(WbDeviceTag tag, const double *values);
 void wbr_gps_set_speed(WbDeviceTag tag, const double speed);
+void wbr_gps_set_velocity_vector(WbDeviceTag tag, const double *values);
 void wbr_gyro_set_values(WbDeviceTag tag, const double *values);
 void wbr_inertial_unit_set_value(WbDeviceTag tag, double value);
 void wbr_light_sensor_set_value(WbDeviceTag tag, double value);
@@ -65,7 +65,7 @@ unsigned char *wbr_camera_get_image_buffer(WbDeviceTag tag);
 typedef struct WbrInterface {
   // mandatory functions :
   struct {
-    bool (*wbr_start)(void *);
+    bool (*wbr_start)(const char *);
     void (*wbr_stop)();
     bool (*wbr_has_failed)();
     void (*wbr_stop_actuators)();
@@ -78,12 +78,9 @@ typedef struct WbrInterface {
   // optional functions (if they are used but not defined it will print a warning) :
   void (*wbr_robot_battery_set_sampling_period)(int sampling_period);
 
-  void (*wbr_differential_wheels_encoders_set_sampling_period)(int sampling_period);
-  void (*wbr_differential_wheels_set_speed)(double left, double right);
-  void (*wbr_differential_wheels_set_encoders)(double left, double right);
-
   void (*wbr_set_sampling_period)(WbDeviceTag tag, int sampling_period);
   void (*wbr_camera_set_fov)(WbDeviceTag tag, double fov);
+  void (*wbr_camera_set_exposure)(WbDeviceTag tag, double exposure);
   void (*wbr_camera_set_focal_distance)(WbDeviceTag tag, double focal_distance);
   void (*wbr_led_set)(WbDeviceTag tag, int state);
   void (*wbr_pen_set_ink_color)(WbDeviceTag tag, int color, double density);

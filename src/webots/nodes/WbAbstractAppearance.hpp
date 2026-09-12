@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,16 +23,18 @@ class WbTextureTransform;
 
 struct WrMaterial;
 
+struct aiMaterial;
+
 class WbAbstractAppearance : public WbBaseNode {
   Q_OBJECT
 
 public:
-  virtual ~WbAbstractAppearance() {}
+  virtual ~WbAbstractAppearance() override;
 
   void preFinalize() override;
   void postFinalize() override;
   void createWrenObjects() override;
-  void reset() override;
+  void reset(const QString &id) override;
 
   const QString &name() const { return mName->value(); }
 
@@ -49,6 +51,9 @@ protected:
   WbAbstractAppearance(const QString &modelName, WbTokenizer *tokenizer = NULL);
   WbAbstractAppearance(const WbAbstractAppearance &other);
   WbAbstractAppearance(const WbNode &other);
+  WbAbstractAppearance(const QString &modelName, const aiMaterial *material);
+
+  WbSFNode *mTextureTransform;
 
 private:
   WbAbstractAppearance &operator=(const WbAbstractAppearance &);  // non copyable
@@ -56,7 +61,6 @@ private:
 
   WbSFString *mName;
   QString mNameValue;
-  WbSFNode *mTextureTransform;
 
 private slots:
   void updateName();

@@ -10,16 +10,16 @@
 namespace webotsQtUtils {
   class Motor : public Device {
   public:
-    Motor(WbDeviceTag tag);
-    virtual ~Motor() {}
+    explicit Motor(WbDeviceTag tag);
+    virtual ~Motor() override {}
 
-    void enable(bool enable);
+    void enable(bool enable) const;
     bool isEnabled() const;
     double minPosition() const;
     double maxPosition() const;
     double position() const;
     double targetPosition() const;
-    void setPosition(double position);
+    void setPosition(double position) const;
   };
 }  // namespace webotsQtUtils
 

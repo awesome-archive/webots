@@ -1,9 +1,14 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
   title "Static radar rays"
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.293817 -0.917648 -0.26757 4.83703
+  orientation 0.2938170020136748 -0.9176480062891006 -0.267570001833791 4.83703
   position 0.302524 0.278027 0.0853756
 }
 Background {
@@ -12,9 +17,11 @@ Background {
   ]
 }
 PointLight {
+  attenuation 0 0 4
   location 0 0.3 0
 }
 Solid {
+  rotation 1 0 0 -1.5708
   children [
     Shape {
       appearance Appearance {
@@ -84,21 +91,21 @@ DEF STATIC_ROBOT Robot {
     }
     DEF STATIC Radar {
       translation -0.05 0 0.001
-      rotation 0 1 0 1.5708
+      rotation 0.0 0.7071078227087467 0.7071057396616217 3.141591084855258
       name "radar static"
       minRange 0.02
       maxRange 0.2
     }
     DEF DYNAMIC Radar {
       translation 0.05 0 0
-      rotation 0 1 0 -1.5708
+      rotation -1 0.0 0.0 1.5707933809453447
       name "radar dynamic"
       minRange 0.01
       maxRange 0.2
     }
     DEF STATIC_OCCLUSION Radar {
       translation -0.05 0 0.001
-      rotation 0 1 0 1.5708
+      rotation 0.0 0.7071078227087467 0.7071057396616217 3.141591084855258
       name "radar occlusion static"
       minRange 0.02
       maxRange 0.2
@@ -106,7 +113,7 @@ DEF STATIC_ROBOT Robot {
     }
     DEF DYNAMIC_OCCLUSION Radar {
       translation 0.05 0 0
-      rotation 0 1 0 -1.5708
+      rotation -1 0.0 0.0 1.5707933809453447
       name "radar occlusion dynamic"
       minRange 0.01
       maxRange 0.2
@@ -117,7 +124,9 @@ DEF STATIC_ROBOT Robot {
   ]
   name "static"
   controller "radar_rays"
-  controllerArgs "static_radar_rays"
+  controllerArgs [
+    "static_radar_rays"
+  ]
 }
 TestSuiteSupervisor {
 }

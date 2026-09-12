@@ -1,15 +1,20 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://projects/robots/gctronic/e-puck/protos/E-puck.proto"
+EXTERNPROTO "webots://tests/api/protos/FieldTypes.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.33460162 0.92685632 0.17023251 5.0632475
+  orientation 0.3346016217580861 0.9268563248699502 0.170232510894447 5.0632475
   position -1.4014692 0.82937332 0.66081321
 }
 DEF BACKGROUND Background {
   skyColor [
-    0.4 0.7 1
-    0.5 0.4 0.74
-    0.666667 1 0
+    0.4 0.7 1    0.5 0.4 0.74    0.666667 1 0
   ]
 }
 PointLight {
@@ -19,26 +24,32 @@ PointLight {
 }
 DEF FLOOR Solid {
   children [
-    Shape {
-      appearance Appearance {
-        material Material {
+    Pose {
+      rotation 1 0 0 -1.57079632679
+      children [
+        Shape {
+          appearance Appearance {
+            material Material {
+            }
+            texture ImageTexture {
+              url [
+                "webots://projects/default/worlds/textures/checkered_parquetry.jpg"
+              ]
+            }
+          }
+          geometry DEF PLANE Plane {
+          }
         }
-        texture ImageTexture {
-          url [
-            "textures/checkered_parquetry.jpg"
-          ]
-        }
-      }
-      geometry DEF PLANE Plane {
-      }
+      ]
     }
   ]
-  boundingObject Transform {
+  boundingObject Pose {
     translation 0.5 0 0.5
     children [
       Plane {
       }
     ]
+    rotation 1 0 0 -1.57079632679
   }
 }
 DEF Test Robot {
@@ -52,7 +63,7 @@ DEF Test Robot {
 }
 DEF BOX Solid {
   translation -0.2 0.2 -0.2
-  rotation 0.70710339 0.5000024 -0.5000024 0.5708
+  rotation 0.7071033885288671 0.500002398959742 -0.500002398959742 0.5708
   children [
     DEF BOX_SHAPE Shape {
       appearance Appearance {
@@ -84,20 +95,16 @@ DEF MF_FIELDS FieldTypes {
     FALSE
   ]
   mfVec2 [
-    0 0
-    1 1
+    0 0    1 1
   ]
   mfVec3 [
-    -0.2 0.2 -0.2
-    4 5 6
+    -0.2 0.2 -0.2    4 5 6
   ]
   mfRotation [
     0.70717411 0.49995239 -0.49995239 0.5708
   ]
   mfColor [
-    0.188 0.486 0.219
-    1 0 0
-    0.4 0.4 0.4
+    0.188 0.486 0.219    1 0 0    0.4 0.4 0.4
   ]
   mfString [
     "this"
@@ -106,7 +113,7 @@ DEF MF_FIELDS FieldTypes {
     "test string"
   ]
   mfNode [
-    Transform {
+    Pose {
     }
     BallJoint {
     }

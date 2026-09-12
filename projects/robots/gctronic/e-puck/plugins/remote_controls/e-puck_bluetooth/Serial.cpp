@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,10 +43,6 @@
 #include <IOKit/serial/IOSerialKeys.h>
 #include <IOKit/serial/ioss.h>
 #include <sys/param.h>
-
-#else  // __linux__
-#include <termio.h>
-
 #endif
 #endif
 
@@ -125,7 +121,8 @@ Serial::Serial(const string &port) : mName(port) {
     throwFatalException("Error getting the tty attributes");
   }
 
-#else   // __linux__
+#else
+  // __linux__
   int rval;
 
   // test device file existence
@@ -271,7 +268,7 @@ void Serial::write(const char *packet, int size) {
 
 char *Serial::readLine() {
   int size = 1024;
-  char *buffer = (char *)malloc(size);
+  char *buffer = static_cast<char *>(malloc(size));
   if (!buffer)
     return NULL;
 
@@ -281,7 +278,7 @@ char *Serial::readLine() {
   do {
     if (pos == size) {
       size += 1024;
-      buffer = (char *)realloc(buffer, size);
+      buffer = static_cast<char *>(realloc(buffer, size));
       if (!buffer) {
         fprintf(stderr, "Error reading from serial port: not enough memory.\n");
         exit(EXIT_FAILURE);
@@ -383,7 +380,8 @@ void Serial::updatePorts() {
     printf("IOServiceMatching failed.\n");
 
   CFDictionarySetValue(classesToMatch, CFSTR(kIOSerialBSDTypeKey), CFSTR(kIOSerialBSDRS232Type));
-  kernResult = IOServiceGetMatchingServices(kIOMasterPortDefault, classesToMatch, &serialPortIterator);
+  // NULL is equivalent to kIOMainPortDefault or kIOMasterPortDefault but works across SDK versions
+  kernResult = IOServiceGetMatchingServices((mach_port_t)NULL, classesToMatch, &serialPortIterator);
   if (kernResult != KERN_SUCCESS)
     printf("IOServiceGetMatchingServices failed: %d\n", kernResult);
   io_object_t service;

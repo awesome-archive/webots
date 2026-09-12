@@ -1,9 +1,15 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
   lineScale 0.3
 }
 Viewpoint {
-  orientation 0.180735 0.982754 0.0391057 5.27826
+  orientation 0.18073501621974938 0.9827540881955547 0.039105703509473275 5.27826
   position -0.648203 0.119612 0.343123
 }
 Background {
@@ -12,26 +18,33 @@ Background {
   ]
 }
 PointLight {
+  attenuation 0 0 1
   intensity 0.5
   location 0 0.345 0
 }
 Floor {
+  rotation 1 0 0 -1.5708
 }
 DEF BLUE_ROBOT Robot {
   translation -0.25 0.025 0
   children [
-    DEF BASE_SHAPE Shape {
-      appearance Appearance {
-        material Material {
-          diffuseColor 0.113725 0.113725 0.854902
-          specularColor 0.984314 0.909804 0.909804
+    DEF BASE_SHAPE Pose {
+      rotation 1 0 0 -1.57079632679
+      children [
+        Shape {
+          appearance Appearance {
+            material Material {
+              diffuseColor 0.113725 0.113725 0.854902
+              specularColor 0.984314 0.909804 0.909804
+            }
+          }
+          geometry Cylinder {
+            height 0.05
+            radius 0.05
+            subdivision 24
+          }
         }
-      }
-      geometry Cylinder {
-        height 0.05
-        radius 0.05
-        subdivision 24
-      }
+      ]
     }
     Hinge2Joint {
       jointParameters HingeJointParameters {
@@ -62,17 +75,22 @@ DEF BLUE_ROBOT Robot {
       endPoint Solid {
         translation 0 0.06 0
         children [
-          DEF THICK_CYLINDER_SHAPE Shape {
-            appearance DEF GRAY_APPEARANCE Appearance {
-              material Material {
-                specularColor 1 1 1
+          DEF THICK_CYLINDER_SHAPE Pose {
+            rotation 1 0 0 -1.57079632679
+            children [
+              Shape {
+                appearance DEF GRAY_APPEARANCE Appearance {
+                  material Material {
+                    specularColor 1 1 1
+                  }
+                }
+                geometry Cylinder {
+                  height 0.05
+                  radius 0.02
+                  subdivision 24
+                }
               }
-            }
-            geometry Cylinder {
-              height 0.05
-              radius 0.02
-              subdivision 24
-            }
+            ]
           }
         ]
         boundingObject Group {
@@ -87,8 +105,7 @@ DEF BLUE_ROBOT Robot {
             0 0 0
           ]
           inertiaMatrix [
-            1 1 1
-            0 0 0
+            1 1 1            0 0 0
           ]
         }
       }

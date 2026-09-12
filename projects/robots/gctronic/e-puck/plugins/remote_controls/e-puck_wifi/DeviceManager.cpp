@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -73,6 +73,9 @@ DeviceManager::DeviceManager() {
     mDevices.push_back(mLightSensors[i]);
   }
 
+  mTofSensor = new SingleValueSensor(wb_robot_get_device("tof"), 0);
+  mDevices.push_back(mTofSensor);
+
   mMotors[0] = new Motor(wb_robot_get_device("left wheel motor"), 0);
   mDevices.push_back(mMotors[0]);
   mMotors[1] = new Motor(wb_robot_get_device("right wheel motor"), 1);
@@ -87,7 +90,7 @@ DeviceManager::DeviceManager() {
     mGroundSensors[i] = NULL;
 
   WbNodeType deviceType;
-  int groundSensorIndex, matchedItems = 0;
+  int groundSensorIndex, matchedItems;
   int numberOfDevices = wb_robot_get_number_of_devices();
   for (int index = 0; index < numberOfDevices; index++) {
     WbDeviceTag tag = wb_robot_get_device_by_index(index);
@@ -143,9 +146,10 @@ void DeviceManager::clear() {
     mMotors[i] = NULL;
     mPositionSensors[i] = NULL;
   }
+  mTofSensor = NULL;
 }
 
-void DeviceManager::apply(int simulationTime) {
+const void DeviceManager::apply(int simulationTime) const {
   vector<Device *>::const_iterator it;
 
   // check if some sensors need to be requested

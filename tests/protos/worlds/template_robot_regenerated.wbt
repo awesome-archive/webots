@@ -1,5 +1,11 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/protos/protos/TemplateRobot.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
   orientation -0.8008689484572773 0.5226339663640629 0.29233998118543786 1.21936
@@ -20,7 +26,9 @@ Robot {
     }
   ]
   controller "template_robot_regenerated"
-  controllerArgs "template_robot_regenerated"
+  controllerArgs [
+    "template_robot_regenerated"
+  ]
   supervisor TRUE
 }
 DEF ROBOT TemplateRobot {

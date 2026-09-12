@@ -1,14 +1,20 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "webots://projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "webots://projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "webots://projects/objects/solids/protos/SolidBox.proto"
+
 WorldInfo {
   info [
     "Example world demonstrating the use of a simple Motor device."
   ]
   title "Motor"
-  basicTimeStep 4
+  basicTimeStep 8
 }
 Viewpoint {
-  orientation 0.12721312999228063 -0.9897589099399406 -0.06476202399607019 5.2504127
-  position 0.20910846 0.11100923 0.083845121
+  orientation 0.3740524341195774 -0.07673420693532068 -0.9242275899448288 3.7308240112038495
+  position 0.2594167638671235 -0.15709216602775836 0.2913859589629595
 }
 TexturedBackground {
 }
@@ -21,7 +27,7 @@ DEF ROBOT Robot {
     HingeJoint {
       jointParameters HingeJointParameters {
         position 1.5708
-        axis 0 1 0
+        axis 0 0 1
         dampingConstant 1
       }
       device [
@@ -33,67 +39,92 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        rotation 0 1 0 1.5708
         children [
-          DEF AXIS Group {
+          Pose {
+            translation 0 0 0.063
             children [
-              Transform {
-                translation 0 0.063 0
-                children [
-                  Shape {
-                    appearance DEF METAL_APPEARANCE PBRAppearance {
-                      baseColor 0.5 0.5 0.5
-                      roughness 1
-                      metalness 0
-                    }
-                    geometry Cylinder {
-                      bottom FALSE
-                      height 0.005
-                      radius 0.04
-                    }
-                  }
-                ]
+              Shape {
+                appearance DEF METAL_APPEARANCE PBRAppearance {
+                  baseColor 0.5 0.5 0.5
+                  roughness 1
+                  metalness 0
+                }
+                geometry Cylinder {
+                  bottom FALSE
+                  height 0.005
+                  radius 0.04
+                }
               }
-              Transform {
-                translation 0 0.063 0
-                children [
-                  Shape {
-                    appearance DEF METAL_APPEARANCE PBRAppearance {
-                      baseColor 0.666667 0.666667 0.498039
-                      roughness 1
-                      metalness 0
-                    }
-                    geometry Cylinder {
-                      bottom FALSE
-                      height 0.008
-                      radius 0.03
-                      subdivision 6
-                    }
-                  }
-                ]
+            ]
+          }
+          Pose {
+            translation 0 0 0.063
+            rotation 0 0 1 0.523599
+            children [
+              Shape {
+                appearance DEF METAL_APPEARANCE PBRAppearance {
+                  baseColor 0.666667 0.666667 0.498039
+                  roughness 1
+                  metalness 0
+                }
+                geometry Cylinder {
+                  bottom FALSE
+                  height 0.008
+                  radius 0.03
+                  subdivision 6
+                }
               }
-              Transform {
-                translation 0 0.063 0.05
-                rotation 1 0 0 1.5708
-                children [
-                  Shape {
-                    appearance PBRAppearance {
-                      baseColor 1 0.333333 0.498039
-                      roughness 1
-                      metalness 0
-                    }
-                    geometry Cylinder {
-                      bottom FALSE
-                      height 0.02
-                      radius 0.001
-                    }
-                  }
-                ]
+            ]
+          }
+          Pose {
+            translation 0.05 0 0.063
+            rotation 0 1 0 1.570796
+            children [
+              Shape {
+                appearance PBRAppearance {
+                  baseColor 1 0.333333 0.498039
+                  roughness 1
+                  metalness 0
+                }
+                geometry Cylinder {
+                  bottom FALSE
+                  height 0.02
+                  radius 0.001
+                }
               }
             ]
           }
         ]
-        boundingObject USE AXIS
+        boundingObject Group {
+          children [
+            Pose {
+              translation 0 0 0.063
+              children [
+                Shape {
+                  geometry Cylinder {
+                    bottom FALSE
+                    height 0.008
+                    radius 0.03
+                    subdivision 16
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation 0.05 0 0.063
+              rotation 0 1 0 1.5708
+              children [
+                Shape {
+                  geometry Cylinder {
+                    bottom FALSE
+                    height 0.02
+                    radius 0.001
+                  }
+                }
+              ]
+            }
+          ]
+        }
         physics Physics {
           density -1
           mass 1
@@ -102,8 +133,8 @@ DEF ROBOT Robot {
     }
     DEF BASIS_GROUP Group {
       children [
-        Transform {
-          translation 0 0.02 0
+        Pose {
+          translation 0 0 0.019
           children [
             Shape {
               appearance USE METAL_APPEARANCE
@@ -115,56 +146,13 @@ DEF ROBOT Robot {
             }
           ]
         }
-        Transform {
-          translation 0 0.04 0
-          children [
-            Shape {
-              appearance PBRAppearance {
-                baseColorMap ImageTexture {
-                  url [
-                    "textures/compass.jpg"
-                  ]
-                }
-                roughness 1
-                metalness 0
-                textureTransform TextureTransform {
-                  rotation 1.5708
-                }
-              }
-              geometry Cylinder {
-                bottom FALSE
-                height 0.04
-                radius 0.07
-                side FALSE
-              }
-            }
-          ]
-        }
-        Transform {
-          translation 0 0.04 0
-          children [
-            Shape {
-              appearance PBRAppearance {
-                baseColor 1 0.866667 0
-                roughness 1
-                metalness 0
-              }
-              geometry Cylinder {
-                bottom FALSE
-                height 0.04
-                radius 0.07
-                top FALSE
-              }
-            }
-          ]
-        }
       ]
     }
   ]
   boundingObject USE BASIS_GROUP
   physics Physics {
     density -1
-    mass 8
+    mass 10
   }
   controller "motor"
   battery [
@@ -172,14 +160,56 @@ DEF ROBOT Robot {
   ]
   cpuConsumption 5
 }
+Solid {
+  translation 0 0 0.05
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "webots://projects/samples/devices/worlds/textures/compass.jpg"
+          ]
+        }
+        roughness 1
+        metalness 0
+        textureTransform TextureTransform {
+          rotation 1.5708
+        }
+      }
+      geometry Cylinder {
+        bottom FALSE
+        height 0.02
+        radius 0.07
+        side FALSE
+      }
+    }
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.866667 0
+        roughness 1
+        metalness 0
+      }
+      geometry Cylinder {
+        bottom FALSE
+        height 0.02
+        radius 0.07
+        top FALSE
+      }
+    }
+  ]
+  boundingObject Cylinder {
+    height 0.02
+    radius 0.07
+  }
+}
 SolidBox {
-  translation 0.04741181 0.0655 -0.019659258
-  rotation 0 1 0 0.26179939
+  translation 0.0474 0.0197 0.0646
+  rotation 0 0 -1 1.308995
   size 0.01 0.01 0.01
   appearance PBRAppearance {
     baseColorMap ImageTexture {
       url [
-        "textures/wood.jpg"
+        "webots://projects/default/worlds/textures/wood.jpg"
       ]
     }
     roughness 1
@@ -187,6 +217,6 @@ SolidBox {
   }
   physics Physics {
     density -1
-    mass 10
+    mass 1
   }
 }

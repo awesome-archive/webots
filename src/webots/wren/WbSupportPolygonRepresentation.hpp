@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,11 +34,11 @@ public:
   virtual ~WbSupportPolygonRepresentation();
 
   void show(bool visible);
-  void draw(const WbPolygon &p, float y, const WbVector3 &globalCenterOfMass, const WbVector3 *gravityBasis);
+  void draw(const WbPolygon &p, float y, const WbVector3 &globalCenterOfMass, const WbVector3 *worldBasis);
   void setScale(const float *scale);
 
 private:
-  enum { X, Y, Z };  // used to index the gravity basis vectors
+  enum { X, Y, Z };  // used to index the world basis vectors
 
   WrTransform *mTransform;
   WrTransform *mCenterOfMassTransform;

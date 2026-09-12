@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,8 @@
  */
 
 #include "round_manager.h"
-#include "boolean.h"
+
+#include <stdbool.h>
 #include "helper.h"
 
 #include <math.h>
@@ -80,7 +81,7 @@ static bool read_input_file() {
       break;
     }
     buffer[strlen(buffer) - 1] = 0;
-    competitor[i] = malloc(strlen(buffer));
+    competitor[i] = malloc(strlen(buffer) + 1);  // add the final '\0'
     strcpy(competitor[i], buffer);
   }
   fclose(file);
@@ -127,7 +128,7 @@ static void move_viewpoint() {
 
 static void init_mode() {
   mode = COMMON;
-  char *ratslife_env_var = getenv("WEBOTS_RATSLIFE");
+  const char *ratslife_env_var = getenv("WEBOTS_RATSLIFE");
   if (ratslife_env_var) {
     if (0 == strcmp(ratslife_env_var, "CONTEST")) {
       mode = CONTEST;

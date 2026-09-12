@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,20 +15,31 @@
  */
 
 /*
- * Description:  An example of the use of the batter of a robot.
+ * Description: An example of the use of the battery of a robot
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <webots/distance_sensor.h>
 #include <webots/motor.h>
 #include <webots/robot.h>
+#include <webots/utils/ansi_codes.h>
 
 #define SPEED 6
 #define TIME_STEP 64
 
+static double clamp(double value, double min, double max) {
+  if (min > max) {
+    assert(0);
+    return value;
+  }
+  return value < min ? min : value > max ? max : value;
+}
+
 int main() {
   WbDeviceTag ds0, ds1, left_motor, right_motor;
   double left_speed, right_speed;
+  double max_speed;
 
   wb_robot_init();
   /* get a handler to the distance sensors. */
@@ -42,12 +53,14 @@ int main() {
   wb_motor_set_position(right_motor, INFINITY);
   wb_motor_set_velocity(left_motor, 0.0);
   wb_motor_set_velocity(right_motor, 0.0);
+  max_speed = wb_motor_get_max_velocity(left_motor);
 
   wb_distance_sensor_enable(ds0, TIME_STEP);
   wb_distance_sensor_enable(ds1, TIME_STEP);
   wb_robot_battery_sensor_enable(TIME_STEP);
 
   while (wb_robot_step(TIME_STEP) != -1) {
+    ANSI_CLEAR_CONSOLE();
     printf("Battery sensor value: %.3f J\n", wb_robot_battery_sensor_get_value());
     const double ds0_value = wb_distance_sensor_get_value(ds0);
     const double ds1_value = wb_distance_sensor_get_value(ds1);
@@ -79,6 +92,8 @@ int main() {
       right_speed = SPEED;
     }
     /* Set the motor speeds. */
+    left_speed = clamp(left_speed, -max_speed, max_speed);
+    right_speed = clamp(right_speed, -max_speed, max_speed);
     wb_motor_set_velocity(left_motor, left_speed);
     wb_motor_set_velocity(right_motor, right_speed);
   }

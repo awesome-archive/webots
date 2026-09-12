@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,8 @@
 #include "WbRenderingDeviceWindow.hpp"
 
 #include "WbAbstractCamera.hpp"
+#include "WbCamera.hpp"
+#include "WbDisplay.hpp"
 #include "WbNodeUtilities.hpp"
 #include "WbPerformanceLog.hpp"
 #include "WbRenderingDevice.hpp"
@@ -23,15 +25,18 @@
 #include "WbWrenTextureOverlay.hpp"
 
 #include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLShaderProgram>
+#include <QtOpenGL/QOpenGLShaderProgram>
+#include <QtOpenGL/QOpenGLVersionFunctionsFactory>
+
+#include <cmath>
 
 static const char *gVertexShaderSource = "#version 330\n"
                                          "layout (location = 0) in vec4 posAttr;\n"
                                          "layout (location = 1) in vec2 uvAttr;\n"
                                          "out vec2 uv0;\n"
                                          "void main() {\n"
-                                         "   uv0 = uvAttr;\n"
-                                         "   gl_Position = posAttr;\n"
+                                         "  uv0 = uvAttr;\n"
+                                         "  gl_Position = posAttr;\n"
                                          "}\n";
 
 static const char *gStdFragmentShaderSource = "#version 330\n"
@@ -39,31 +44,42 @@ static const char *gStdFragmentShaderSource = "#version 330\n"
                                               "in vec2 uv0;\n"
                                               "out vec4 fragColor;\n"
                                               "void main() {\n"
-                                              "   vec2 deviceUv0 = uv0;\n"
-                                              "   fragColor = texture(image, deviceUv0);\n"
+                                              "  vec2 deviceUv0 = uv0;\n"
+                                              "  fragColor = texture(image, deviceUv0);\n"
                                               "}\n";
 
 static const char *gBackgroundFragmentShaderSource = "#version 330\n"
-                                                     "uniform sampler2D background;\n"
                                                      "uniform sampler2D image;\n"
+                                                     "uniform sampler2D background;\n"
                                                      "in vec2 uv0;\n"
                                                      "out vec4 fragColor;\n"
                                                      "void main() {\n"
-                                                     "   vec4 backgroundColor = texture(background, uv0);\n"
-                                                     "   vec2 deviceUv0 = uv0;\n"
-                                                     "   vec4 color = texture(image, deviceUv0);\n"
-                                                     "   fragColor = mix(backgroundColor, color, color.a);\n"
+                                                     "  vec4 backgroundColor = texture(background, uv0);\n"
+                                                     "  vec2 deviceUv0 = uv0;\n"
+                                                     "  vec4 color = texture(image, deviceUv0);\n"
+                                                     "  fragColor = mix(backgroundColor, color, color.a);\n"
                                                      "}\n";
 
 static const char *gForegroundFragmentShaderSource = "#version 330\n"
-                                                     "uniform sampler2D foreground;\n"
                                                      "uniform sampler2D image;\n"
+                                                     "uniform sampler2D mask;\n"
+                                                     "uniform sampler2D foreground;\n"
+                                                     "uniform int activeTextures;\n"
                                                      "in vec2 uv0;\n"
                                                      "out vec4 fragColor;\n"
                                                      "void main() {\n"
-                                                     "   vec4 foregroundColor = texture(foreground, uv0);\n"
-                                                     "   vec4 color = texture(image, uv0);\n"
-                                                     "   fragColor = mix(color, foregroundColor, foregroundColor.a);\n"
+                                                     "  fragColor = texture(image, uv0);\n"
+                                                     "  if ((activeTextures & 0x01) != 0) {\n"  // mask is active
+                                                     "    vec4 maskColor = texture(mask, uv0);\n"
+                                                     "    if (maskColor.x > 0.01 || maskColor.y > 0.01 || maskColor.z > 0.01)\n"
+                                                     "      fragColor = mix(fragColor, maskColor, 0.8);\n"
+                                                     "    else\n"
+                                                     "      fragColor = mix(fragColor, vec4(1.0, 1.0, 1.0, 1.0), 0.4);\n"
+                                                     "  }\n"
+                                                     "  if ((activeTextures & 0x10) != 0) {\n"  // foreground is active
+                                                     "    vec4 foregroundColor = texture(foreground, uv0);\n"
+                                                     "    fragColor = mix(fragColor, foregroundColor, foregroundColor.a);\n"
+                                                     "  }\n"
                                                      "}\n";
 
 static const char *gDepthFragmentShaderSource = "#version 330\n"
@@ -89,25 +105,30 @@ WbRenderingDeviceWindow::WbRenderingDeviceWindow(WbRenderingDevice *device) :
   mDevice(device),
   mTextureGLId(device->textureGLId()),
   mBackgroundTextureGLId(device->backgroundTextureGLId()),
+  mMaskTextureGLId(device->maskTextureGLId()),
   mForegroundTextureGLId(device->foregroundTextureGLId()),
+  mVboId(NULL),
+  mInitialized(false),
   mXFactor(0.0f),
   mYFactor(0.0f),
   mUpdateRequested(true),
   mShowOverlayOnClose(true) {
   setSurfaceType(QWindow::OpenGLSurface);
-  QSurfaceFormat surfaceFormat = format();
-  surfaceFormat.setMajorVersion(3);
-  surfaceFormat.setMinorVersion(3);
+  assert(cMainOpenGLContext);
+  QSurfaceFormat surfaceFormat = cMainOpenGLContext->format();
   setFormat(surfaceFormat);
 
   mAbstractCamera = dynamic_cast<WbAbstractCamera *>(mDevice);
   connect(mDevice, &WbRenderingDevice::textureUpdated, this, &WbRenderingDeviceWindow::requestUpdate);
   connect(mDevice, &WbRenderingDevice::textureIdUpdated, this, &WbRenderingDeviceWindow::updateTextureGLId);
-  connect(mDevice, &WbRenderingDevice::backgroundTextureIdUpdated, this, &WbRenderingDeviceWindow::updateBackgroundTextureGLId);
-  connect(mDevice, &WbRenderingDevice::foregroundTextureIdUpdated, this, &WbRenderingDeviceWindow::updateForegroundTextureGLId);
   connect(mDevice, &WbRenderingDevice::closeWindow, this, &WbRenderingDeviceWindow::closeFromMainWindow);
   connect(WbWrenRenderingContext::instance(), &WbWrenRenderingContext::mainRenderingEnded, this,
           &WbRenderingDeviceWindow::renderNow);
+  const WbDisplay *display = dynamic_cast<WbDisplay *>(mDevice);
+  if (display) {
+    connect(display, &WbDisplay::attachedCameraChanged, this, &WbRenderingDeviceWindow::listenToBackgroundImageChanges);
+    listenToBackgroundImageChanges(NULL, display->attachedCamera());
+  }
 
   // set initial size
   double pixelSize = mDevice->pixelSize();
@@ -128,17 +149,28 @@ WbRenderingDeviceWindow::WbRenderingDeviceWindow(WbRenderingDevice *device) :
     windowHeight = textureHeight * newPixelSize;
   }
 
-  const WbRobot *const robotNode = dynamic_cast<const WbRobot *const>(WbNodeUtilities::findTopNode(mDevice));
+  const WbRobot *const robotNode = WbNodeUtilities::findRobotAncestor(mDevice);
   assert(robotNode);
   setTitle(robotNode->name() + ": " + mDevice->name());
   resize(windowWidth, windowHeight);
 }
 
 WbRenderingDeviceWindow::~WbRenderingDeviceWindow() {
-  QOpenGLFunctions_3_3_Core *f = mContext->versionFunctions<QOpenGLFunctions_3_3_Core>();
-  f->glDeleteBuffers(2, (GLuint *)&mVboId);
+  if (!mContext)
+    return;
+
+  if (!isVisible())
+    show();  // if the window is not exposed mContext->makeCurrent() doesn't work
+
+  const bool success = mContext->makeCurrent(this);
+  assert(success);
+  if (!success)
+    return;
+  QOpenGLFunctions_3_3_Core *f = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(mContext);
   f->glDeleteVertexArrays(1, &mVaoId);
-  delete mContext;
+  f->glDeleteBuffers(2, reinterpret_cast<GLuint *>(&mVboId));
+  mContext->doneCurrent();
+  delete mVboId;
 }
 
 void WbRenderingDeviceWindow::initialize() {
@@ -151,7 +183,7 @@ void WbRenderingDeviceWindow::initialize() {
     mProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, gDepthFragmentShaderSource);
   else if (mBackgroundTextureGLId)
     mProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, gBackgroundFragmentShaderSource);
-  else if (mForegroundTextureGLId)
+  else if (mForegroundTextureGLId || mMaskTextureGLId)
     mProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, gForegroundFragmentShaderSource);
   else
     mProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, gStdFragmentShaderSource);
@@ -160,11 +192,13 @@ void WbRenderingDeviceWindow::initialize() {
   mImageUniform = mProgram->uniformLocation("image");
   mBackgroundTextureUniform = mProgram->uniformLocation("background");
   mForegroundTextureUniform = mProgram->uniformLocation("foreground");
+  mMaskTextureUniform = mProgram->uniformLocation("mask");
+  mActiveTexturesUniform = mProgram->uniformLocation("activeTextures");
 
   if (!mDevice->hasBeenSetup())
     return;
 
-  QOpenGLFunctions_3_3_Core *f = mContext->versionFunctions<QOpenGLFunctions_3_3_Core>();
+  QOpenGLFunctions_3_3_Core *f = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(mContext);
   if (mAbstractCamera == NULL) {
     GLint textureWidth = 0;
     GLint textureHeight = 0;
@@ -173,13 +207,9 @@ void WbRenderingDeviceWindow::initialize() {
     f->glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &textureHeight);
     mXFactor = ((float)mDevice->width()) / textureWidth;
     mYFactor = ((float)mDevice->height()) / textureHeight;
-    if (mBackgroundTextureGLId)
-      f->glBindTexture(GL_TEXTURE_2D, mBackgroundTextureGLId);
   } else {
     mXFactor = 1.0f;
     mYFactor = 1.0f;
-    if (mForegroundTextureGLId)
-      f->glBindTexture(GL_TEXTURE_2D, mForegroundTextureGLId);
   }
 
   static const GLfloat vertices[] = {-1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f};
@@ -187,70 +217,79 @@ void WbRenderingDeviceWindow::initialize() {
   static GLfloat const texCoords[] = {0.0f, mYFactor, mXFactor, 0.0,      0.0f,     0.0,
                                       0.0f, mYFactor, mXFactor, mYFactor, mXFactor, 0.0};
 
-  f->glGenVertexArrays(1, &mVaoId);
+  if (!mVboId) {
+    mVboId = new GLuint[2];
+    f->glGenVertexArrays(1, &mVaoId);
+    f->glGenBuffers(2, mVboId);
+  }
   f->glBindVertexArray(mVaoId);
-  f->glGenBuffers(2, (GLuint *)&mVboId);
   f->glBindBuffer(GL_ARRAY_BUFFER, mVboId[0]);
   f->glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  f->glEnableVertexAttribArray(0);
   f->glBindBuffer(GL_ARRAY_BUFFER, mVboId[1]);
   f->glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
+  f->glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  f->glEnableVertexAttribArray(1);
+
+  mInitialized = true;
 }
 
 void WbRenderingDeviceWindow::render() {
-  QOpenGLFunctions_3_3_Core *f = mContext->versionFunctions<QOpenGLFunctions_3_3_Core>();
+  QOpenGLFunctions_3_3_Core *f = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(mContext);
 
-  const qreal retinaScale = devicePixelRatio();
-  f->glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+  const double ratio = devicePixelRatio();
+  f->glViewport(0, 0, std::ceil(width() * ratio), std::ceil(height() * ratio));
 
   f->glClear(GL_COLOR_BUFFER_BIT);
 
   mProgram->bind();
 
-  f->glEnableVertexAttribArray(0);
-  f->glBindBuffer(GL_ARRAY_BUFFER, mVboId[0]);
-  f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-  f->glEnableVertexAttribArray(1);
-  f->glBindBuffer(GL_ARRAY_BUFFER, mVboId[1]);
-  f->glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  f->glBindVertexArray(mVaoId);
 
   if (mAbstractCamera && mAbstractCamera->isRangeFinder())
     mProgram->setUniformValue(mMaxRangeUniform, static_cast<float>(mAbstractCamera->maxRange()));
 
   if (mBackgroundTextureGLId) {
-    mProgram->setUniformValue(mBackgroundTextureUniform, 0);
-    mProgram->setUniformValue(mImageUniform, 1);
+    mProgram->setUniformValue(mImageUniform, 0);
+    mProgram->setUniformValue(mBackgroundTextureUniform, 1);
   }
 
-  if (mForegroundTextureGLId) {
-    mProgram->setUniformValue(mForegroundTextureUniform, 0);
-    mProgram->setUniformValue(mImageUniform, 1);
+  if (mForegroundTextureGLId || mMaskTextureGLId) {
+    mProgram->setUniformValue(mImageUniform, 0);
+    mProgram->setUniformValue(mMaskTextureUniform, 1);
+    mProgram->setUniformValue(mForegroundTextureUniform, 2);
+    mProgram->setUniformValue(mActiveTexturesUniform,
+                              (mForegroundTextureUniform ? 0x10 : 0x0) | (mMaskTextureGLId ? 0x1 : 0x0));
   }
 
   f->glActiveTexture(GL_TEXTURE0);
-
-  if (mBackgroundTextureGLId) {
-    f->glBindTexture(GL_TEXTURE_2D, mBackgroundTextureGLId);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    f->glActiveTexture(GL_TEXTURE1);
-  }
-
-  if (mForegroundTextureGLId) {
-    f->glBindTexture(GL_TEXTURE_2D, mForegroundTextureGLId);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    f->glActiveTexture(GL_TEXTURE1);
-  }
-
   f->glBindTexture(GL_TEXTURE_2D, mTextureGLId);
   f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-  f->glDrawArrays(GL_TRIANGLES, 0, 6);
+  if (mBackgroundTextureGLId) {
+    f->glActiveTexture(GL_TEXTURE1);
+    f->glBindTexture(GL_TEXTURE_2D, mBackgroundTextureGLId);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  }
 
-  f->glDisableVertexAttribArray(1);
-  f->glDisableVertexAttribArray(0);
+  if (mMaskTextureGLId) {
+    f->glActiveTexture(GL_TEXTURE1);
+    f->glBindTexture(GL_TEXTURE_2D, mMaskTextureGLId);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  }
+
+  if (mForegroundTextureGLId) {
+    f->glActiveTexture(GL_TEXTURE2);
+    f->glBindTexture(GL_TEXTURE_2D, mForegroundTextureGLId);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  }
+
+  f->glDrawArrays(GL_TRIANGLES, 0, 6);
 
   mProgram->release();
 }
@@ -265,15 +304,19 @@ void WbRenderingDeviceWindow::renderNow() {
 
   if (!mContext) {
     mContext = new QOpenGLContext(this);
-    mContext->setFormat(requestedFormat());
+    mContext->setFormat(cMainOpenGLContext->format());
     mContext->setShareContext(cMainOpenGLContext);
     mContext->create();
+  }
 
+#ifndef NDEBUG
+  const bool success =
+#endif  // NDEBUG
     mContext->makeCurrent(this);
+  assert(success);
 
+  if (!mInitialized)
     initialize();
-  } else
-    mContext->makeCurrent(this);
 
   render();
 
@@ -322,22 +365,33 @@ int WbRenderingDeviceWindow::deviceId() const {
   return mDevice->uniqueId();
 }
 
-void WbRenderingDeviceWindow::updateTextureGLId(int id) {
-  mTextureGLId = id;
+void WbRenderingDeviceWindow::updateTextureGLId(int id, WbRenderingDevice::TextureRole role) {
+  switch (role) {
+    case WbRenderingDevice::BACKGROUND_TEXTURE:
+      mBackgroundTextureGLId = id;
+      break;
+    case WbRenderingDevice::MAIN_TEXTURE:
+      mTextureGLId = id;
+      break;
+    case WbRenderingDevice::MASK_TEXTURE:
+      mMaskTextureGLId = id;
+      break;
+    case WbRenderingDevice::FOREGROUND_TEXTURE:
+      mForegroundTextureGLId = id;
+      break;
+    default:
+      assert(false);
+  }
   mUpdateRequested = true;
-  initialize();
+  mInitialized = false;
 }
 
-void WbRenderingDeviceWindow::updateBackgroundTextureGLId(int id) {
-  mBackgroundTextureGLId = id;
-  mUpdateRequested = true;
-  initialize();
-}
-
-void WbRenderingDeviceWindow::updateForegroundTextureGLId(int id) {
-  mForegroundTextureGLId = id;
-  mUpdateRequested = true;
-  initialize();
+void WbRenderingDeviceWindow::listenToBackgroundImageChanges(const WbRenderingDevice *previousAttachedDevice,
+                                                             const WbRenderingDevice *newAttachedDevice) {
+  if (previousAttachedDevice)
+    disconnect(previousAttachedDevice, &WbRenderingDevice::textureUpdated, this, &WbRenderingDeviceWindow::requestUpdate);
+  if (newAttachedDevice)
+    connect(newAttachedDevice, &WbRenderingDevice::textureUpdated, this, &WbRenderingDeviceWindow::requestUpdate);
 }
 
 QStringList WbRenderingDeviceWindow::perspective() const {

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,14 +18,25 @@
 #include "WbFieldModel.hpp"
 #include "WbLog.hpp"
 #include "WbNodeModel.hpp"
-#include "WbProtoList.hpp"
+#include "WbProtoManager.hpp"
 #include "WbProtoModel.hpp"
+#include "WbProtoTemplateEngine.hpp"
 #include "WbToken.hpp"
 #include "WbTokenizer.hpp"
 
+#include <QtCore/QDir>
+#include <QtCore/QFileInfo>
+#include <QtCore/QRegularExpression>
+
 #include <cassert>
 
-WbParser::WbParser(WbTokenizer *tokenizer) : mTokenizer(tokenizer), mMode(NONE) {
+static double cLegacyGravity = 9.81;
+
+double WbParser::legacyGravity() {
+  return cLegacyGravity;
+}
+
+WbParser::WbParser(WbTokenizer *tokenizer) : mTokenizer(tokenizer), mProto(false) {
 }
 
 const QString &WbParser::fileName() const {
@@ -42,6 +53,18 @@ void WbParser::parseDoubles(int n) {
   }
 }
 
+const QString WbParser::parseUrl() {
+  if (!peekToken()->isString())
+    reportUnexpected(QObject::tr("string literal"));
+  const QString url = nextToken()->toString();
+  if (!url.toLower().endsWith(".proto")) {
+    mTokenizer->reportError(QObject::tr("Expected URL to end with '.proto' or '.PROTO'"));
+    throw 0;
+  }
+
+  return url;
+}
+
 void WbParser::parseInt() {
   // this is a backwards compatibility fix for pre-8.6 files, where
   // 'filtering' could have boolean values (it now takes integral values)
@@ -51,7 +74,8 @@ void WbParser::parseInt() {
   if (fieldValue->isBoolean() && fieldName == "filtering" && mTokenizer->fileVersion() < WbVersion(8, 6, 0)) {
     WbLog::warning(QObject::tr("Boolean values for 'ImageTexture.filtering' field are deprecated"
                                " from Webots 8.6 onwards; the value has been converted automatically."
-                               " Please update your PROTO and world files accordingly."));
+                               " Please update your PROTO and world files accordingly."),
+                   false, WbLog::PARSING);
 
     bool isFilteringOn = fieldValue->toBool();
     if (isFilteringOn)
@@ -127,14 +151,16 @@ void WbParser::parseFieldAcceptedValues(WbFieldType type, const QString &worldPa
   while (nextWord() != '}') {
     mTokenizer->ungetToken();
     WbParser::parseSingleFieldValue(type, worldPath);
+    if (nextWord() != '+')
+      mTokenizer->ungetToken();
   }
 }
 
 void WbParser::parseFieldDeclaration(const QString &worldPath) {
-  WbToken *const token = nextToken();
-  if (token->word() != "field" && token->word() != "vrmlField" && token->word() != "hiddenField" &&
+  const WbToken *const token = nextToken();
+  if (token->word() != "field" && token->word() != "w3dField" && token->word() != "hiddenField" &&
       token->word() != "deprecatedField" && token->word() != "unconnectedField")
-    reportUnexpected(QObject::tr("'field', 'unconnectedField', 'vrmlField' or 'hiddenField' keywords"));
+    reportUnexpected(QObject::tr("'field', 'unconnectedField', 'w3dField' or 'hiddenField' keywords"));
 
   // check field type
   const WbFieldType type = WbValue::vrmlNameToType(nextWord());
@@ -160,92 +186,53 @@ void WbParser::reportFileError(const QString &message) const {
 void WbParser::reportUnexpected(const QString &expected) const {
   const WbToken *const found = mTokenizer->lastToken();
   QString foundWord(found->word());
-  if (foundWord.split(QRegExp("\\s+")).size() == 1)
+  if (foundWord.split(QRegularExpression("\\s+")).size() == 1)
     foundWord = QString("'%1'").arg(foundWord);
 
   QString expectedWord(expected);
-  if (expectedWord.split(QRegExp("\\s+")).size() == 1)
+  if (expectedWord.split(QRegularExpression("\\s+")).size() == 1)
     expectedWord = QString("'%1'").arg(expectedWord);
 
   mTokenizer->reportError(QObject::tr("Expected %1, found %2").arg(expectedWord, foundWord), found);
   throw 0;
 }
 
-bool WbParser::parseWorld(const QString &worldPath) {
+bool WbParser::parseWorld(const QString &worldPath, bool (*updateProgress)(int)) {
   mTokenizer->rewind();
-  mMode = WBT;
   try {
-    while (!peekToken()->isEof())
+    while (!peekToken()->isEof()) {
+      while (peekWord() == "EXTERNPROTO" || peekWord() == "IMPORTABLE")  // consume EXTERNPROTO declarations
+        skipExternProto();
+
       parseNode(worldPath);
+      if (!updateProgress(mTokenizer->pos() * 100 / mTokenizer->totalTokensNumber()))
+        return false;
+    }
   } catch (...) {
     return false;
   }
-
-  return true;
-}
-
-// parse VRML file syntax
-// there can be in-line PROTO definitions, in this case they are
-// also parsed and added to the current WbProtoList
-bool WbParser::parseVrml(const QString &worldPath) {
-  mTokenizer->rewind();
-  mMode = VRML;
-  try {
-    while (mTokenizer->hasMoreTokens() && !peekToken()->isEof())
-      // proto statements can appear in between node statements
-      // this is important for VRML import
-      if (peekWord() == "PROTO") {
-        mMode = PROTO;
-        const int pos = mTokenizer->pos();
-        parseProtoDefinition(worldPath);
-        mTokenizer->seek(pos);
-        WbProtoList::current()->readModel(mTokenizer, worldPath);
-        mMode = VRML;
-      } else
-        parseNode(worldPath);
-  } catch (...) {
-    return false;
-  }
-
   return true;
 }
 
 void WbParser::parseProtoDefinition(const QString &worldPath) {
   parseProtoInterface(worldPath);
-
   parseExactWord("{");
   parseNode(worldPath);
   parseExactWord("}");
 }
 
-bool WbParser::parseProto(const QString &worldPath) {
-  mTokenizer->rewind();
-  mMode = PROTO;
-  try {
-    parseProtoDefinition(worldPath);
-    parseEof();
-  } catch (...) {
-    return false;
-  }
-
-  return true;
-}
-
 bool WbParser::parseObject(const QString &worldPath) {
   mTokenizer->rewind();
-  mMode = WBO;
   try {
     parseNode(worldPath);
   } catch (...) {
     return false;
   }
-
   return true;
 }
 
 bool WbParser::parseNodeModel() {
   mTokenizer->rewind();
-  mMode = WRL;
   try {
     parseIdentifier();  // node name
     parseExactWord("{");
@@ -257,7 +244,6 @@ bool WbParser::parseNodeModel() {
   } catch (...) {
     return false;
   }
-
   return true;
 }
 
@@ -290,7 +276,7 @@ void WbParser::parseEof() {
 }
 
 const QString &WbParser::parseIdentifier(const QString &expected) {
-  WbToken *token = nextToken();
+  const WbToken *token = nextToken();
 
   if (!token->isIdentifier())
     reportUnexpected(expected);
@@ -330,10 +316,18 @@ void WbParser::parseNode(const QString &worldPath) {
     while (peekWord() != "}")
       parseField(nodeModel, worldPath);
     skipToken();  // "}";
+    // if no coordinate system was explicitly set in parseField(), set the default value.
+    if (nodeModel->name() == "WorldInfo" && WbProtoTemplateEngine::coordinateSystem().isEmpty()) {
+      if (mTokenizer->fileVersion() < WbVersion(2020, 1, 0))  // earlier than R2020b
+        WbProtoTemplateEngine::setCoordinateSystem("NUE");
+      else
+        WbProtoTemplateEngine::setCoordinateSystem("ENU");
+    }
     return;
   }
 
-  const WbProtoModel *const protoModel = WbProtoList::current()->findModel(nodeName, worldPath);
+  const QString &referral = mTokenizer->fileName().isEmpty() ? mTokenizer->referralFile() : mTokenizer->fileName();
+  const WbProtoModel *const protoModel = WbProtoManager::instance()->findModel(nodeName, worldPath, referral);
   if (protoModel) {
     parseExactWord("{");
     while (peekWord() != "}")
@@ -348,7 +342,29 @@ void WbParser::parseNode(const QString &worldPath) {
 
 void WbParser::parseField(const WbNodeModel *nodeModel, const QString &worldPath) {
   const QString &fieldName = parseIdentifier(QObject::tr("field name or '}'"));
-
+  // we need to set the coordinate system to the WbProtoTemplateEngine early enough to be able to pass the "coordinate_system"
+  // as a context dictionary to procedural PROTO parameter nodes that are created before the WorldInfo node.
+  if (nodeModel->name() == "WorldInfo") {
+    if (mTokenizer->fileVersion() >= WbVersion(2020, 1, 0) && fieldName == "coordinateSystem") {
+      QString coordinateSystem = peekWord();
+      if (coordinateSystem.at(0) == '"' && coordinateSystem.back() == '"') {
+        coordinateSystem = coordinateSystem.mid(1, coordinateSystem.size() - 2);
+        WbProtoTemplateEngine::setCoordinateSystem(coordinateSystem);
+      }
+    } else if (mTokenizer->fileVersion() < WbVersion(2020, 1, 0) && fieldName == "gravity") {
+      const double x = nextWord().toDouble();
+      const double y = nextWord().toDouble();
+      const double z = peekWord().toDouble();
+      cLegacyGravity = sqrt(x * x + y * y + z * z);
+      reportError(QObject::tr("Found deprecated gravity vector (%1 %2 %3) in WorldInfo, using gravity vector length: %4")
+                    .arg(x)
+                    .arg(y)
+                    .arg(z)
+                    .arg(cLegacyGravity));
+      mTokenizer->skipField(true);
+      return;
+    }
+  }
   const WbFieldModel *const fieldModel = nodeModel->findFieldModel(fieldName);
   if (!fieldModel) {
     reportError(QObject::tr("Skipped unknown '%1' field in %2 node").arg(fieldName, nodeModel->name()));
@@ -358,7 +374,7 @@ void WbParser::parseField(const WbNodeModel *nodeModel, const QString &worldPath
 
   if (peekWord() == "IS") {
     skipToken();
-    if (mMode != PROTO)
+    if (!mProto)
       reportError(QObject::tr("'IS' keyword is only allowed in .proto files"));
 
     parseIdentifier(QObject::tr("PROTO field name"));
@@ -397,8 +413,11 @@ void WbParser::parseParameter(const WbProtoModel *protoModel, const QString &wor
 }
 
 bool WbParser::parseProtoInterface(const QString &worldPath) {
-  mMode = PROTO;
+  mProto = true;
   try {
+    while (peekWord() == "EXTERNPROTO" || peekWord() == "IMPORTABLE")  // consume EXTERNPROTO declarations
+      skipExternProto();
+
     parseExactWord("PROTO");
     parseIdentifier();
     parseExactWord("[");
@@ -411,12 +430,11 @@ bool WbParser::parseProtoInterface(const QString &worldPath) {
   } catch (...) {
     return false;
   }
-
   return true;
 }
 
 bool WbParser::parseProtoBody(const QString &worldPath) {
-  mMode = PROTO;
+  mProto = true;
   try {
     parseNode(worldPath);
     parseEof();
@@ -430,6 +448,40 @@ void WbParser::skipProtoDefinition(WbTokenizer *tokenizer) {
   // we should skip instead of parsing the tokens
   // but this is used only for VRML import, and can be optimized later
   WbParser parser(tokenizer);
-  parser.mMode = PROTO;
   parser.parseProtoDefinition("");
+}
+
+void WbParser::skipExternProto() {
+  if (peekWord() == "IMPORTABLE")
+    nextToken();
+  if (peekWord() == "EXTERNPROTO")
+    nextToken();
+
+  const WbToken *token = nextToken();
+  if (!token->isString())
+    reportUnexpected("string literal");
+}
+
+QStringList WbParser::protoNodeList() {
+  const int position = mTokenizer->pos();
+  assert(mTokenizer->hasMoreTokens());
+  mTokenizer->nextToken();  // consume the first token so that lastWord() is defined
+
+  // in PROTO headers, field restrictions are also defined using "type{ }"
+  const QStringList exceptions = {"MFBool",   "SFBool",   "SFColor", "MFColor", "SFFloat",    "MFFloat",
+                                  "SFInt32",  "MFInt32",  "SFNode",  "MFNode",  "SFRotation", "MFRotation",
+                                  "SFString", "MFString", "SFVec2f", "MFVec2f", "SFVec3f",    "MFVec3f"};
+
+  QStringList protoList;
+  while (mTokenizer->hasMoreTokens()) {
+    if (mTokenizer->peekWord() == "{" && !protoList.contains(mTokenizer->lastWord()) &&
+        !WbNodeModel::isBaseModelName(WbNodeModel::compatibleNodeName(mTokenizer->lastWord())) &&
+        !exceptions.contains(mTokenizer->lastWord()))
+      protoList << mTokenizer->lastWord();
+
+    mTokenizer->nextToken();
+  }
+
+  mTokenizer->seek(position);
+  return protoList;
 }

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,12 +18,12 @@
 #include "WbFieldChecker.hpp"
 #include "WbMFColor.hpp"
 #include "WbNodeUtilities.hpp"
+#include "WbPose.hpp"
 #include "WbSFBool.hpp"
 #include "WbSFColor.hpp"
 #include "WbSFDouble.hpp"
 #include "WbSFVector3.hpp"
 #include "WbSpotLightRepresentation.hpp"
-#include "WbTransform.hpp"
 #include "WbWrenRenderingContext.hpp"
 
 #include <wren/config.h>
@@ -48,10 +48,11 @@ void WbSpotLight::init() {
 
 WbSpotLight::WbSpotLight(WbTokenizer *tokenizer) : WbLight("SpotLight", tokenizer) {
   init();
-  if (tokenizer == NULL)
+  if (tokenizer == NULL) {
     mDirection->setValueNoSignal(0, 1, -1);
-  if (tokenizer == NULL)
     mAttenuation->setValueNoSignal(0.0, 0.0, 1.0);
+    mBeamWidth->setValueNoSignal(0.7);
+  }
 }
 
 WbSpotLight::WbSpotLight(const WbSpotLight &other) : WbLight(other) {
@@ -86,7 +87,7 @@ void WbSpotLight::postFinalize() {
 
 WbSpotLight::~WbSpotLight() {
   if (areWrenObjectsInitialized()) {
-    detachFromUpperTransform();
+    detachFromUpperPose();
     wr_node_delete(WR_NODE(mWrenLight));
     delete mLightRepresentation;
   }
@@ -94,16 +95,16 @@ WbSpotLight::~WbSpotLight() {
 
 WbVector3 WbSpotLight::computeAbsoluteLocation() const {
   WbVector3 location = mLocation->value();
-  WbTransform *ut = upperTransform();
-  if (ut)
-    location = ut->matrix() * location;
+  const WbPose *const up = upperPose();
+  if (up)
+    location = up->matrix() * location;
   return location;
 }
 
 void WbSpotLight::createWrenObjects() {
   mWrenLight = wr_spot_light_new();
   WbLight::createWrenObjects();
-  attachToUpperTransform();
+  attachToUpperPose();
 
   // Has to be done after WbLight::createWrenTransform (otherwise wrenNode() == NULL)
   mLightRepresentation =
@@ -124,8 +125,12 @@ void WbSpotLight::updateOptionalRendering(int option) {
 }
 
 void WbSpotLight::updateAttenuation() {
-  if (WbFieldChecker::checkVector3IsNonNegative(this, mAttenuation, WbVector3()))
+  if (WbFieldChecker::resetVector3IfNegative(this, mAttenuation, WbVector3()))
     return;
+
+  if (mAttenuation->value().x() > 0.0 || mAttenuation->value().y() > 0.0)
+    parsingWarn(tr("A quadratic 'attenuation' should be preferred to have a realistic simulation of light. "
+                   "Only the third component of the 'attenuation' field should be greater than 0."));
 
   checkAmbientAndAttenuationExclusivity();
 
@@ -140,7 +145,7 @@ void WbSpotLight::updateLocation() {
 }
 
 void WbSpotLight::updateRadius() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mRadius, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mRadius, 0.0))
     return;
 
   if (areWrenObjectsInitialized())
@@ -173,25 +178,22 @@ void WbSpotLight::updateDirection() {
 }
 
 void WbSpotLight::updateCutOffAngle() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mCutOffAngle, 0.0, M_PI_2, M_PI_2))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mCutOffAngle, 0.0, M_PI_2, M_PI_2))
     return;
 
-  if (mCutOffAngle->value() < mBeamWidth->value()) {
-    mBeamWidth->blockSignals(true);
-    mBeamWidth->setValue(mCutOffAngle->value());
-    mBeamWidth->blockSignals(false);
-  }
+  if (mCutOffAngle->value() < mBeamWidth->value())
+    mBeamWidth->setValueNoSignal(mCutOffAngle->value());
 
   if (areWrenObjectsInitialized())
     applyLightBeamWidthAndCutOffAngleToWren();
 }
 
 void WbSpotLight::updateBeamWidth() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mBeamWidth, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mBeamWidth, 0.0))
     return;
   else if (mBeamWidth->value() > mCutOffAngle->value()) {
-    warn(tr("Invalid 'beamWidth' changed to %1. The value should be less than or equal to 'cutOffAngle'.")
-           .arg(mCutOffAngle->value()));
+    parsingWarn(tr("Invalid 'beamWidth' changed to %1. The value should be less than or equal to 'cutOffAngle'.")
+                  .arg(mCutOffAngle->value()));
     mBeamWidth->setValue(mCutOffAngle->value());
     return;
   }
@@ -202,19 +204,20 @@ void WbSpotLight::updateBeamWidth() {
 
 void WbSpotLight::checkAmbientAndAttenuationExclusivity() {
   if (mAttenuation->value() != WbVector3(1.0, 0.0, 0.0) && ambientIntensity() != 0.0) {
-    warn(tr("'ambientIntensity' and 'attenuation' cannot differ from their default values at the same time. 'ambientIntensity' "
-            "was changed to 0."));
+    parsingWarn(
+      tr("'ambientIntensity' and 'attenuation' cannot differ from their default values at the same time. 'ambientIntensity' "
+         "was changed to 0."));
     setAmbientIntensity(0.0);
   }
 }
 
-void WbSpotLight::attachToUpperTransform() {
-  WbTransform *upperTransform = WbNodeUtilities::findUpperTransform(this);
-  if (upperTransform)
-    wr_transform_attach_child(upperTransform->wrenNode(), WR_NODE(mWrenLight));
+void WbSpotLight::attachToUpperPose() {
+  const WbPose *const upperPose = WbNodeUtilities::findUpperPose(this);
+  if (upperPose)
+    wr_transform_attach_child(upperPose->wrenNode(), WR_NODE(mWrenLight));
 }
 
-void WbSpotLight::detachFromUpperTransform() {
+void WbSpotLight::detachFromUpperPose() {
   WrNode *node = WR_NODE(mWrenLight);
   WrTransform *parent = wr_node_get_parent(node);
   if (parent)
@@ -237,7 +240,8 @@ void WbSpotLight::applyLightVisibilityToWren() {
   const int maxCount = wr_config_get_max_active_spot_light_count();
   const int activeCount = wr_scene_get_active_spot_light_count(wr_scene_get_instance());
   if (activeCount == maxCount)
-    warn(tr("Maximum number of active spotlights (%1) has been reached, newly added lights won't be rendered.").arg(maxCount));
+    parsingWarn(
+      tr("Maximum number of active spotlights (%1) has been reached, newly added lights won't be rendered.").arg(maxCount));
 }
 
 void WbSpotLight::applyLightShadowsToWren() {
@@ -264,9 +268,9 @@ void WbSpotLight::applyBillboardVisibilityToWren() {
 }
 
 void WbSpotLight::applyLightDirectionToWren() {
-  const float direction[] = {static_cast<float>(mDirection->x()), static_cast<float>(mDirection->y()),
-                             static_cast<float>(mDirection->z())};
-  wr_spot_light_set_direction(mWrenLight, direction);
+  const float d[] = {static_cast<float>(mDirection->x()), static_cast<float>(mDirection->y()),
+                     static_cast<float>(mDirection->z())};
+  wr_spot_light_set_direction(mWrenLight, d);
   mLightRepresentation->setDirection(mDirection->value());
 }
 
@@ -296,12 +300,13 @@ double WbSpotLight::computeAttenuation(double distance) const {
   return 1.0 / (mAttenuation->x() + mAttenuation->y() * distance + mAttenuation->z() * distance * distance);
 }
 
-void WbSpotLight::exportNodeFields(WbVrmlWriter &writer) const {
-  findField("attenuation", true)->write(writer);
-  findField("beamWidth", true)->write(writer);
-  findField("cutOffAngle", true)->write(writer);
-  findField("direction", true)->write(writer);
-  findField("location", true)->write(writer);
-  findField("radius", true)->write(writer);
-  WbLight::exportNodeFields(writer);
+QStringList WbSpotLight::fieldsToSynchronizeWithW3d() const {
+  QStringList fields;
+  fields << "attenuation"
+         << "beamWidth"
+         << "cutOffAngle"
+         << "direction"
+         << "location"
+         << "radius" << WbLight::fieldsToSynchronizeWithW3d();
+  return fields;
 }

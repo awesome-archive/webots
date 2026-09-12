@@ -4,25 +4,22 @@ Derived from [Solid](solid.md).
 
 ```
 Robot {
-  SFString controller      "void"   # any string
-  SFString controllerArgs  ""       # any string
-  SFString customData      ""       # any string
-  SFBool   supervisor      FALSE    # {TRUE, FALSE}
-  SFBool   synchronization TRUE     # {TRUE, FALSE}
-  MFFloat  battery         [ ]      # see below
-  SFFloat  cpuConsumption  10       # [0, inf)
-  SFBool   selfCollision   FALSE    # {TRUE, FALSE}
-  SFBool   showWindow      FALSE    # {TRUE, FALSE}
-  SFString window          ""       # any string
-  SFString remoteControl   ""       # any string
+  SFString controller      "<generic>"  # any string
+  MFString controllerArgs  []           # any string
+  SFString customData      ""           # any string
+  SFBool   supervisor      FALSE        # {TRUE, FALSE}
+  SFBool   synchronization TRUE         # {TRUE, FALSE}
+  MFFloat  battery         []           # see below
+  SFFloat  cpuConsumption  10           # [0, inf)
+  SFBool   selfCollision   FALSE        # {TRUE, FALSE}
+  SFString window          "<generic>"  # any string
+  SFString remoteControl   "<none>"     # any string
 }
 ```
 
 ### Description
 
 The [Robot](#robot) node can be used as basis for building a robot, e.g., an articulated robot, a humanoid robot, a wheeled robot.
-
-> **Note**: Logically, if the Robot node has one or more Solid (or derived) ancestor nodes, then the physical properties of the ancestor nodes will affect the Robot node's physical behavior.
 
 ### Field Summary
 
@@ -31,18 +28,28 @@ This program is located in a directory whose name is equal to the field's value.
 This directory is in turn located in the "controllers" subdirectory of the current project directory.
 For example, if the field value is "my\_controller" then the controller program should be located in "my\_project/controllers/my\_controller/my\_controller[.exe]".
 The ".exe" extension is added on the Windows platforms only.
-Setting this field's value to the empty string runs no controller at all. Doing so may lead to better performance than using the `void` controller.
+If this field is set to `<none>`, the robot will run no controller at all.
+Doing so may lead to better performance than using the `<generic>` controller.
+Setting the value of this field to `<extern>` will make this robot runnable from an [extern robot controller](../guide/running-extern-robot-controllers.md).
 
 > **Note**: If the controller is not started the robot window will not work.
-If the robot window is required it is recommended to assign the `void` controller instead of an empty string.
+If the robot window is required it is recommended to assign the `<generic>` controller instead of an empty string.
 
-- `controllerArgs`: string containing the arguments (separated by space characters) to be passed to the `main` function of the C/C++ controller program or the `main` method of the Java controller program.
+- `controllerArgs`: list of strings containing the command line arguments to be passed to the controller program.
+Unlike in command line instructions, each `controllerArgs` item is interpreted as a single argument value, even if it contains spaces, and multiple arguments need to be specified on separate MFString items.
+On the other hand, it is not necessary to escape the spaces contained in the argument value.
+The corresponding command line instruction will have the form:
+
+    ``<controller_program_name> "controllerArgs[0]" "controllerArgs[1]" ...``
+
+    In case of C, C++, Python and Java controller programs the values are passed as arguments of the `main` function or method.
 
 - `customData`: this field may contain any user data, for example parameters corresponding to the configuration of the robot.
 It can be read from the robot controller using the `wb_robot_get_custom_data` function and can be written using the `wb_robot_set_custom_data` function.
 It may also be used as a convenience for communicating between a robot and a supervisor without implementing a Receiver / Emitter system: The supervisor can read and write in this field using the generic supervisor functions for accessing fields.
 
 - `supervisor`: if the value is `TRUE` the robot will have [supervisor capabilities](supervisor.md).
+You will have to save and reload the simulation if you change this field from the scene tree, so that the new value is actually taken into account.
 
 - `synchronization`: if the value is `TRUE` (default value), the simulator is synchronized with the controller; if the value is `FALSE`, the simulator runs as fast as possible, without waiting for the controller.
 The `wb_robot_get_synchronization` function can be used to read the value of this field from a controller program.
@@ -60,7 +67,9 @@ This is useful for complex articulated robots for which the controller doesn't p
 Enabling self collision is, however, likely to decrease the simulation speed, as more collisions will be generated during the simulation.
 Note that only collisions between non-consecutive solids will be detected.
 For consecutive solids, e.g., two solids attached to each other with a joint, no collision detection is performed, even if the self collision is enabled.
-The reason is that this type of collision detection is usually not wanted by the user, because a very accurate design of the bounding objects of the solids would be required.
+Collision detection is also ignored for longer chains of consecutive solids in the event that all intermediary joints connecting the two colliding bodies all share the same `anchor` point.
+If even just one of them is different, standard rules apply.
+The reason for these exceptions is that these types of collision detections are usually not wanted by the user, because a very accurate design of the bounding objects of the solids would be required.
 To prevent two consecutive solid nodes from penetrating each other, the `minStop` and `maxStop` fields of the corresponding joint node should be adjusted accordingly.
 Here is an example of a robot leg with self collision enabled:
 
@@ -83,11 +92,8 @@ Here is an example of a robot leg with self collision enabled:
     an intermediate solid ("Leg"). In such an example, it is probably a good idea to
     set `minStop` and `maxStop` values for the "Knee" and "Ankle" joints.
 
-- `showWindow`: defines whether the robot window should be shown at the startup of the controller.
-If yes, the related entry point function of the robot window controller plugin (i.e. the `wbw_show` function) is called as soon as the controller is initialized.
-
 - `window`: defines the path of the robot window controller plugin used to display the robot window.
-If the `window` field is empty, the default generic robot window is loaded.
+By default, the `window` field is set to `<generic>` which loads the default generic robot window. When set to `<none>`, no robot window is loaded.
 The search algorithm works as following: Let $(VALUE) be the value of the `window` field, let $(EXT) be the shared library file extension of the OS (".so", ".dll" or ".dylib"), let $(PREFIX) be the shared library file prefix of the OS ("" on windows and "lib" on other OS), let $(PROJECT) be the current project path, let $(WEBOTS) be the webots installation path, and let $(...) be a recursive search, then the first existing file will be used as absolute path:
 
     $(PROJECT)/plugins/robot\_windows/$(VALUE)/$(PREFIX)$(VALUE)$(EXT)
@@ -95,7 +101,7 @@ The search algorithm works as following: Let $(VALUE) be the value of the `windo
     $(WEBOTS)/resources/$(...)/plugins/robot\_windows/$(VALUE)/$(PREFIX)$(VALUE)$(EXT)
 
 - `remoteControl`: defines the path of the remote-control controller plugin used to remote control the real robot.
-The search algorithm is identical to the one used for the `window` field, except that the subdirectory of `plugins` is `remote_controls` rather than `robot_windows`.
+The search algorithm is identical to the one used for the `window` field, except that the subdirectory of `plugins` is `remote_controls` rather than `robot_windows`. By default the `remoteControl` field is set to `<none>`.
 
 ### Synchronous versus Asynchronous Controllers
 
@@ -118,12 +124,13 @@ Asynchronous controllers may also be recommended for networked simulations invol
 
 ### Robot Functions
 
-#### `Constructor`
 #### `wb_robot_step`
+#### `wb_robot_step_begin`
+#### `wb_robot_step_end`
 #### `wb_robot_init`
 #### `wb_robot_cleanup`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -131,6 +138,8 @@ Asynchronous controllers may also be recommended for networked simulations invol
 #include <webots/robot.h>
 
 int wb_robot_step(int duration);
+int wb_robot_step_begin(int duration);
+int wb_robot_step_end();
 void wb_robot_init();
 void wb_robot_cleanup();
 ```
@@ -147,6 +156,8 @@ namespace webots {
     Robot();
     virtual ~Robot();
     virtual int step(int duration);
+    int stepBegin(int duration);
+    int stepEnd();
     // ...
   }
 }
@@ -163,6 +174,8 @@ class Robot:
     def __init__(self):
     def __del__(self):
     def step(self, duration):
+    def stepBegin(self, duration):
+    def stepEnd(self):
     # ...
 ```
 
@@ -177,6 +190,8 @@ public class Robot {
   public Robot();
   protected void finalize();
   public int step(int duration);
+  public int stepBegin(int duration);
+  public int stepEnd();
   // ...
 }
 ```
@@ -185,17 +200,11 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 period = wb_robot_step(duration)
+period = wb_robot_step_begin(duration)
+period = wb_robot_step_end()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/time_step` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -215,6 +224,7 @@ Depending on the complexity of the simulation and execution mode, the function m
 When it returns, the requested duration of simulation time is elapsed.
 In other words the physics runs for the specified duration: objects may move, the motors may run, the sensor values may change, etc.
 Note that the `duration` parameter must be a multiple of the `WorldInfo.basicTimeStep`.
+In Python, if no `duration` parameter is given, the `WorldInfo.basicTimeStep` is used.
 
 If this function returns -1, this indicates that Webots is about to terminate the controller.
 This happens when the user hits the `Reload` button or quits Webots.
@@ -232,6 +242,24 @@ It means that the step actually lasted the requested number of milliseconds, but
 - if `dt` > `duration`, then the actuators values were set at `controller_time` + `dt`, and the sensor values were also measured at `controller_time` + `dt`.
 It means that the requested step duration could not be respected.
 
+When using `wb_robot_step`, the controller code is executed sequentially with the Webots simulation step, i.e., not in parallel.
+This is due to the fact that a typical controller reads sensor information, makes some computation, orders motor commands and calls `wb_robot_step` which actually sends the motor commands and sensor requests and waits until Webots completes a simulation step, which may take some time depending on the complexity of the simulation.
+During this time, the controller is idle, waiting for Webots to complete its simulation step.
+On the other hand, prior to starting a new step, Webots waits for all the controllers to send their `wb_robot_step` messages which may induce some idle waiting time in Webots if a controller doesn't send quickly enough its `wb_robot_step` message because it is busy with some computation.
+If the two computational processes (Webots and controller) are slow, it may be interesting to parallelize them.
+`wb_robot_step_begin` and `wb_robot_step_end` allow you to achieve such an implementation.
+They correspond to a split version of `wb_robot_step`, with the particularity that the code written between the two function calls is executed in parallel with the Webots simulation step.
+`wb_robot_step_begin` and `wb_robot_step_end` both return -1 if the simulation is terminated.
+Note that some Webots API functions cannot be called between `wb_robot_step_begin` and `wb_robot_step_end`, as they require immediate response from Webots using a request-response pattern.
+This includes some [Supervisor API](supervisor.md) functions, like `wb_supervisor_node_get_field` and `wb_supervisor_field_get_sf_rotation`, but also some Robot API functions, like `wb_robot_get_urdf`.
+Webots will warn you in case you call one of these functions between `wb_robot_step_begin` and `wb_robot_step_end`.
+You can simply call them before `wb_robot_step_begin` or after `wb_robot_step_end`.
+However, some of these functions can be called between `wb_robot_step_begin` and `wb_robot_step_end` if you enable the supervisor tracking feature.
+`wb_supervisor_field_enable_sf_tracking`, `wb_supervisor_node_enable_pose_tracking` and `wb_supervisor_node_enable_contact_points_tracking` force Webots to continuously stream the requested information to the controller.
+By enabling the tracking, the corresponding supervisor functions can be called between `wb_robot_step_begin` and `wb_robot_step_end`, because their value will be queried to Webots during `wb_robot_step_begin` and received during `wb_robot_step_end`.
+Also, note that the data returned by the following functions are subject to change between a call to `wb_robot_step_begin` and the subsequent call to `wb_robot_step_end`: `wb_camera_get_image`, `wb_camera_recognition_get_segmentation_image`, `wb_lidar_get_range_image`, `wb_lidar_get_layer_range_image`, `wb_lidar_get_point_cloud`, `wb_lidar_get_layer_point_cloud`, and `wb_range_finder_get_range_image`.
+As a result, if you want to access that data during a step, you should copy it before the step begins and access the copy.
+
 The C API has two additional functions: `wb_robot_init` and `wb_robot_cleanup`.
 There is no equivalent of the `wb_robot_init` and `wb_robot_cleanup` functions in the Java, Python, C++ and MATLAB APIs.
 In these languages the necessary initialization and cleanup of the controller library is done automatically.
@@ -248,12 +276,16 @@ In this case the simulation will remain blocked (sleeping) on the current step (
 Note that the call to the `wb_robot_cleanup` function must be the last API function call in a C controller.
 Any subsequent Webots API function call will give unpredictable results.
 
-**Simple C controller Example**
+**Simple controller example**
+
+%tab-component "language"
+
+%tab "C"
 
 ```c
 #include <webots/robot.h>
-
-#define TIME_STEP 32
+#include <webots/distance_sensor.h>
+#include <webots/led.h>
 
 static WbDeviceTag my_sensor, my_led;
 
@@ -261,16 +293,19 @@ int main() {
   /* initialize the webots controller library */
   wb_robot_init();
 
+  /* get the time step of the current world. */
+  const int time_step = (int) wb_robot_get_basic_time_step();
+
   // get device tags
   my_sensor = wb_robot_get_device("my_distance_sensor");
   my_led = wb_robot_get_device("my_led");
 
   /* enable sensors to read data from them */
-  wb_distance_sensor_enable(my_sensor, TIME_STEP);
+  wb_distance_sensor_enable(my_sensor, time_step);
 
-  /* main control loop: perform simulation steps of 32 milliseconds */
+  /* main control loop: perform simulation steps of time_step milliseconds */
   /* and leave the loop when the simulation is over */
-  while (wb_robot_step(TIME_STEP) != -1) {
+  while (wb_robot_step(time_step) != -1) {
 
     /* Read and process sensor data */
     double val = wb_distance_sensor_get_value(my_sensor);
@@ -287,35 +322,425 @@ int main() {
 }
 ```
 
+%tab-end
+
+%tab "C++"
+
+```cpp
+#include <webots/Robot.h>
+#include <webots/DistanceSensor.h>
+#include <webots/Led.h>
+
+class MyController : public Robot {
+public:
+  MyController() {
+    timeStep = (int) getBasicTimeStep();  // set the control time step
+
+    // get device tags
+    distanceSensor = getDistanceSensor("my_distance_sensor");
+    led = getLed("my_led");
+
+    distanceSensor->enable(timeStep);  // enable sensors to read data from them
+  }
+
+  void run() {
+    // main control loop: perform simulation steps of timeStep milliseconds
+    // and leave the loop when the simulation is over
+    while (step(timeStep) != -1) {
+      double val = distanceSensor->getValue();  // Read and process sensor data
+      led->set(1);                              // Send actuator commands
+    }
+  }
+
+private:
+  int timeStep;
+  DistanceSensor *distanceSensor;
+  Led *led;
+};
+
+// main C++ program
+int main() {
+  MyController *controller = new MyController();
+  controller->run();
+  delete controller;
+  return 0;
+}
+
+```
+
+%tab-end
+
+%tab "Python"
+
+```python
+from controller import Robot
+
+class MyController(Robot):
+    def __init__(self):
+        super(MyController, self).__init__()
+        self.timeStep = int(self.getBasicTimeStep())  # set the control time step
+
+        # get device tags
+        self.distanceSensor = self.getDistanceSensor('my_distance_sensor')
+        self.led = self.getLed('my_led')
+        self.distanceSensor.enable(self.timeStep)  # enable sensors to read data from them
+
+    def run(self):
+        # main control loop: perform simulation steps of timeStep milliseconds
+        # and leave the loop when the simulation is over
+        while self.step(self.timeStep) != -1:
+            val = self.distanceSensor.getValue()  # Read and process sensor data
+            self.led.set(1)                       # Send actuator commands
+
+# main Python program
+controller = MyController()
+controller.run()
+```
+
+%tab-end
+
+%tab "Java"
+
+```java
+import com.cyberbotics.webots.controller.Robot;
+import com.cyberbotics.webots.controller.DistanceSensor;
+import com.cyberbotics.webots.controller.Led;
+
+public class MyController extends Robot {
+  public MyController() {
+    timeStep = (int) getBasicTimeStep();  // set the control time step
+
+    // get device tags
+    distanceSensor = getDistanceSensor("my_distance_sensor");
+    led = getLed("my_led");
+
+    distanceSensor.enable(timeStep);  // enable sensors to read data from them
+  }
+
+  public void run() {
+    // main control loop: perform simulation steps of timeStep milliseconds
+    // and leave the loop when the simulation is over
+    while (step(timeStep) != -1) {
+      double val = distanceSensor.getValue();  // Read and process sensor data
+      led.set(1);                              // Send actuator commands
+    }
+  }
+
+  private int timeStep;
+  private DistanceSensor distanceSensor;
+  private Led led;
+
+  // main Java program
+  public static void main(String[] args) {
+    MyController controller = new MyController();
+    controller.run();
+  }
+}
+```
+
+%tab-end
+
+%tab "MATLAB"
+
+```MATLAB
+
+TIME_STEP = wb_robot_get_basic_time_step(); % control time step
+
+% get device tags
+distanceSensor = wb_robot_get_device("my_distance_sensor");
+led = wb_robot_get_device("my_led");
+
+% enable sensors to read data from them
+wb_distance_sensor_enable(distanceSensor, TIME_STEP);
+
+% main control loop: perform simulation steps of timeStep milliseconds
+% and leave the loop when the simulation is over
+while wb_robot_step(TIME_STEP) ~= -1
+  val = wb_distance_sensor_get_value(distanceSensor);  % Read and process sensor data
+  wb_led_set(led, 1);                                  % Send actuator commands
+end
+```
+
+%tab-end
+
+
+%end
+
+**Parallel controller example**
+
+%tab-component "language"
+
+%tab "C"
+
+```c
+#include <webots/robot.h>
+#include <webots/distance_sensor.h>
+#include <webots/led.h>
+
+static WbDeviceTag my_sensor, my_led;
+
+int main() {
+  /* initialize the webots controller library */
+  wb_robot_init();
+
+  /* get the time step of the current world. */
+  const int time_step = (int) wb_robot_get_basic_time_step();
+
+  // get device tags
+  my_sensor = wb_robot_get_device("my_distance_sensor");
+  my_led = wb_robot_get_device("my_led");
+
+  /* enable sensors to read data from them */
+  wb_distance_sensor_enable(my_sensor, time_step);
+
+  /* with a parallelized control loop, it may be necessary to run an initial step to initialize sensor values */
+  wb_robot_step(time_step);
+
+  /* main control loop */
+  do {
+
+    /* begin simulation step computation: send command values to Webots for update */
+    /* leave the loop when the simulation is over */
+    if (wb_robot_step_begin(time_step) == -1)
+      break;
+
+    /* the following code (until wb_robot_step_end) is executed in parallel with the Webots simulation step */
+
+    /* read and process sensor data */
+    double val = wb_distance_sensor_get_value(my_sensor);
+
+    /* intensive computation could take place here */
+
+    /* send actuator commands */
+    wb_led_set(my_led, 1);
+
+    /* end simulation step computation: retrieve new sensor values from Webots */
+    /* leave the loop when the simulation is over */
+  } while (wb_robot_step_end() != -1);
+
+  /* Add here your own exit cleanup code */
+
+  wb_robot_cleanup();
+
+  return 0;
+}
+```
+
+%tab-end
+
+%tab "C++"
+
+```cpp
+#include <webots/Robot.h>
+#include <webots/DistanceSensor.h>
+#include <webots/Led.h>
+
+class MyController : public Robot {
+public:
+  MyController() {
+    timeStep = (int) getBasicTimeStep();  // set the control time step
+
+    // get device tags
+    distanceSensor = getDistanceSensor("my_distance_sensor");
+    led = getLed("my_led");
+
+    distanceSensor->enable(timeStep);  // enable sensors to read data from them
+  }
+
+  void run() {
+    // with a parallelized control loop, it may be necessary to run an initial step to initialize sensor values
+    step(timeStep);
+
+    // main control loop
+    do {
+      // begin simulation step computation: send command values to Webots for update
+      // leave the loop when the simulation is over
+      if (stepBegin(timeStep) == -1)
+        break;
+
+      // the following code (until step_end) is executed in parallel with the background simulation step
+
+      double val = distanceSensor->getValue();  // Read and process sensor data
+
+      // intensive computation could take place here
+
+      led->set(1);                              // Send actuator commands
+
+      // end simulation step computation: retrieve new sensor values from Webots
+      // leave the loop when the simulation is over
+    } while (stepEnd() != -1);
+  }
+
+private:
+  int timeStep;
+  DistanceSensor *distanceSensor;
+  Led *led;
+}
+
+// main C++ program
+int main() {
+  MyController *controller = new MyController();
+  controller->run();
+  delete controller;
+  return 0;
+}
+
+```
+
+%tab-end
+
+%tab "Python"
+
+```python
+from controller import Robot
+
+class MyController(Robot):
+    def __init__(self):
+        super(MyController, self).__init__()
+        self.timeStep = int(self.getBasicTimeStep())  # set the control time step
+
+        # get device tags
+        self.distanceSensor = self.getDistanceSensor('my_distance_sensor')
+        self.led = self.getLed('my_led')
+        self.distanceSensor.enable(self.timeStep)  # enable sensors to read data from them
+
+    def run(self):
+        # with a parallelized control loop, it may be necessary to run an initial step to initialize sensor values
+        self.step(self.timeStep)
+
+        # main control loop
+        while True:
+            # begin simulation step computation: send command values to Webots for update
+            # leave the loop when the simulation is over
+            if self.stepBegin(self.timeStep) == -1:
+                break
+
+            # the following code (until self.step_end) is executed in parallel with the background simulation step
+
+            val = self.distanceSensor.getValue()  # Read and process sensor data
+
+            # intensive computation could take place here
+
+            self.led.set(1)                       # Send actuator commands
+
+            # end simulation step computation: retrieve new sensor values from Webots
+            # leave the loop when the simulation is over
+            if self.stepEnd() == -1:
+                break
+
+# main Python program
+controller = MyController()
+controller.run()
+```
+
+%tab-end
+
+%tab "Java"
+
+```java
+import com.cyberbotics.webots.controller.Robot;
+import com.cyberbotics.webots.controller.DistanceSensor;
+import com.cyberbotics.webots.controller.Led;
+
+public class MyController extends Robot {
+  public MyController() {
+    timeStep = (int) getBasicTimeStep();  // set the control time step
+
+    // get device tags
+    distanceSensor = getDistanceSensor("my_distance_sensor");
+    led = getLed("my_led");
+
+    distanceSensor.enable(timeStep);  // enable sensors to read data from them
+  }
+
+  public void run() {
+    // with a parallelized control loop, it may be necessary to run an initial step to initialize sensor values
+    step(timeStep);
+
+    // main control loop
+    do {
+      // begin simulation step computation: send command values to Webots for update
+      // leave the loop when the simulation is over
+      if (stepBegin(timeStep) == -1)
+        break;
+
+      // the following code (until step_end) is executed in parallel with the background simulation step
+
+      double val = distanceSensor.getValue();  // Read and process sensor data
+
+      // intensive computation could take place here
+
+      led.set(1);                              // Send actuator commands
+
+      // end simulation step computation: retrieve new sensor values from Webots
+      // leave the loop when the simulation is over
+    } while (stepEnd() != -1)
+  }
+
+  private int timeStep;
+  private DistanceSensor distanceSensor;
+  private Led led;
+
+  // main Java program
+  public static void main(String[] args) {
+    MyController controller = new MyController();
+    controller.run();
+  }
+}
+```
+
+%tab-end
+
+%tab "MATLAB"
+
+```MATLAB
+
+TIME_STEP = wb_robot_get_basic_time_step(); % control time step
+
+% get device tags
+distanceSensor = wb_robot_get_device("my_distance_sensor");
+led = wb_robot_get_device("my_led");
+
+% enable sensors to read data from them
+wb_distance_sensor_enable(distanceSensor, TIME_STEP);
+
+% with a parallelized control loop, it may be necessary to run an initial step to initialize sensor values
+wb_robot_step(TIME_STEP);
+
+% main control loop
+while 1
+  % begin simulation step computation: send command values to Webots for update
+  % leave the loop when the simulation is over
+  if wb_robot_step_begin(TIME_STEP) == -1
+    break;
+  end
+
+  % the following code (until wb_robot_step_end) is executed in parallel with the background simulation step
+
+  val = wb_distance_sensor_get_value(distanceSensor);  % Read and process sensor data
+
+  % intensive computation could take place here
+
+  wb_led_set(led, 1);                                  % Send actuator commands
+
+  % end simulation step computation: retrieve new sensor values from Webots
+  % leave the loop when the simulation is over
+  if wb_robot_step_end() == -1
+    break;
+  end
+end
+```
+
+%tab-end
+
+
+%end
+
 ---
 
 #### `wb_robot_get_device`
-#### `getAccelerometer`
-#### `getBrake`
-#### `getCamera`
-#### `getCompass`
-#### `getConnector`
-#### `getDisplay`
-#### `getDistanceSensor`
-#### `getEmitter`
-#### `getGPS`
-#### `getGyro`
-#### `getInertialUnit`
-#### `getJoystick`
-#### `getKeyboard`
-#### `getLED`
-#### `getLidar`
-#### `getLightSensor`
-#### `getMotor`
-#### `getPen`
-#### `getPositionSensor`
-#### `getRadar`
-#### `getRangeFinder`
-#### `getReceiver`
-#### `getSpeaker`
-#### `getTouchSensor`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -335,10 +760,12 @@ WbDeviceTag wb_robot_get_device(const char *name);
 namespace webots {
   class Robot {
     Accelerometer *getAccelerometer(const std::string &name);
+    Altimeter *getAltimeter(const std::string &name);
     Brake *getBrake(const std::string &name);
     Camera *getCamera(const std::string &name);
     Compass *getCompass(const std::string &name);
     Connector *getConnector(const std::string &name);
+    Device *getDevice(const std::string &name);
     Display *getDisplay(const std::string &name);
     DistanceSensor *getDistanceSensor(const std::string &name);
     Emitter *getEmitter(const std::string &name);
@@ -357,6 +784,7 @@ namespace webots {
     Radar *getRadar(const std::string &name);
     RangeFinder *getRangeFinder(const std::string &name);
     Receiver *getReceiver(const std::string &name);
+    Skin *getSkin(const std::string &name);
     Speaker *getSpeaker(const std::string &name);
     TouchSensor *getTouchSensor(const std::string &name);
     // ...
@@ -372,31 +800,10 @@ namespace webots {
 from controller import Robot
 
 class Robot:
-    def getAccelerometer(self, name):
-    def getBrake(self, name):
-    def getCamera(self, name):
-    def getCompass(self, name):
-    def getConnector(self, name):
-    def getDisplay(self, name):
-    def getDistanceSensor(self, name):
-    def getEmitter(self, name):
-    def getGPS(self, name):
-    def getGyro(self, name):
-    def getInertialUnit(self, name):
+    def getDevice(self, name):
     def getJoystick(self):
     def getKeyboard(self):
-    def getLED(self, name):
-    def getLidar(self, name):
-    def getLightSensor(self, name):
-    def getMotor(self, name):
     def getMouse(self):
-    def getPen(self, name):
-    def getPositionSensor(self, name):
-    def getRadar(self, name):
-    def getRangeFinder(self, name):
-    def getReceiver(self, name):
-    def getSpeaker(self, name):
-    def getTouchSensor(self, name):
     # ...
 ```
 
@@ -409,10 +816,12 @@ import com.cyberbotics.webots.controller.Robot;
 
 public class Robot {
   public Accelerometer getAccelerometer(String name);
+  public Altimeter getAltimeter(String name);
   public Brake getBrake(String name);
   public Camera getCamera(String name);
   public Compass getCompass(String name);
   public Connector getConnector(String name);
+  public Device getDevice(String name);
   public Display getDisplay(String name);
   public DistanceSensor getDistanceSensor(String name);
   public Emitter getEmitter(String name);
@@ -432,6 +841,7 @@ public class Robot {
   public RangeFinder getRangeFinder(String name);
   public Receiver getReceiver(String name);
   public Speaker getSpeaker(String name);
+  public Skin *getSkin(String name);
   public TouchSensor getTouchSensor(String name);
   // ...
 }
@@ -441,16 +851,9 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 tag = wb_robot_get_device('name')
 ```
-
-%tab-end
-
-%tab "ROS"
-
-> Note: this function has no equivalent for ROS.
-Devices are available through their services.
 
 %tab-end
 
@@ -460,22 +863,25 @@ Devices are available through their services.
 
 *get a unique identifier to a device*
 
-The `wb_robot_get_device` function (available in C and MATLAB) returns a unique identifier for a device corresponding to a specified `name`.
+The `wb_robot_get_device` function returns a unique identifier for a device corresponding to a specified `name`.
 For example, if a robot contains a [DistanceSensor](distancesensor.md) node whose `name` field is "ds1", the function will return the unique identifier of that device.
 This `WbDeviceTag` identifier will be used subsequently for enabling, sending commands to, or reading data from this device.
-If the specified device is not found, the function returns 0.
+If the specified device is not found, the function returns 0 in C and MATLAB or `None` in Python.
 
-In C++, Java or Python, users should use the device specific typed methods, for example `getDistanceSensor`.
+In C++ or Java, users should use the device specific typed methods, for example `getDistanceSensor`.
 These functions return a reference to an object corresponding to a specified `name`.
 Depending on the called function, this object can be an instance of a `Device` subclass.
 For example, if a robot contains a [DistanceSensor](distancesensor.md) node whose `name` field is "ds1", the function `getDistanceSensor` will return a reference to a [DistanceSensor](distancesensor.md) object.
-If the specified device is not found, the function returns `NULL` in C++, `null` in Java or the `none` in Python.
+If the specified device is not found, the function returns `NULL` in C++ or `null` in Java.
+
+Note that if any two devices share the same name, `wb_robot_get_device` will return the first one it finds. In order to distinguish between devices with the same name, users should consider iterating over a robot's devices using `wb_robot_get_device_by_index` and `wb_robot_get_number_of_devices`.
 
 ---
 
 #### `wb_robot_get_device_by_index`
+#### `wb_robot_get_number_of_devices`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -533,19 +939,10 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 size = wb_robot_get_number_of_devices()
 tag = wb_robot_get_device_by_index(index)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_number_of_devices` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
-| `/robot/get_device_list` | `service` | `webots_ros::robot_get_device_list` | `uint8 ask`<br/>`---`<br/>`string[] list` |
 
 %tab-end
 
@@ -588,7 +985,7 @@ for(i=0; i<n_devices; i++) {
 
 #### `wb_robot_wait_for_user_input_event`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -664,19 +1061,11 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_EVENT_QUIT, WB_EVENT_NO_EVENT, WB_EVENT_MOUSE_CLICK, WB_EVENT_MOUSE_MOVE, WB_EVENT_KEYBOARD, WB_EVENT_JOYSTICK_BUTTON, WB_EVENT_JOYSTICK_AXIS, WB_EVENT_JOYSTICK_POV
 
 event_type = wb_robot_wait_for_user_input_event(event_type, timeout)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/wait_for_user_input_event` | `service` | `webots_ros::robot_wait_for_user_input_event` | `int32 eventType`<br/>`int32 timeout`<br/>`---`<br/>`int32 event` |
 
 %tab-end
 
@@ -723,10 +1112,10 @@ In that case, the sampling period is expressed in real time and not in simulatio
 
 #### `wb_robot_battery_sensor_enable`
 #### `wb_robot_battery_sensor_disable`
-#### `wb_robot_get_battery_sampling_period`
+#### `wb_robot_battery_sensor_get_sampling_period`
 #### `wb_robot_battery_sensor_get_value`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -736,7 +1125,7 @@ In that case, the sampling period is expressed in real time and not in simulatio
 void wb_robot_battery_sensor_enable(int sampling_period);
 void wb_robot_battery_sensor_disable();
 double wb_robot_battery_sensor_get_value();
-int wb_robot_get_battery_sampling_period(WbDeviceTag tag);
+int wb_robot_battery_sensor_get_sampling_period();
 ```
 
 %tab-end
@@ -792,22 +1181,12 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_robot_battery_sensor_enable(sampling_period)
 wb_robot_battery_sensor_disable()
 period = wb_robot_battery_sensor_get_sampling_period()
 value = wb_robot_battery_sensor_get_value()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/battery_sensor/value` | `topic` | webots_ros::Float64Stamped | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`float64 data` |
-| `/battery_sensor/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/battery_sensor/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -821,7 +1200,7 @@ These functions allow you to measure the present energy level of the robot batte
 First, it is necessary to enable battery sensor measurements by calling the `wb_robot_battery_sensor_enable` function.
 The `sampling_period` parameter is expressed in milliseconds and defines how frequently measurements are performed.
 After the battery sensor is enabled a value can be read from it by calling the `wb_robot_battery_sensor_get_value` function.
-The returned value corresponds to the present energy level of the battery expressed in Joules (*J*).
+The returned value corresponds to the present energy level of the battery expressed in Joules (*J*), if the `battery` field is empty, this function will return `-1.0`.
 
 The `wb_robot_battery_sensor_disable` function should be used to stop battery sensor measurements.
 
@@ -831,7 +1210,7 @@ The `wb_robot_get_battery_sampling_period` function returns the period given int
 
 #### `wb_robot_get_basic_time_step`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -885,17 +1264,9 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 step = wb_robot_get_basic_time_step()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_basic_time_step` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -910,8 +1281,9 @@ This function returns the value of the `basicTimeStep` field of the [WorldInfo](
 ---
 
 #### `wb_robot_get_mode`
+#### `wb_robot_set_mode`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -925,7 +1297,7 @@ typedef enum {
 } WbRobotMode;
 
 WbRobotMode wb_robot_get_mode();
-void wb_robot_set_mode(WbRobotMode mode, void *arg);
+void wb_robot_set_mode(WbRobotMode mode, const char *arg);
 ```
 
 %tab-end
@@ -944,7 +1316,7 @@ namespace webots {
     } RobotMode;
 
     RobotMode getMode() const;
-    void setMode(RobotMode mode, void *arg);
+    void setMode(RobotMode mode, const char *arg);
     // ...
   }
 }
@@ -961,6 +1333,7 @@ class Robot:
     MODE_SIMULATION, MODE_CROSS_COMPILATION, MODE_REMOTE_CONTROL
 
     def getMode(self):
+    def setMode(self, mode, arg);
     # ...
 ```
 
@@ -975,6 +1348,7 @@ public class Robot {
   public final static int MODE_SIMULATION, MODE_CROSS_COMPILATION, MODE_REMOTE_CONTROL;
 
   public int getMode();
+  public void setMode(int mode, String arg);
   // ...
 }
 ```
@@ -983,20 +1357,12 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_MODE_SIMULATION, WB_MODE_CROSS_COMPILATION, WB_MODE_REMOTE_CONTROL
 
 mode = wb_robot_get_mode()
+wb_robot_set_mode(mode, arg)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_mode` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
-| `/robot/set_mode` | `service` | `webots_ros::robot_set_mode` | `char[] arg`<br/>`int32 mode`<br/>`---`<br/>`int8 success` |
 
 %tab-end
 
@@ -1028,7 +1394,7 @@ The WbRobotMode can be compared to the following enumeration items:
 
 #### `wb_robot_get_name`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1082,7 +1448,7 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 name = wb_robot_get_name()
 ```
 
@@ -1094,7 +1460,7 @@ name = wb_robot_get_name()
 
 *return the name defined in the robot node*
 
-This function returns the name as it is defined in the name field of the robot node (Robot, DifferentialWheels, Supervisor, etc.) in the current world file.
+This function returns the name as it is defined in the name field of the robot node (Robot, Supervisor, etc.) in the current world file.
 The string returned should not be deallocated, as it was allocated by the "libController" shared library and will be deallocated when the controller terminates.
 This function is very useful to pass some arbitrary parameter from a world file to a controller program.
 For example, you can have the same controller code behave differently depending on the name of the robot.
@@ -1105,7 +1471,7 @@ This sample world is located in the "projects/samples/demos/worlds" directory of
 
 #### `wb_robot_get_model`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1159,17 +1525,9 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 model = wb_robot_get_model()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_model` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -1179,7 +1537,7 @@ model = wb_robot_get_model()
 
 *return the model defined in the robot node*
 
-This function returns the model string as it is defined in the model field of the robot node (Robot, DifferentialWheels, Supervisor, etc.) in the current world file.
+This function returns the model string as it is defined in the model field of the robot node (Robot, Supervisor, etc.) in the current world file.
 The string returned should not be deallocated, as it was allocated by the "libController" shared library and will be deallocated when the controller terminates.
 
 ---
@@ -1189,7 +1547,7 @@ The string returned should not be deallocated, as it was allocated by the "libCo
 
  - *set the data defined in the robot node*
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1247,19 +1605,10 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 data = wb_robot_get_custom_data()
 wb_robot_set_custom_data('data')
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_custom_data` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
-| `/robot/set_custom_data` | `service` | [`webots_ros::set_string`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -1275,90 +1624,9 @@ The `wb_robot_set_custom_data` function set the string contained in the `customD
 
 ---
 
-#### `wb_robot_get_type`
-
-%tab-component
-
-%tab "C"
-
-```c
-#include <webots/nodes.h>
-#include <webots/robot.h>
-
-WbNodeType wb_robot_get_type();
-```
-
-%tab-end
-
-%tab "C++"
-
-```cpp
-#include <webots/Robot.hpp>
-
-namespace webots {
-  class Robot {
-    int getType() const;
-    // ...
-  }
-}
-```
-
-%tab-end
-
-%tab "Python"
-
-```python
-from controller import Robot
-
-class Robot:
-    def getType(self):
-    # ...
-```
-
-%tab-end
-
-%tab "Java"
-
-```java
-import com.cyberbotics.webots.controller.Robot;
-
-public class Robot {
-  public int getType();
-  // ...
-}
-```
-
-%tab-end
-
-%tab "MATLAB"
-
-```matlab
-type = wb_robot_get_type()
-```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_type` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
-
-%tab-end
-
-%end
-
-##### Description
-
-*return the type of the robot node*
-
-This function returns the type of the current mode (WB\_NODE\_ROBOT, WB\_NODE\_SUPERVISOR or WB\_NODE\_DIFFERENTIAL\_WHEELS).
-
----
-
 #### `wb_robot_get_project_path`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1412,17 +1680,9 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 path = wb_robot_get_project_path()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_project_path` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -1441,7 +1701,7 @@ It should not be deallocated.
 
 #### `wb_robot_get_world_path`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1495,17 +1755,9 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 path = wb_robot_get_world_path()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_world_path` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -1521,96 +1773,9 @@ It should not be deallocated.
 
 ---
 
-#### `wb_robot_get_controller_name`
-#### `wb_robot_get_controller_arguments`
-
-%tab-component
-
-%tab "C"
-
-```c
-#include <webots/robot.h>
-
-const char *wb_robot_get_controller_name();
-const char *wb_robot_get_controller_arguments();
-```
-
-%tab-end
-
-%tab "C++"
-
-```cpp
-#include <webots/Robot.hpp>
-
-namespace webots {
-  class Robot {
-    std::string getControllerName() const;
-    std::string getControllerArguments() const;
-    // ...
-  }
-}
-```
-
-%tab-end
-
-%tab "Python"
-
-```python
-from controller import Robot
-
-class Robot:
-    def getControllerName(self):
-    def getControllerArguments(self):
-    # ...
-```
-
-%tab-end
-
-%tab "Java"
-
-```java
-import com.cyberbotics.webots.controller.Robot;
-
-public class Robot {
-  public String getControllerName();
-  public String getControllerArguments();
-  // ...
-}
-```
-
-%tab-end
-
-%tab "MATLAB"
-
-```matlab
-name = wb_robot_get_controller_name()
-name = wb_robot_get_controller_arguments()
-```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_controller_name` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
-| `/robot/get_controller_arguments` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
-
-%tab-end
-
-%end
-
-##### Description
-
-*return the content of the `Robot::controller` and `Robot::controllerArgs` fields*
-
-These functions return the content of respectively the Robot::controller and the Robot::controllerArgs fields.
-
----
-
 #### `wb_robot_get_supervisor`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1664,17 +1829,9 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 sync = wb_robot_get_supervisor()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_supervisor` | `service` | [`webots_ros::get_bool`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -1691,7 +1848,7 @@ This function can be used to determine whether it is allowed to use the [Supervi
 
 #### `wb_robot_get_synchronization`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1745,17 +1902,9 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 sync = wb_robot_get_synchronization()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_synchronization` | `service` | [`webots_ros::get_bool`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -1771,7 +1920,7 @@ This function returns the boolean value corresponding to the synchronization fie
 
 #### `wb_robot_get_time`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1825,17 +1974,9 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 time = wb_robot_get_time()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/get_time` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -1853,7 +1994,7 @@ It does not matter whether the controller is synchronized or not.
 
 #### `wb_robot_task_new`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1884,7 +2025,7 @@ Hence you should use mutexes (see below) to ensure that such data is not accesse
 #### `wb_robot_mutex_lock`
 #### `wb_robot_mutex_unlock`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1922,17 +2063,100 @@ Users unfamiliar with the mutex concept may wish to consult a reference on multi
 
 ---
 
+#### `wb_robot_get_urdf`
+
+%tab-component "language"
+
+%tab "C"
+
+```c
+#include <webots/robot.h>
+
+const char *wb_robot_get_urdf(const char *prefix);
+```
+
+%tab-end
+
+%tab "C++"
+
+```cpp
+#include <webots/Robot.hpp>
+
+namespace webots {
+  class Robot {
+    std::string getUrdf(std::string prefix="");
+    // ...
+  }
+}
+```
+
+%tab-end
+
+%tab "Python"
+
+```python
+from controller import Robot
+
+class Robot:
+    def getUrdf(self, prefix=''):
+    # ...
+```
+
+%tab-end
+
+%tab "Java"
+
+```java
+import com.cyberbotics.webots.controller.Robot;
+
+public class Robot {
+  public String getUrdf(String prefix);
+  // ...
+}
+```
+
+%tab-end
+
+%tab "MATLAB"
+
+```MATLAB
+wb_robot_get_urdf(prefix)
+```
+
+%tab-end
+
+%end
+
+##### Description
+
+The `wb_robot_get_urdf` function allows a robot controller to export [URDF](http://wiki.ros.org/urdf), an XML format for representing a robot model.
+A prefix for URDF link and joint names can be specified by `prefix` (useful multi-robot systems to distinguish different robots).
+The function is particularly useful for ROS applications in which URDF is widely used to describe robot models.
+There are certain rules that are followed to create an efficient output.
+Webots nodes are squashed into a single URDF link node whenever possible to simplify the exported robot model.
+In case you want a Webots node to be shown as a separate URDF link it is enough to define its `name` field.
+URDF links inherit the `name` field from Webots node except when there is no `name` field defined or there are two or more Webots nodes with the name.
+URDF joints are named after position sensor in the corresponding Webots joints.
+
+> **Note**: Exported URDF is not complete.
+Currently, the generated URDF consists of a minimal number of elements to be used with [`robot_state_publisher`](http://wiki.ros.org/robot_state_publisher).
+Only the [Box](box.md), [Capsule](capsule.md), [Cylinder](cylinder.md) and [Sphere](sphere.md) nodes in the `boundingObject` field of [Solid](solid.md) nodes will be exported (both for `visual` and `collision`), the URDF file can therefore be visualized in [RViz](http://wiki.ros.org/rviz).
+Also note that [Hinge2Joint](./hinge2joint.md) and [BallJoint](./balljoint.md) are not supported.
+The URDF joints are named according to the [Joint](joint.md) [Motor](motor.md) names (or [PositionSensor](positionsensor.md) if the [Joint](joint.md) has no [Motor](motor.md)).
+
+---
+
 #### `wb_robot_wwi_receive`
 #### `wb_robot_wwi_receive_text`
 #### `wb_robot_wwi_send`
 #### `wb_robot_wwi_send_text`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
-#include <webots/utils/default_robot_window.h>
+#include <webots/plugins/robot_window/default.h>
 
 const char *wb_robot_wwi_receive(int *size);
 const char *wb_robot_wwi_receive_text();
@@ -1949,7 +2173,7 @@ void wb_robot_wwi_send_text(const char *text);
 
 namespace webots {
   class Robot {
-    const char *wwiReceive();
+    const char *wwiReceive(int *size);
     std::string wwiReceiveText();
     void wwiSend(const char *data, int size);
     void wwiSendText(const std::string &text);
@@ -1989,19 +2213,10 @@ public class Robot {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_robot_wwi_send_text(text)
 text = wb_robot_wwi_receive_text()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/robot/wwi_receive_text` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
-| `/robot/wwi_send_text` | `service` | [`webots_ros::set_string`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -2013,85 +2228,22 @@ text = wb_robot_wwi_receive_text()
 
 These functions allow the robot controller to communicate with a HTML robot window.
 Such a window is embedded as a dockable sub-window in the Webots user interface.
-The content of the window is written in HTML and Javascript functions are used to communicate with the robot controller.
+The content of the window is written in HTML and JavaScript functions are used to communicate with the robot controller.
 
-The `wb_robot_wwi_receive` and `wb_robot_wwi_receive_text` functions allow a robot controller to receive a message sent from a Javascript function running in the HTML robot window.
-The message is sent using the `webots.window("<robot window name>").send` method of the Webots Javascript API.
+The `wb_robot_wwi_receive` and `wb_robot_wwi_receive_text` functions allow a robot controller to receive a message sent from a JavaScript function running in the HTML robot window.
+The message is sent using the `webots.window("<robot window name>").send` method of the Webots JavaScript API.
 
-The `wb_robot_window_send` and `wb_robot_wwi_send_text` functions allow a robot controller to send a message to a Javascript function running in the HTML robot window.
-The message is received using the `webots.window("<robot window name>").receive` method of the Webots Javascript API.
+The `wb_robot_window_send` and `wb_robot_wwi_send_text` functions allow a robot controller to send a message to a JavaScript function running in the HTML robot window.
+The message is received using the `webots.window("<robot window name>").receive` method of the Webots JavaScript API.
 
-> **note** [Java, Python, MATLAB, ROS]: `wb_robot_wwi_receive` and `wb_robot_window_send` functions are not available in the Java, Python, MATLAB, or ROS API.
-
----
-
-#### `wb_robot_window_custom_function`
-
-%tab-component
-
-%tab "C"
-
-```c
-#include <webots/robot_window.h>
-
-void *wb_robot_window_custom_function(void *arg);
-```
-
-%tab-end
-
-%tab "C++"
-
-```cpp
-#include <webots/Robot.hpp>
-
-namespace webots {
-  class Robot {
-    void *windowCustomFunction(void *arg);
-    // ...
-  }
+The `wb_robot_wwi_receive_text` function returns the first message present in the buffer of received messages and moves its reading head to the next one.
+To read the full buffer, you should call repeatedly this function until it returns `NULL`:
+```C
+const char *message;
+while ((message = wb_robot_wwi_receive_text())) {
+  // do something with each message
 }
 ```
+The reading head will be reset to the beginning of the buffer of received messages each time a time step is performed.
 
-%tab-end
-
-%end
-
-##### Description
-
-*communication with the native C/C++ robot window [deprecated]*
-
-The `wb_robot_window_custom_function` function allows a robot controller to communicate with the native C/C++ robot window plugin.
-Native robot windows are deprecated and instead it is recommended to use the HTML robot windows and their API functions: [`wb_robot_wwi_receive_text`](#wb_robot_wwi_receive_text) and [`wb_robot_wwi_send_text`](#wb_robot_wwi_send_text).
-
-When this function is called, the robot window corresponding `wbw_robot_window_custom_function` function is executed.
-This robot window entry point has to be explicitly defined in the plugin.
-Please also note that it can correctly be executed only if the robot window has already been initialized, i.e. if it has already been open at least once.
-You can find more information about robot window plugin in the user guide.
-
-No particular format on the argument is imposed but any user chosen format is suitable as long as the controller and robot window codes agree.
-The following example shows how to send and receive data from the robot window plugin:
-
-```c
-char message[128];
-sprintf(message, "hello");
-int *count = (int *)wb_robot_window_custom_function(message);
-if (count != NULL)
-  printf("Robot window plugin received %d \"hello\" messages\n", count[0]);
-```
-
-And here is the corresponding robot window function definition:
-
-```c
-void *wbw_robot_window_custom_function(void *arg) {
-  static int *count = NULL;
-  if (count == NULL)  {
-    count = new int[1];
-    count[0] = 0;
-  }
-  if (strcmp((const char *)arg, "hello") == 0)
-    count[0]++;
-  return count;
-}
-```
-
-> **Note** [Java, Python, MATLAB]: Given that the native robot window can only be implemented for C/C++ controllers, `wb_robot_window_custom_function` is not available in Java, Python or MATLAB API.
+> **note** [Java, Python, MATLAB]: `wb_robot_wwi_receive` and `wb_robot_window_send` functions are not available in the Java, Python, or MATLAB API.

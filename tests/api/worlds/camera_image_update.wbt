@@ -1,8 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.310637 0.926361 0.21298 5.01092
+  orientation 0.3106369179157585 0.9263607552138347 0.21297994372112222 5.01092
   position -2.84977 1.32849 0.648285
 }
 Background {
@@ -16,7 +21,7 @@ PointLight {
 }
 Transform {
   translation 0 0 -1
-  rotation 1 0 0 1.57
+  rotation -1 0 0 0.000796326789306
   children [
     Shape {
       appearance Appearance {
@@ -36,6 +41,7 @@ Transform {
 Robot {
   children [
     Camera {
+      rotation -0.577349935856137 0.577349935856137 0.5773509358560258 2.09439
       name "camera0"
       width 2
       height 2
@@ -46,6 +52,7 @@ Robot {
       }
     }
     Camera {
+      rotation -0.577349935856137 0.577349935856137 0.5773509358560258 2.09439
       name "camera1"
       width 2
       height 2
@@ -58,9 +65,7 @@ Robot {
     TestSuiteEmitter {
     }
   ]
-  name "robot"
   controller "camera_image_update"
-  controllerArgs "camera_image_update"
   supervisor TRUE
 }
 TestSuiteSupervisor {

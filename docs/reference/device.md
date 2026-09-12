@@ -9,13 +9,13 @@ Device {
 
 ### Description
 
-This abstract node (not instanciable) represents a robot device (actuator and/or sensor).
+This abstract node (that cannot be instantiated) represents a robot device (actuator and/or sensor).
 
 ### Device Functions
 
 #### `wb_device_get_model`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -69,17 +69,9 @@ public class Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 model = wb_device_get_model(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_model` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) |
 
 %tab-end
 
@@ -93,11 +85,13 @@ The `wb_device_get_model` function returns the model string of the device corres
 
 This function returns NULL if the WbDeviceTag does not match a valid device, or returns an empty string if the device is not a solid device (i.e. does not have a `model` field).
 
+> **Note** [C, C++]: The returned string is a pointer to the internal values managed by the [Device](#device) node, therefore it is illegal to free this pointer.
+
 ---
 
 #### `wb_device_get_name`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -151,17 +145,9 @@ public class Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 name = wb_device_get_name(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_name` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) |
 
 %tab-end
 
@@ -175,11 +161,13 @@ The `wb_device_get_name` function converts the WbDeviceTag given as parameter (`
 
 This function returns NULL if the WbDeviceTag does not match a valid device.
 
+> **Note** [C, C++]: The returned string is a pointer to the internal values managed by the [Device](#device) node, therefore it is illegal to free this pointer.
+
 ---
 
 #### `wb_device_get_node_type`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -233,17 +221,9 @@ public class Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 type = wb_device_get_node_type(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_node_type` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) |
 
 %tab-end
 

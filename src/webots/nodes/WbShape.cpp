@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -60,6 +60,14 @@ WbShape::~WbShape() {
     wr_material_delete(mWrenMaterial);
 }
 
+void WbShape::downloadAssets() {
+  WbBaseNode::downloadAssets();
+  if (abstractAppearance())
+    abstractAppearance()->downloadAssets();
+  if (geometry())
+    geometry()->downloadAssets();
+}
+
 void WbShape::preFinalize() {
   WbBaseNode::preFinalize();
 
@@ -100,17 +108,17 @@ void WbShape::postFinalize() {
   connect(WbPreferences::instance(), &WbPreferences::changedByUser, this, &WbShape::updateAppearance);
 }
 
-void WbShape::reset() {
-  WbBaseNode::reset();
+void WbShape::reset(const QString &id) {
+  WbBaseNode::reset(id);
 
   // handle both kinds of appearance nodes
   WbBaseNode *baseNode = dynamic_cast<WbBaseNode *>(mAppearance->value());
   if (baseNode)
-    baseNode->reset();
+    baseNode->reset(id);
 
-  WbNode *const geometry = mGeometry->value();
-  if (geometry)
-    geometry->reset();
+  WbNode *const geometryNode = mGeometry->value();
+  if (geometryNode)
+    geometryNode->reset(id);
 }
 
 WbAppearance *WbShape::appearance() const {
@@ -147,6 +155,12 @@ void WbShape::setSleepMaterial() {
   WbGeometry *const g = geometry();
   if (g)
     geometry()->setSleepMaterial();
+}
+
+void WbShape::updateSegmentationColor(const WbRgb &color) {
+  WbGeometry *const g = geometry();
+  if (g)
+    g->setSegmentationColor(color);
 }
 
 void WbShape::updateAppearance() {
@@ -253,16 +267,33 @@ void WbShape::applyMaterialToGeometry() {
 
   if (g) {
     if (appearance()) {
-      if (appearance()->areWrenObjectsInitialized())
+      if (appearance()->areWrenObjectsInitialized()) {
         mWrenMaterial = appearance()->modifyWrenMaterial(mWrenMaterial);
-      else
+        if (appearance()->material() && appearance()->material()->transparency() == 1)
+          g->setTransparent(true);
+        else
+          g->setTransparent(false);
+      } else {
         mWrenMaterial = WbAppearance::fillWrenDefaultMaterial(mWrenMaterial);
+        // We need to call setTransparent for default appearance in case a previous transparent appearance was existing and
+        // replaced by the default one.
+        g->setTransparent(false);
+      }
     } else if (pbrAppearance() && g->nodeType() != WB_NODE_POINT_SET) {
       createWrenMaterial(WR_MATERIAL_PBR);
-      if (pbrAppearance()->areWrenObjectsInitialized())
+      if (pbrAppearance()->areWrenObjectsInitialized()) {
         mWrenMaterial = pbrAppearance()->modifyWrenMaterial(mWrenMaterial);
-    } else
+        if (pbrAppearance()->transparency() == 1)
+          g->setTransparent(true);
+        else
+          g->setTransparent(false);
+      }
+    } else {
       mWrenMaterial = WbAppearance::fillWrenDefaultMaterial(mWrenMaterial);
+      // We need to call setTransparent for default appearance in case a previous transparent appearance was existing and
+      // replaced by the default one.
+      g->setTransparent(false);
+    }
 
     if (!g->isInBoundingObject())
       g->setWrenMaterial(mWrenMaterial, mCastShadows->value());
@@ -274,10 +305,10 @@ void WbShape::applyMaterialToGeometry() {
 // ray cast to a shape: pick the collided color
 // using uv mapping, paint color and diffuse color
 // could be improved by computing the exact openGL computing including lighting
-void WbShape::pickColor(WbRgb &pickedColor, const WbRay &ray) const {
-  WbAppearance *const app = appearance();
-  WbPbrAppearance *const pbrApp = pbrAppearance();
-  WbGeometry *const geom = geometry();
+void WbShape::pickColor(const WbRay &ray, WbRgb &pickedColor, double *roughness, double *occlusion) const {
+  const WbAppearance *const app = appearance();
+  const WbPbrAppearance *const pbrApp = pbrAppearance();
+  const WbGeometry *const geom = geometry();
 
   WbRgb diffuseColor(1.0f, 1.0f, 1.0f);
   WbRgb textureColor(1.0f, 1.0f, 1.0f);
@@ -285,7 +316,14 @@ void WbShape::pickColor(WbRgb &pickedColor, const WbRay &ray) const {
   pickedColor = WbRgb(1.0f, 1.0f, 1.0f);  // default value
   WbVector2 uv(-1, -1);
 
+  if (roughness)
+    *roughness = 0.0;
+  if (occlusion)
+    *occlusion = 0.0;
+
   if (geom) {
+    float paintContribution = 0.0f;
+
     WbPaintTexture *paintTexture = WbPaintTexture::findPaintTexture(this);
     if (paintTexture) {
       const bool success = geom->pickUVCoordinate(uv, ray, 0);
@@ -308,12 +346,15 @@ void WbShape::pickColor(WbRgb &pickedColor, const WbRay &ray) const {
           pickedColor.setRed(pickedColor.red() * alpha);
           pickedColor.setGreen(pickedColor.green() * alpha);
           pickedColor.setBlue(pickedColor.blue() * alpha);
+
+          if (roughness)
+            *roughness = pbrApp->roughness();
         }
 
         return;
       }
       // retrieve the corresponding color in the paint texture
-      paintTexture->pickColor(paintColor, uv);
+      paintTexture->pickColor(uv, paintColor, &paintContribution);
     }
 
     if (app) {
@@ -339,7 +380,7 @@ void WbShape::pickColor(WbRgb &pickedColor, const WbRay &ray) const {
         }
 
         // retrieve the corresponding color in the texture
-        app->pickColorInTexture(textureColor, uv);
+        app->pickColorInTexture(uv, textureColor);
       }
 
     } else if (pbrApp) {
@@ -351,6 +392,9 @@ void WbShape::pickColor(WbRgb &pickedColor, const WbRay &ray) const {
       diffuseColor.setRed(diffuseColor.red() * alpha);
       diffuseColor.setGreen(diffuseColor.green() * alpha);
       diffuseColor.setBlue(diffuseColor.blue() * alpha);
+
+      if (roughness)
+        *roughness = pbrApp->roughness();
 
       // texture color
       if (pbrApp->isBaseColorTextureLoaded()) {
@@ -364,19 +408,24 @@ void WbShape::pickColor(WbRgb &pickedColor, const WbRay &ray) const {
 
         // retrieve the corresponding color in the texture
         pbrApp->pickColorInBaseColorTexture(textureColor, uv);
-      } else {
-        if (paintTexture)
-          pickedColor = paintColor;
-        // else default value
-        return;
+        if (roughness && pbrApp->isRoughnessTextureLoaded())
+          pbrApp->pickRoughnessInTexture(roughness, uv);
+        if (occlusion && pbrApp->isOcclusionTextureLoaded())
+          pbrApp->pickOcclusionInTexture(occlusion, uv);
       }
+    } else if (paintTexture) {
+      pickedColor = paintColor;
+      return;
     } else
       return;  // default value
 
     // combine colors
-    pickedColor.setRed(diffuseColor.red() * textureColor.red() * paintColor.red());
-    pickedColor.setGreen(diffuseColor.green() * textureColor.green() * paintColor.green());
-    pickedColor.setBlue(diffuseColor.blue() * textureColor.blue() * paintColor.blue());
+    pickedColor.setRed((1.0f - paintContribution) * diffuseColor.red() * textureColor.red() +
+                       paintContribution * paintColor.red());
+    pickedColor.setGreen((1.0f - paintContribution) * diffuseColor.green() * textureColor.green() +
+                         paintContribution * paintColor.green());
+    pickedColor.setBlue((1.0f - paintContribution) * diffuseColor.blue() * textureColor.blue() +
+                        paintContribution * paintColor.blue());
   }
 }
 
@@ -396,6 +445,14 @@ void WbShape::createWrenMaterial(int type) {
   }
 }
 
+QList<const WbBaseNode *> WbShape::findClosestDescendantNodesWithDedicatedWrenNode() const {
+  QList<const WbBaseNode *> list;
+  const WbGeometry *const g = geometry();
+  if (g)
+    list << g;
+  return list;
+}
+
 ///////////////////////////////////////////////////////////
 //  ODE related methods for WbShapes in boundingObjects  //
 ///////////////////////////////////////////////////////////
@@ -412,7 +469,7 @@ void WbShape::createOdeGeom() {
   const WbGeometry *const g = geometry();
 
   if (g == NULL) {
-    info(tr("Please specify 'geometry' field (of Shape placed in 'boundingObject')."));
+    parsingInfo(tr("Please specify 'geometry' field (of Shape placed in 'boundingObject')."));
     return;
   }
 
@@ -433,33 +490,32 @@ bool WbShape::isAValidBoundingObject(bool checkOde, bool warning) const {
 // Export //
 ////////////
 
-bool WbShape::exportNodeHeader(WbVrmlWriter &writer) const {
-  // In order to let the X3Dom picking work well, the USE shapes should be written explicitly
-  if (writer.isX3d()) {
-    writer << "<" << vrmlName() << " id=\'n" << QString::number(uniqueId()) << "\'";
+bool WbShape::exportNodeHeader(WbWriter &writer) const {
+  if (writer.isW3d() && isUseNode() && defNode()) {
+    writer << "<" << w3dName() << " id=\'n" << QString::number(uniqueId()) << "\'";
+    writer << " USE=\'" + QString::number(defNode()->uniqueId()) + "\'></" + w3dName() + ">";
+    return true;
+  }
 
-    // if (isUseNode()) {
-    //   writer << " USE=\'" + mUseName + "\'></" + vrmlName() + ">";
-    //   return true;
-    // }
-
-    if (!defName().isEmpty())
-      writer << " DEF=\'" << defName() << "\'";
-
-    if (!mIsPickable->value())
-      writer << " isPickable='false'";
-
-    return false;
-  } else
-    return WbBaseNode::exportNodeHeader(writer);
+  return WbBaseNode::exportNodeHeader(writer);
 }
 
-void WbShape::exportBoundingObjectToX3D(WbVrmlWriter &writer) const {
-  assert(writer.isX3d());
+void WbShape::exportBoundingObjectToW3d(WbWriter &writer) const {
+  assert(writer.isW3d());
 
-  writer << "<Shape>";
+  if (isUseNode() && defNode())
+    writer << "<" << w3dName() << " role='boundingObject' USE=\'n" + QString::number(defNode()->uniqueId()) + "\'/>";
+  else {
+    writer << "<" << w3dName() << " role='boundingObject'"
+           << " id=\'n" << QString::number(uniqueId()) << "\'>";
+    geometry()->write(writer);
+    writer << "</" + w3dName() + ">";
+  }
+}
 
-  geometry()->exportBoundingObjectToX3D(writer);
-
-  writer << "</Shape>";
+QStringList WbShape::fieldsToSynchronizeWithW3d() const {
+  QStringList fields;
+  fields << "isPickable"
+         << "castShadows";
+  return fields;
 }

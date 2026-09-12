@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,15 +35,15 @@ public:
   explicit WbCharger(WbTokenizer *tokenizer = NULL);
   WbCharger(const WbCharger &other);
   explicit WbCharger(const WbNode &other);
-  virtual ~WbCharger();
+  virtual ~WbCharger() override;
 
   // reimplemented public functions
   int nodeType() const override { return WB_NODE_CHARGER; }
   void postFinalize() override;
   void prePhysicsStep(double) override;
   void checkContact(WbRobot *const r);
-  void reset() override;
-  void save() override;
+  void reset(const QString &id) override;
+  void save(const QString &id) override;
   enum { CURRENT_ENERGY = 0, MAX_ENERGY = 1, ENERGY_UPLOAD_SPEED = 2 };
 
 private:
@@ -56,10 +56,9 @@ private:
   // private fields
   const WbRobot *mParentRobot;
   WbRobot *mRobot;  // robot currently connected to the Charger
-  bool mDone;
   bool mElementsUpdateRequired;
   QList<VisualElement *> mVisualElements;
-  double mInitialEnergy;
+  QMap<QString, double> mSavedEnergies;
 
   WbCharger &operator=(const WbCharger &);  // non copyable
   WbNode *clone() const override { return new WbCharger(*this); }

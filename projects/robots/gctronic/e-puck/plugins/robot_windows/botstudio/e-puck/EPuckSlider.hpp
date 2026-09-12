@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -66,6 +66,9 @@ private slots:
   void handleAction(int action);
   void updateText(int value);
   void emitValueChanged(int value);
+  void sliderPressed();
+  void sliderMoved(int value);
+  void sliderReleased();
 
 private:
   void update();
@@ -89,6 +92,8 @@ private:
   double mRatio;
   int mIndex;
   int mNeutralValue;
+  int mPreviousValue;
+  bool mWasDragged;
 };
 
 #endif

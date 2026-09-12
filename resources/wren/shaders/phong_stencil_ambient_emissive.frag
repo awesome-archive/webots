@@ -1,9 +1,11 @@
-#version 330
+#version 330 core
+
+precision highp float;
 
 // These constants must be kept in sync with the values in Constants.hpp
-const int maxDirectionalLights = 256;
-const int maxPointLights = 256;
-const int maxSpotLights = 256;
+const int maxDirectionalLights = 48;
+const int maxPointLights = 48;
+const int maxSpotLights = 48;
 
 const int mainTextureIndex = 0;
 const int penTextureIndex = 1;
@@ -17,6 +19,7 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec4 fragNormal;
 
 uniform sampler2D inputTextures[3];
+uniform bool reverseNormals;
 
 struct DirectionalLight {
   vec4 colorAndIntensity;
@@ -64,7 +67,7 @@ vec4 SRGBtoLINEAR(vec4 srgbIn) {
 }
 
 void main() {
-  fragNormal = vec4(normalize(fragmentNormal), 1.0) * 0.5 + 0.5;
+  fragNormal = vec4(normalize(reverseNormals ? -fragmentNormal : fragmentNormal), 1.0) * 0.5 + 0.5;
 
   vec3 ambientColor = vec3(lights.ambientLight) * material.ambient.xyz;
 
@@ -81,7 +84,7 @@ void main() {
   // Main texture
   if (material.textureFlags.x > 0.0) {
     vec4 mainColor = SRGBtoLINEAR(texture(inputTextures[mainTextureIndex], texUv));
-    texColor = vec4(mix(texColor.xyz, mainColor.xyz, mainColor.w), texColor.w + mainColor.w);
+    texColor = vec4(mix(texColor.xyz, mainColor.xyz, mainColor.w), clamp(texColor.w + mainColor.w, 0.0, 1.0));
   }
 
   // Pen texture

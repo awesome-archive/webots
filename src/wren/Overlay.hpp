@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,7 +35,6 @@ namespace wren {
     static void deleteOverlay(Overlay *overlay) { delete overlay; }
 
     static void setDefaultSizeProgram(ShaderProgram *program) { cDefaultSizeProgram = program; }
-    static void setScreenRatio(float ratio) { cScreenRatio = ratio; }
 
     void setOrder(int order) { mOrder = order; };
     void putOnTop();
@@ -62,16 +61,14 @@ namespace wren {
     }
 
     void setBackgroundColor(const glm::vec4 color);
-    void setBorderActive(bool isBorderActive) { mParams.mActiveFlags.w = isBorderActive ? 1.0f : 0.0f; }
+    void setBorderActive(bool isBorderActive) { mParams.mActiveFlags.y = isBorderActive ? 1u : 0u; }
     void setBorderColor(const glm::vec4 color) { mParams.mBorderColor = color; }
     void setBorderSize(float sizeHorizontal, float sizeVertical) {
       mParams.mBorderSize = glm::vec2(sizeHorizontal, sizeVertical);
     }
 
-    void setTexture(Texture *texture);
+    void setTexture(Texture *texture, int role);
     void setTextureFlipVertical(bool flip) { mParams.mTextureFlags.x = flip ? 1.0f : 0.0f; }
-    void setBackgroundTexture(Texture *texture);
-    void setForegroundTexture(Texture *texture);
     void addAdditionalTexture(Texture *texture);
     void setProgram(ShaderProgram *program) { mProgram = program; }
 
@@ -92,21 +89,18 @@ namespace wren {
     Overlay();
     ~Overlay();
 
-    void prepareTexture(Texture *texture, int textureUnitIndex);
+    void prepareTexture(Texture *texture, int textureUnitIndex) const;
 
     static ShaderProgram *cDefaultSizeProgram;
     static size_t cMaxOrder;
     static std::vector<Overlay *> cOverlays;
-    static float cScreenRatio;
 
     int mOrder;  // overlays are sorted in ascending order before rendering
     bool mIsVisible;
     bool mShowDefaultSize;
     bool mPremultipliedAlpha;
 
-    Texture *mTexture;
-    Texture *mBackgroundTexture;
-    Texture *mForegroundTexture;
+    std::vector<Texture *> mTextures;
     std::vector<Texture *> mAdditionalTextures;
     Texture::UsageParams mTextureParams;
 

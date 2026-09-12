@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -68,7 +68,7 @@ WbSupportPolygonRepresentation::WbSupportPolygonRepresentation() {
   wr_renderable_set_mesh(mPolygonRenderable, WR_MESH(mPolygonMesh));
   wr_renderable_set_drawing_order(mPolygonRenderable, WR_RENDERABLE_DRAWING_ORDER_AFTER_1);
   wr_renderable_set_material(mPolygonRenderable, mPolygonMaterial, NULL);
-  wr_renderable_set_visibility_flags(mPolygonRenderable, WbWrenRenderingContext::VF_SELECTED_OUTLINE);
+  wr_renderable_set_visibility_flags(mPolygonRenderable, WbWrenRenderingContext::VF_INVISIBLE_FROM_CAMERA);
   wr_renderable_set_face_culling(mPolygonRenderable, false);
   wr_renderable_set_drawing_mode(mPolygonRenderable, WR_RENDERABLE_DRAWING_MODE_TRIANGLE_FAN);
 
@@ -77,14 +77,14 @@ WbSupportPolygonRepresentation::WbSupportPolygonRepresentation() {
   wr_renderable_set_drawing_order(mPolygonOutlineRenderable, WR_RENDERABLE_DRAWING_ORDER_AFTER_1);
   wr_renderable_set_drawing_mode(mPolygonOutlineRenderable, WR_RENDERABLE_DRAWING_MODE_LINES);
   wr_renderable_set_material(mPolygonOutlineRenderable, mPolygonOutlineMaterial, NULL);
-  wr_renderable_set_visibility_flags(mPolygonRenderable, WbWrenRenderingContext::VF_SELECTED_OUTLINE);
+  wr_renderable_set_visibility_flags(mPolygonOutlineRenderable, WbWrenRenderingContext::VF_INVISIBLE_FROM_CAMERA);
 
   mCenterOfMassRenderable = wr_renderable_new();
   wr_renderable_set_mesh(mCenterOfMassRenderable, WR_MESH(mCenterOfMassMesh));
   wr_renderable_set_drawing_order(mCenterOfMassRenderable, WR_RENDERABLE_DRAWING_ORDER_AFTER_1);
   wr_renderable_set_drawing_mode(mCenterOfMassRenderable, WR_RENDERABLE_DRAWING_MODE_LINES);
   wr_renderable_set_material(mCenterOfMassRenderable, mCenterOfMassMaterial, NULL);
-  wr_renderable_set_visibility_flags(mCenterOfMassRenderable, WbWrenRenderingContext::VF_SELECTED_OUTLINE);
+  wr_renderable_set_visibility_flags(mCenterOfMassRenderable, WbWrenRenderingContext::VF_INVISIBLE_FROM_CAMERA);
 
   const float s = 0.1f * wr_config_get_line_scale();
   const float scale[3] = {s, s, s};
@@ -115,7 +115,7 @@ static void addVertex(WrDynamicMesh *mesh, int index, float x, float y, float z)
 }
 
 void WbSupportPolygonRepresentation::draw(const WbPolygon &p, float y, const WbVector3 &globalCenterOfMass,
-                                          const WbVector3 *gravityBasis) {
+                                          const WbVector3 *worldBasis) {
   const int size = p.actualSize();
 
   wr_dynamic_mesh_clear(mPolygonMesh);
@@ -128,8 +128,8 @@ void WbSupportPolygonRepresentation::draw(const WbPolygon &p, float y, const WbV
   }
   show(true);
 
-  const double globalComX = globalCenterOfMass.dot(gravityBasis[X]);
-  const double globalComZ = globalCenterOfMass.dot(gravityBasis[Z]);
+  const double globalComX = globalCenterOfMass.dot(worldBasis[X]);
+  const double globalComZ = globalCenterOfMass.dot(worldBasis[Z]);
   const bool stable = p.contains(globalComX, globalComZ);
 
   // Set materials
@@ -152,7 +152,7 @@ void WbSupportPolygonRepresentation::draw(const WbPolygon &p, float y, const WbV
   }
 
   // Set orientations
-  WbRotation rotation(gravityBasis[X], gravityBasis[Y], gravityBasis[Z]);
+  WbRotation rotation(worldBasis[X], worldBasis[Y], worldBasis[Z]);
   rotation.normalize();
   float orientation[4];
   rotation.toFloatArray(orientation);

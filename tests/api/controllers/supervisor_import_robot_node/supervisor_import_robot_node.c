@@ -5,6 +5,7 @@
  *               has to be different from the inial one.
  */
 
+#include <webots/camera.h>
 #include <webots/robot.h>
 #include <webots/supervisor.h>
 
@@ -24,7 +25,13 @@ int main(int argc, char **argv) {
   wb_robot_step(2 * TIME_STEP);
 
   // import robot object
-  wb_supervisor_field_import_mf_node(rootChildren, -1, "MyBot.wbo");
+  FILE *fd = fopen("MyBot.txt", "r");
+  char contents[4096];
+  const int n = fread(contents, 1, sizeof(contents), fd);
+  fclose(fd);
+  contents[n] = '\0';  // end of string
+  ts_assert_int_equal(n, 3262, "The MyBot.txt file could be fully read: %d/3262 bytes read", n);
+  wb_supervisor_field_import_mf_node_from_string(rootChildren, -1, contents);
 
   // check imported robot position
   WbNodeRef robot = wb_supervisor_node_get_from_def("MY_BOT");
@@ -38,7 +45,21 @@ int main(int argc, char **argv) {
   // check that robot moves forwards
   double previousZ = position[2];
   position = wb_supervisor_node_get_position(robot);
-  ts_assert_boolean_equal(position[2] < (previousZ - 0.02), "The controller of the imported robot is not started correctly");
+  ts_assert_boolean_equal(position[2] < (previousZ - 0.02), "The controller of the imported robot has not started correctly");
+
+  // import device after controller start
+  WbNodeRef self_node = wb_supervisor_node_get_self();
+  WbFieldRef self_children = wb_supervisor_node_get_field(self_node, "children");
+  wb_supervisor_field_import_mf_node_from_string(self_children, 0, "Camera { name \"imported camera\"}");
+
+  WbDeviceTag camera = wb_robot_get_device("imported camera");
+  ts_assert_int_not_equal(camera, 0, "Camera imported during controller execution not found.");
+  wb_camera_enable(camera, TIME_STEP);
+
+  wb_robot_step(TIME_STEP);
+
+  const unsigned char *image = wb_camera_get_image(camera);
+  ts_assert_boolean_not_equal(image == NULL, "Camera image is NULL.");
 
   ts_send_success();
   return EXIT_SUCCESS;

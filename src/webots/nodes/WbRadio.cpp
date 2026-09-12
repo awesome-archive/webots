@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "WbRadio.hpp"
+
+#include "WbDataStream.hpp"
 #include "WbRadioPlugin.hpp"
 #include "WbSFInt.hpp"
 #include "WbSensor.hpp"
@@ -20,7 +22,7 @@
 #include <QtCore/QDataStream>
 #include <cassert>
 #include "../../../include/plugins/radio.h"
-#include "../../lib/Controller/api/messages.h"
+#include "../../controller/c/messages.h"
 
 static QList<WbRadio *> radioList;  // list of radio nodes
 static bool pluginLoadFailed = false;
@@ -124,12 +126,12 @@ void WbRadio::updateSetup() {
 void WbRadio::handleMessage(QDataStream &stream) {
   WbRadioPlugin *plugin = WbRadioPlugin::instance();
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SET_SAMPLING_PERIOD:
       short refreshRate;
-      stream >> (short &)refreshRate;
+      stream >> refreshRate;
       mSensor->setRefreshRate(refreshRate);
       return;
 
@@ -146,7 +148,7 @@ void WbRadio::handleMessage(QDataStream &stream) {
 
     case C_RADIO_SET_FREQUENCY:
       double frequency;
-      stream >> (double &)frequency;
+      stream >> frequency;
       mFrequency->setValue(frequency);
       if (plugin)
         plugin->setFrequency(mID, frequency);
@@ -154,7 +156,7 @@ void WbRadio::handleMessage(QDataStream &stream) {
 
     case C_RADIO_SET_CHANNEL:
       int channel;
-      stream >> (int &)channel;
+      stream >> channel;
       mChannel->setValue(channel);
       if (plugin)
         plugin->setChannel(mID, channel);
@@ -162,7 +164,7 @@ void WbRadio::handleMessage(QDataStream &stream) {
 
     case C_RADIO_SET_BITRATE:
       int bitrate;
-      stream >> (int &)bitrate;
+      stream >> bitrate;
       mBitrate->setValue(bitrate);
       if (plugin)
         plugin->setBitrate(mID, bitrate);
@@ -170,7 +172,7 @@ void WbRadio::handleMessage(QDataStream &stream) {
 
     case C_RADIO_SET_RX_SENSITIVITY:
       double rxSensitivity;
-      stream >> (double &)rxSensitivity;
+      stream >> rxSensitivity;
       mRxSensitivity->setValue(rxSensitivity);
       if (plugin)
         plugin->setRxSensitivity(mID, rxSensitivity);
@@ -178,7 +180,7 @@ void WbRadio::handleMessage(QDataStream &stream) {
 
     case C_RADIO_SET_TX_POWER:
       double txPower;
-      stream >> (double &)txPower;
+      stream >> txPower;
       mTxPower->setValue(txPower);
       if (plugin)
         plugin->setTxPower(mID, txPower);
@@ -190,11 +192,11 @@ void WbRadio::handleMessage(QDataStream &stream) {
       char dest[destSize];
       stream.readRawData(dest, destSize);
       int dataSize = 0;
-      stream >> (int &)dataSize;
+      stream >> dataSize;
       char data[dataSize];  // 'void *' previously
       stream.readRawData(data, dataSize);
       double delay;
-      stream >> (double &)delay;
+      stream >> delay;
       if (plugin)
         plugin->send(mID, dest, data, dataSize, delay);
       return;
@@ -205,7 +207,7 @@ void WbRadio::handleMessage(QDataStream &stream) {
   }
 }
 
-void WbRadio::writeConfigure(QDataStream &stream) {
+void WbRadio::writeConfigure(WbDataStream &stream) {
   stream << tag();
   stream << (unsigned char)C_CONFIGURE;
   QByteArray address = mAddress->value().toUtf8();
@@ -284,11 +286,11 @@ static struct WebotsRadioEvent *radio_event_duplicate(const struct WebotsRadioEv
   struct WebotsRadioEvent *copy = new struct WebotsRadioEvent;
   copy->type = orig->type;
   copy->data = new char[orig->data_size];
-  memcpy((void *)copy->data, orig->data, orig->data_size);
+  memcpy(static_cast<void *>(const_cast<char *>(copy->data)), orig->data, orig->data_size);
   copy->data_size = orig->data_size;
   int len = strlen(orig->from) + 1;
   copy->from = new char[len];
-  strncpy((char *)copy->from, orig->from, len);
+  strncpy(const_cast<char *>(copy->from), orig->from, len);
   copy->rssi = orig->rssi;
   return copy;
 }
@@ -302,11 +304,12 @@ static void radio_event_destroy(struct WebotsRadioEvent *p) {
 
 void WbRadio::receiveCallback(const struct WebotsRadioEvent *event) {
   // yvan: Radio N>2 bug was fixed here: a *deep* copy of WebotsRadioEvent is required
+  // cppcheck-suppress constVariablePointer
   struct WebotsRadioEvent *copy = radio_event_duplicate(event);
   mReceivedEvents.append(copy);
 }
 
-void WbRadio::writeAnswer(QDataStream &stream) {
+void WbRadio::writeAnswer(WbDataStream &stream) {
   if (mNeedUpdateSetup) {
     writeConfigure(stream);
     mNeedUpdateSetup = false;

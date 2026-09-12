@@ -1,7 +1,10 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
 # license: Copyright Cyberbotics Ltd. Licensed for use only with Webots.
 # license url: https://cyberbotics.com/webots_assets_license
-# tags: static, hidden
+# tags: hidden
+# template language: javascript
+
+EXTERNPROTO "webots://projects/appearances/protos/Leather.proto"
 
 PROTO BmwX5Interior [
   field MFString  baseColorMap     "textures/bmw_interior_speedometer.jpg"
@@ -1045,7 +1048,7 @@ PROTO BmwX5Interior [
           creaseAngle 0.5
         }
       }
-      %{ if fields.indicatorLevers.value then }%
+      %< if (fields.indicatorLevers.value) { >%
       DEF RIGHT_INDICATOR_LEVER Shape {
         appearance USE PLASTIC_DETAILS_APPEARANCE
         geometry IndexedFaceSet {
@@ -1097,30 +1100,9 @@ PROTO BmwX5Interior [
           ]
         }
       }
-      %{ end }%
+      %< } >%
       DEF BOARD_TOP Shape {
-        appearance DEF DARK_LEATHER PBRAppearance {
-          baseColorMap ImageTexture {
-            url [
-              "textures/bmw_dark_leather_base_color.jpg"
-            ]
-          }
-          roughnessMap ImageTexture {
-            url [
-              "textures/bmw_leather_roughness.jpg"
-            ]
-          }
-          metalness 0
-          normalMap ImageTexture {
-            url [
-              "textures/bmw_leather_normal.jpg"
-            ]
-          }
-          occlusionMap ImageTexture {
-            url [
-              "textures/bmw_leather_occlusion.jpg"
-            ]
-          }
+        appearance DEF DARK_LEATHER Leather {
         }
         geometry IndexedFaceSet {
           coord Coordinate {
@@ -2293,28 +2275,8 @@ PROTO BmwX5Interior [
         }
       }
       DEF BOARD Shape {
-        appearance DEF LIGHT_LEATHER PBRAppearance {
-          baseColorMap ImageTexture {
-            url [
-              "textures/bmw_light_leather_base_color.jpg"
-            ]
-          }
-          roughnessMap ImageTexture {
-            url [
-              "textures/bmw_leather_roughness.jpg"
-            ]
-          }
-          metalness 0
-          normalMap ImageTexture {
-            url [
-              "textures/bmw_leather_normal.jpg"
-            ]
-          }
-          occlusionMap ImageTexture {
-            url [
-              "textures/bmw_leather_occlusion.jpg"
-            ]
-          }
+        appearance DEF LIGHT_LEATHER Leather {
+          tone "light"
           textureTransform TextureTransform {
             scale 4 4
           }

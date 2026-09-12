@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,16 +14,22 @@
 
 #include "WbContactProperties.hpp"
 
+#include "WbDownloadManager.hpp"
+#include "WbDownloader.hpp"
 #include "WbFieldChecker.hpp"
+#include "WbNetwork.hpp"
 #include "WbSoundEngine.hpp"
 #include "WbUrl.hpp"
 #include "WbWorld.hpp"
+
+static const QString gUrlNames[3] = {"bumpSound", "rollSound", "slideSound"};
 
 void WbContactProperties::init() {
   mMaterial1 = findSFString("material1");
   mMaterial2 = findSFString("material2");
   mCoulombFriction = findMFDouble("coulombFriction");
   mFrictionRotation = findSFVector2("frictionRotation");
+  mRollingFriction = findSFVector3("rollingFriction");
   mBounce = findSFDouble("bounce");
   mBounceVelocity = findSFDouble("bounceVelocity");
   mForceDependentSlip = findMFDouble("forceDependentSlip");
@@ -32,10 +38,13 @@ void WbContactProperties::init() {
   mBumpSound = findSFString("bumpSound");
   mRollSound = findSFString("rollSound");
   mSlideSound = findSFString("slideSound");
+  mMaxContactJoints = findSFInt("maxContactJoints");
 
   mBumpSoundClip = NULL;
   mRollSoundClip = NULL;
   mSlideSoundClip = NULL;
+  for (int i = 0; i < 3; ++i)
+    mDownloader[i] = NULL;
 }
 
 WbContactProperties::WbContactProperties(WbTokenizer *tokenizer) : WbBaseNode("ContactProperties", tokenizer) {
@@ -52,6 +61,32 @@ WbContactProperties::WbContactProperties(const WbNode &other) : WbBaseNode(other
 
 WbContactProperties::~WbContactProperties() {
 }
+
+void WbContactProperties::downloadAsset(const QString &url, int index) {
+  if (url.isEmpty())
+    return;
+
+  const QString &completeUrl = WbUrl::computePath(this, gUrlNames[index], url);
+  if (!WbUrl::isWeb(completeUrl) || WbNetwork::instance()->isCachedWithMapUpdate(completeUrl))
+    return;
+
+  delete mDownloader[index];
+  mDownloader[index] = WbDownloadManager::instance()->createDownloader(QUrl(completeUrl), this);
+  if (isPostFinalizedCalled()) {
+    void (WbContactProperties::*callback)(void);
+    callback = index == 0 ? &WbContactProperties::updateBumpSound :
+                            (index == 1 ? &WbContactProperties::updateRollSound : &WbContactProperties::updateSlideSound);
+    connect(mDownloader[index], &WbDownloader::complete, this, callback);
+  }
+  mDownloader[index]->download();
+}
+
+void WbContactProperties::downloadAssets() {
+  downloadAsset(mBumpSound->value(), 0);
+  downloadAsset(mRollSound->value(), 1);
+  downloadAsset(mSlideSound->value(), 2);
+}
+
 void WbContactProperties::preFinalize() {
   WbBaseNode::preFinalize();
 
@@ -63,6 +98,7 @@ void WbContactProperties::preFinalize() {
   updateBumpSound();
   updateRollSound();
   updateSlideSound();
+  updateMaxContactJoints();
 }
 
 void WbContactProperties::postFinalize() {
@@ -72,6 +108,7 @@ void WbContactProperties::postFinalize() {
   connect(mMaterial2, &WbSFString::changed, this, &WbContactProperties::valuesChanged);
   connect(mCoulombFriction, &WbSFDouble::changed, this, &WbContactProperties::updateCoulombFriction);
   connect(mFrictionRotation, &WbSFVector2::changed, this, &WbContactProperties::updateFrictionRotation);
+  connect(mRollingFriction, &WbSFVector3::changed, this, &WbContactProperties::updateRollingFriction);
   connect(mBounce, &WbSFDouble::changed, this, &WbContactProperties::updateBounce);
   connect(mBounceVelocity, &WbSFDouble::changed, this, &WbContactProperties::updateBounceVelocity);
   connect(mForceDependentSlip, &WbSFDouble::changed, this, &WbContactProperties::updateForceDependentSlip);
@@ -81,19 +118,34 @@ void WbContactProperties::postFinalize() {
   connect(mRollSound, &WbSFString::changed, this, &WbContactProperties::updateRollSound);
   connect(mSlideSound, &WbSFString::changed, this, &WbContactProperties::updateSlideSound);
   connect(this, &WbContactProperties::needToEnableBodies, this, &WbContactProperties::enableBodies);
+  connect(mMaxContactJoints, &WbSFInt::changed, this, &WbContactProperties::updateMaxContactJoints);
+}
+
+void WbContactProperties::exportNodeFields(WbWriter &writer) const {
+  WbBaseNode::exportNodeFields(writer);
+
+  exportSFResourceField(gUrlNames[0], mBumpSound, writer.relativeSoundsPath(), writer);
+  exportSFResourceField(gUrlNames[1], mRollSound, writer.relativeSoundsPath(), writer);
+  exportSFResourceField(gUrlNames[2], mSlideSound, writer.relativeSoundsPath(), writer);
+}
+
+QStringList WbContactProperties::customExportedFields() const {
+  QStringList fields;
+  fields << "url";
+  return fields;
 }
 
 void WbContactProperties::updateCoulombFriction() {
   const int nbElements = mCoulombFriction->size();
   if (nbElements < 1 || nbElements > 4) {
-    warn(tr("'coulombFriction' must have between one and four elements"));
+    parsingWarn(tr("'coulombFriction' must have between one and four elements"));
     return;
   }
 
   for (int c = 0; c < nbElements; ++c) {
     const double cf = mCoulombFriction->item(c);
     if (cf != -1.0 && cf < 0.0) {
-      warn(tr("If not set to -1 (infinity), 'coulombFriction' must be non-negative. Field value reset to 1"));
+      parsingWarn(tr("If not set to -1 (infinity), 'coulombFriction' must be non-negative. Field value reset to 1"));
       mCoulombFriction->setItem(c, 1.0);
       return;
     }
@@ -112,8 +164,22 @@ void WbContactProperties::updateFrictionRotation() {
   emit needToEnableBodies();
 }
 
+void WbContactProperties::updateRollingFriction() {
+  const WbVector3 &rf = mRollingFriction->value();
+  if ((rf[0] != -1.0 && rf[0] < 0.0) || (rf[1] != -1.0 && rf[1] < 0.0) || (rf[2] != -1.0 && rf[2] < 0.0)) {
+    parsingWarn(tr("'rollingFriction' values must be positive or -1.0. Field value reset to 0 0 0."));
+    mRollingFriction->setValue(0, 0, 0);
+    return;
+  }
+
+  if (areOdeObjectsCreated())
+    emit valuesChanged();
+
+  emit needToEnableBodies();
+}
+
 void WbContactProperties::updateBounce() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mBounce, 0.0, 1.0, 0.5))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mBounce, 0.0, 1.0, 0.5))
     return;
 
   if (areOdeObjectsCreated())
@@ -123,7 +189,7 @@ void WbContactProperties::updateBounce() {
 }
 
 void WbContactProperties::updateBounceVelocity() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mBounceVelocity, 0.01))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mBounceVelocity, 0.01))
     return;
 
   if (areOdeObjectsCreated())
@@ -135,7 +201,7 @@ void WbContactProperties::updateBounceVelocity() {
 void WbContactProperties::updateForceDependentSlip() {
   const int nbElements = mForceDependentSlip->size();
   if (nbElements < 1 || nbElements > 4) {
-    warn(tr("'forceDependentSlip' must have between one and four elements"));
+    parsingWarn(tr("'forceDependentSlip' must have between one and four elements"));
     return;
   }
 
@@ -146,7 +212,7 @@ void WbContactProperties::updateForceDependentSlip() {
 }
 
 void WbContactProperties::updateSoftCfm() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mSoftCfm, 0.001))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mSoftCfm, 0.001))
     return;
   if (areOdeObjectsCreated())
     emit valuesChanged();
@@ -155,7 +221,7 @@ void WbContactProperties::updateSoftCfm() {
 }
 
 void WbContactProperties::updateSoftErp() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mSoftErp, 0.0, 1.0, 0.2))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mSoftErp, 0.0, 1.0, 0.2))
     return;
 
   if (areOdeObjectsCreated())
@@ -164,31 +230,58 @@ void WbContactProperties::updateSoftErp() {
   emit needToEnableBodies();
 }
 
-void WbContactProperties::updateBumpSound() {
-  const QString &sound = mBumpSound->value();
-  if (sound.isEmpty())
-    mBumpSoundClip = NULL;
-  else
-    mBumpSoundClip = WbSoundEngine::sound(WbUrl::computePath(this, "bumpSound", sound));
+void WbContactProperties::updateMaxContactJoints() {
+  WbFieldChecker::resetIntIfNonPositive(this, mMaxContactJoints, 10);
+}
+
+void WbContactProperties::loadSound(int index, const QString &sound, const QString &name, const WbSoundClip **clip) {
+  if (sound.isEmpty()) {
+    *clip = NULL;
+    return;
+  }
+
+  const QString completeUrl = WbUrl::computePath(this, gUrlNames[index], sound, true);
+  if (WbUrl::isWeb(completeUrl)) {
+    if (mDownloader[index] && !mDownloader[index]->error().isEmpty()) {
+      warn(mDownloader[index]->error());  // failure downloading or file does not exist (404)
+      *clip = NULL;
+      // downloader needs to be deleted in case the URL is switched back to something valid
+      delete mDownloader[index];
+      mDownloader[index] = NULL;
+      return;
+    }
+    if (!WbNetwork::instance()->isCachedWithMapUpdate(completeUrl)) {
+      downloadAsset(completeUrl, index);  // changed by supervisor
+      return;
+    }
+  }
+
   WbSoundEngine::clearAllContactSoundSources();
+  // determine extension from URL since for remotely defined assets the cached version doesn't retain this information
+  const QString extension = sound.mid(sound.lastIndexOf('.') + 1).toLower();
+
+  if (WbUrl::isWeb(completeUrl)) {
+    assert(WbNetwork::instance()->isCachedNoMapUpdate(completeUrl));  // by this point, the asset should be cached
+    *clip = WbSoundEngine::sound(WbNetwork::instance()->get(completeUrl), extension);
+  }
+  // completeUrl can contain missing_texture.png if the user inputs an invalid .png or .jpg file in the field. In this case,
+  // clip should be set to NULL
+  else if (!(completeUrl.isEmpty() || completeUrl == WbUrl::missingTexture()))
+    *clip = WbSoundEngine::sound(WbUrl::computePath(this, name, completeUrl, true), extension);
+  else
+    *clip = NULL;
+}
+
+void WbContactProperties::updateBumpSound() {
+  loadSound(0, mBumpSound->value(), "bumpSound", &mBumpSoundClip);
 }
 
 void WbContactProperties::updateRollSound() {
-  const QString &sound = mRollSound->value();
-  if (sound.isEmpty())
-    mRollSoundClip = NULL;
-  else
-    mRollSoundClip = WbSoundEngine::sound(WbUrl::computePath(this, "rollSound", sound));
-  WbSoundEngine::clearAllContactSoundSources();
+  loadSound(1, mRollSound->value(), "rollSound", &mRollSoundClip);
 }
 
 void WbContactProperties::updateSlideSound() {
-  const QString &sound = mSlideSound->value();
-  if (sound.isEmpty())
-    mSlideSoundClip = NULL;
-  else
-    mSlideSoundClip = WbSoundEngine::sound(WbUrl::computePath(this, "slideSound", sound));
-  WbSoundEngine::clearAllContactSoundSources();
+  loadSound(2, mSlideSound->value(), "slideSound", &mSlideSoundClip);
 }
 
 void WbContactProperties::enableBodies() {

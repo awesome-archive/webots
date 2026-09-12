@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,7 +28,7 @@ class WbRenderingDevice : public WbSolidDevice {
   Q_OBJECT
 
 public:
-  virtual ~WbRenderingDevice();
+  virtual ~WbRenderingDevice() override;
 
   // reimplemented public functions
   void preFinalize() override;
@@ -48,6 +48,7 @@ public:
   // external window
   virtual int textureGLId() const;
   virtual int backgroundTextureGLId() const;
+  virtual int maskTextureGLId() const;
   virtual int foregroundTextureGLId() const;
   virtual void enableExternalWindow(bool enabled);
 
@@ -61,15 +62,15 @@ public:
 
   // static functions
   static WbRenderingDevice *fromMousePosition(int x, int y);
-  static QList<WbRenderingDevice *> renderingDevices() { return cRenderingDevices; }
+  static const QList<WbRenderingDevice *> &renderingDevices() { return cRenderingDevices; }
+
+  enum TextureRole { BACKGROUND_TEXTURE = 0, MAIN_TEXTURE, MASK_TEXTURE, FOREGROUND_TEXTURE };
 
 signals:
   void overlayVisibilityChanged(bool visible);
   void overlayStatusChanged(bool enabled);
   void textureUpdated();
-  void textureIdUpdated(int textureGLID);
-  void backgroundTextureIdUpdated(int backgroungTextureGLID);
-  void foregroundTextureIdUpdated(int foregroungTextureGLID);
+  void textureIdUpdated(int textureGLID, TextureRole role);
   void restoreWindowPerspective(const WbRenderingDevice *device, const QStringList &perspective);
   void closeWindow();
 
@@ -87,10 +88,6 @@ protected:
 
   virtual void createWrenOverlay() = 0;  // not very useful: this function is not called in a polymorphical way
 
-  // backward compatibily function
-  // apply window position and pixel size stored in world file
-  void applyWorldSettings();
-
   bool areOverlaysEnabled() const;  // global preferences value
 
 protected slots:
@@ -104,9 +101,6 @@ private:
   // user accessible fields
   WbSFInt *mWidth;
   WbSFInt *mHeight;
-  // deprecated fields
-  WbSFDouble *mPixelSizeField;
-  WbSFVector2 *mWindowPositionField;  // desired position on the screen
 
   // values just after the setup
   int mSetupWidth;

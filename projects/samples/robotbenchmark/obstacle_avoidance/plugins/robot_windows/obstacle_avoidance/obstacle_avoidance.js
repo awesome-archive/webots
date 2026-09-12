@@ -1,28 +1,25 @@
-$('#infotabs').tabs();
+import RobotWindow from 'https://cyberbotics.com/wwi/R2025a/RobotWindow.js';
+/* global sendBenchmarkRecord, showBenchmarkRecord, showBenchmarkError */
 
-var benchmarkName = "Obstacle Avoidance";
-var timeString;
-var roomCrossingTime;
+window.robotWindow = new RobotWindow();
+const benchmarkName = 'Obstacle Avoidance';
+let timeString;
+let roomCrossingTime;
 
-webots.window('obstacle_avoidance').receive = function(message, robot) {
+window.robotWindow.receive = function(message, robot) {
   if (message.startsWith('time:')) {
     roomCrossingTime = parseFloat(message.substr(5));
     timeString = parseSecondsIntoReadableTime(roomCrossingTime);
-    $('#time-display').html(timeString);
-
-  } else if (message == 'stop') {
-    if (typeof sendBenchmarkRecord === "undefined" || !sendBenchmarkRecord(robot, this, benchmarkName, -roomCrossingTime, metricToString)) {
-      $('#time-display').css('color','red');
-    }
-
+    document.getElementById('time-display').innerHTML = timeString;
+  } else if (message === 'stop') {
+    if (typeof sendBenchmarkRecord === 'undefined' || !sendBenchmarkRecord(robot, this, benchmarkName, -roomCrossingTime, metricToString))
+      document.getElementById('time-display').style.color = 'red';
   } else if (message.startsWith('record:OK:')) {
-    $('#time-display').css('font-weight','bold');
+    document.getElementById('time-display').style.fontWeight = 'bold';
     showBenchmarkRecord(message, benchmarkName, metricToString);
-
   } else if (message.startsWith('record:Error:')) {
-    $('#time-display').css('color','red');
+    document.getElementById('time-display').style.color = 'red';
     showBenchmarkError(message, benchmarkName);
-
   } else
     console.log("Received unknown message for robot '" + robot + "': '" + message + "'");
 
@@ -30,18 +27,16 @@ webots.window('obstacle_avoidance').receive = function(message, robot) {
     return parseSecondsIntoReadableTime(-parseFloat(s));
   }
 
-  function parseSecondsIntoReadableTime(s) {
-    var hours = s / 3600;
-    var absoluteHours = Math.floor(hours);
-    var minutes = (hours - absoluteHours) * 60;
-    var absoluteMinutes = Math.floor(minutes);
-    var m = absoluteMinutes > 9 ? absoluteMinutes : '0' +  absoluteMinutes;
-    var seconds = (minutes - absoluteMinutes) * 60;
-    var absoluteSeconds = Math.floor(seconds);
-    var s = absoluteSeconds > 9 ? absoluteSeconds : '0' + absoluteSeconds;
-    var cs = Math.floor((seconds - absoluteSeconds) * 100);
+  function parseSecondsIntoReadableTime(timeInSeconds) {
+    const minutes = timeInSeconds / 60;
+    const absoluteMinutes = Math.floor(minutes);
+    const m = absoluteMinutes > 9 ? absoluteMinutes : '0' + absoluteMinutes;
+    const seconds = (minutes - absoluteMinutes) * 60;
+    const absoluteSeconds = Math.floor(seconds);
+    const s = absoluteSeconds > 9 ? absoluteSeconds : '0' + absoluteSeconds;
+    let cs = Math.floor((seconds - absoluteSeconds) * 100);
     if (cs < 10)
       cs = '0' + cs;
     return m + ':' + s + ':' + cs;
   }
-}
+};

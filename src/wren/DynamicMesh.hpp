@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,8 +51,8 @@ namespace wren {
     void release() override;
     void render(unsigned int drawingMode) override;
     void clear() override {
-      Mesh::clear();
       clear(true, mHasNormals, mHasTextureCoordinates, mHasColorPerVertex);
+      Mesh::clear();
     }
     void clear(bool vertices, bool normals, bool textureCoordinates, bool colors);
 
@@ -84,7 +84,7 @@ namespace wren {
 
   protected:
     DynamicMesh(bool hasNormals, bool hasTextureCoordinates, bool hasColorPerVertex);
-    virtual ~DynamicMesh(){};
+    virtual ~DynamicMesh() override{};
 
   private:
     void updateGl();

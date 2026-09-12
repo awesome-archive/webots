@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -317,9 +317,9 @@ int main(int argc, char **argv) {
         om[robot_x][robot_y + 1] = (float)2 / (float)19;
       if (robot_y - 1 > 0)
         om[robot_x][robot_y - 1] = (float)2 / (float)19;
-      if (robot_x - 2 < MAP_SIZE)
+      if (robot_x + 2 < MAP_SIZE)
         om[robot_x + 2][robot_y] = (float)1 / (float)19;
-      if (robot_x + 2 > 0)
+      if (robot_x - 2 > 0)
         om[robot_x - 2][robot_y] = (float)1 / (float)19;
       if (robot_y + 2 < MAP_SIZE)
         om[robot_x][robot_y + 2] = (float)1 / (float)19;

@@ -1,12 +1,21 @@
 # The Background node defines the background used for rendering the 3D world.
 
 Background {
-  vrmlField MFColor  skyColor  [ 0 0 0 ]
-  field     SFNode   cubemap   NULL
-  deprecatedField MFString backUrl   []
-  deprecatedField MFString bottomUrl []
-  deprecatedField MFString frontUrl  []
-  deprecatedField MFString leftUrl   []
-  deprecatedField MFString rightUrl  []
-  deprecatedField MFString topUrl    []
+  w3dField MFColor  skyColor [ 0 0 0 ]
+
+  field    MFString backUrl             []
+  field    MFString bottomUrl           []
+  field    MFString frontUrl            []
+  field    MFString leftUrl             []
+  field    MFString rightUrl            []
+  field    MFString topUrl              []
+
+  field    MFString backIrradianceUrl   []
+  field    MFString bottomIrradianceUrl []
+  field    MFString frontIrradianceUrl  []
+  field    MFString leftIrradianceUrl   []
+  field    MFString rightIrradianceUrl  []
+  field    MFString topIrradianceUrl    []
+
+  w3dField SFFloat  luminosity          1
 }

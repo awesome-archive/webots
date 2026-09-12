@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -52,7 +52,7 @@ static const char *PYTHON_KEYWORDS = "and as assert break class continue def "
 static const char *MAKEFILE_KEYWORDS = "if ifdef ifndef ifeq ifneq else endif include";
 
 static const char *WBT_KEYWORDS = "USE DEF PROTO IS FALSE TRUE NULL "
-                                  "field deprecatedField hiddenField unconnectedField vrmlField "
+                                  "field deprecatedField hiddenField unconnectedField w3dField "
                                   "SFVec3f SFBool SFInt32 SFFloat SFVec2f SFVec3f SFRotation SFColor SFString SFNode "
                                   "MFBool MFInt32 MFFloat MFVec2f MFVec3f MFRotation MFColor MFString MFNode";
 
@@ -63,12 +63,19 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_accelerometer_disable "
                                      "wb_accelerometer_get_sampling_period "
                                      "wb_accelerometer_get_values "
+                                     "wb_accelerometer_get_lookup_table_size "
+                                     "wb_accelerometer_get_lookup_table "
+                                     "wb_altimeter_enable "
+                                     "wb_altimeter_disable "
+                                     "wb_altimeter_get_sampling_period "
+                                     "wb_altimeter_get_value "
                                      "wb_brake_get_type "
                                      "wb_brake_get_motor "
                                      "wb_brake_get_position_sensor "
                                      "wb_brake_set_damping_constant "
                                      "wb_camera_enable "
                                      "wb_camera_disable "
+                                     "wb_camera_get_exposure "
                                      "wb_camera_get_sampling_period "
                                      "wb_camera_get_image "
                                      "wb_camera_get_width "
@@ -81,6 +88,7 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_camera_get_focal_distance "
                                      "wb_camera_get_min_focal_distance "
                                      "wb_camera_get_max_focal_distance "
+                                     "wb_camera_set_exposure "
                                      "wb_camera_set_focal_distance "
                                      "wb_camera_get_near "
                                      "wb_camera_save_image "
@@ -92,32 +100,30 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_compass_disable "
                                      "wb_camera_has_recognition "
                                      "wb_camera_recognition_disable "
+                                     "wb_camera_recognition_disable_segmentation "
                                      "wb_camera_recognition_enable "
+                                     "wb_camera_recognition_enable_segmentation "
                                      "wb_camera_recognition_get_number_of_objects "
                                      "wb_camera_recognition_get_objects "
                                      "wb_camera_recognition_get_sampling_period "
+                                     "wb_camera_recognition_get_segmentation_image "
+                                     "wb_camera_recognition_has_segmentation "
+                                     "wb_camera_recognition_is_segmentation_enabled "
+                                     "wb_camera_recognition_save_segmentation_image "
                                      "wb_compass_get_sampling_period "
                                      "wb_compass_get_values "
+                                     "wb_compass_get_lookup_table_size "
+                                     "wb_compass_get_lookup_table "
                                      "wb_connector_lock "
                                      "wb_connector_unlock "
                                      "wb_connector_disable_presence "
                                      "wb_connector_enable_presence "
                                      "wb_connector_get_presence "
                                      "wb_connector_get_presence_sampling_period "
+                                     "wb_connector_is_locked "
                                      "wb_device_get_model "
                                      "wb_device_get_name "
                                      "wb_device_get_node_type "
-                                     "wb_differential_wheels_set_speed "
-                                     "wb_differential_wheels_enable_encoders "
-                                     "wb_differential_wheels_disable_encoders "
-                                     "wb_differential_wheels_get_right_encoder "
-                                     "wb_differential_wheels_get_left_encoder "
-                                     "wb_differential_wheels_set_encoders "
-                                     "wb_differential_wheels_get_left_speed "
-                                     "wb_differential_wheels_get_right_speed "
-                                     "wb_differential_wheels_get_max_speed "
-                                     "wb_differential_wheels_get_speed_unit "
-                                     "wb_differential_wheels_get_encoders_sampling_period "
                                      "wb_display_get_width "
                                      "wb_display_get_height "
                                      "wb_display_set_alpha "
@@ -147,6 +153,8 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_distance_sensor_get_max_value "
                                      "wb_distance_sensor_get_min_value "
                                      "wb_distance_sensor_get_sampling_period "
+                                     "wb_distance_sensor_get_lookup_table_size "
+                                     "wb_distance_sensor_get_lookup_table "
                                      "wb_distance_sensor_get_type "
                                      "wb_distance_sensor_get_value "
                                      "wb_emitter_send "
@@ -161,15 +169,20 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_gps_get_coordinate_system "
                                      "wb_gps_get_sampling_period "
                                      "wb_gps_get_speed "
+                                     "wb_gps_get_speed_vector "
                                      "wb_gps_get_values "
                                      "wb_gyro_enable "
                                      "wb_gyro_disable "
                                      "wb_gyro_get_sampling_period "
                                      "wb_gyro_get_values "
+                                     "wb_gyro_get_lookup_table_size "
+                                     "wb_gyro_get_lookup_table "
                                      "wb_inertial_unit_enable "
                                      "wb_inertial_unit_disable "
                                      "wb_inertial_unit_get_sampling_period "
                                      "wb_inertial_unit_get_roll_pitch_yaw "
+                                     "wb_inertial_unit_get_quaternion "
+                                     "wb_inertial_unit_get_noise "
                                      "wb_joystick_disable "
                                      "wb_joystick_enable "
                                      "wb_joystick_get_axis_value "
@@ -216,6 +229,8 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_light_sensor_disable "
                                      "wb_light_sensor_get_sampling_period "
                                      "wb_light_sensor_get_value "
+                                     "wb_light_sensor_get_lookup_table_size "
+                                     "wb_light_sensor_get_lookup_table "
                                      "wb_motor_disable_force_feedback "
                                      "wb_motor_disable_torque_feedback "
                                      "wb_motor_enable_force_feedback "
@@ -235,6 +250,7 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_motor_get_torque_feed_back_sampling_period "
                                      "wb_motor_get_type "
                                      "wb_motor_get_velocity "
+                                     "wb_motor_get_multiplier "
                                      "wb_motor_get_brake "
                                      "wb_motor_get_position_sensor "
                                      "wb_motor_set_acceleration "
@@ -298,13 +314,10 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_robot_battery_sensor_disable "
                                      "wb_robot_battery_sensor_get_sampling_period "
                                      "wb_robot_battery_sensor_get_value "
-                                     "wb_robot_get_controller_name "
-                                     "wb_robot_get_controller_arguments "
                                      "wb_robot_get_custom_data "
                                      "wb_robot_get_device "
                                      "wb_robot_get_device_by_index "
                                      "wb_robot_get_number_of_devices "
-                                     "wb_robot_get_type "
                                      "wb_robot_get_model "
                                      "wb_robot_get_mode "
                                      "wb_robot_get_name "
@@ -313,6 +326,7 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_robot_get_synchronization "
                                      "wb_robot_get_project_path "
                                      "wb_robot_get_basic_time_step "
+                                     "wb_robot_get_urdf "
                                      "wb_robot_get_world_path "
                                      "wb_robot_mutex_new "
                                      "wb_robot_mutex_lock "
@@ -321,6 +335,8 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_robot_set_custom_data "
                                      "wb_robot_set_mode "
                                      "wb_robot_step "
+                                     "wb_robot_step_begin "
+                                     "wb_robot_step_end "
                                      "wb_robot_task_new "
                                      "wb_robot_wait_for_user_input_event "
                                      "wb_robot_window_custom_function "
@@ -342,6 +358,10 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_supervisor_animation_start_recording "
                                      "wb_supervisor_animation_stop_recording "
                                      "wb_supervisor_export_image "
+                                     "wb_supervisor_field_disable_sf_tracking "
+                                     "wb_supervisor_field_enable_sf_tracking "
+                                     "wb_supervisor_field_get_actual_field "
+                                     "wb_supervisor_field_get_name "
                                      "wb_supervisor_field_get_type "
                                      "wb_supervisor_field_get_type_name "
                                      "wb_supervisor_field_get_count "
@@ -363,8 +383,8 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_supervisor_field_get_mf_rotation "
                                      "wb_supervisor_field_get_mf_string "
                                      "wb_supervisor_field_get_mf_node "
-                                     "wb_supervisor_field_import_mf_node "
                                      "wb_supervisor_field_import_mf_node_from_string "
+                                     "wb_supervisor_field_import_sf_node_from_string "
                                      "wb_supervisor_field_insert_mf_bool "
                                      "wb_supervisor_field_insert_mf_color "
                                      "wb_supervisor_field_insert_mf_float "
@@ -374,6 +394,7 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_supervisor_field_insert_mf_vec2f "
                                      "wb_supervisor_field_insert_mf_vec3f "
                                      "wb_supervisor_field_remove_mf "
+                                     "wb_supervisor_field_remove_sf "
                                      "wb_supervisor_field_set_sf_bool "
                                      "wb_supervisor_field_set_sf_int32 "
                                      "wb_supervisor_field_set_sf_float "
@@ -394,18 +415,36 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_supervisor_movie_is_ready "
                                      "wb_supervisor_movie_start_recording "
                                      "wb_supervisor_movie_stop_recording "
+                                     "wb_supervisor_node_add_force "
+                                     "wb_supervisor_node_add_force_with_offset "
+                                     "wb_supervisor_node_add_torque "
+                                     "wb_supervisor_node_disable_contact_points_tracking "
+                                     "wb_supervisor_node_disable_pose_tracking "
+                                     "wb_supervisor_node_enable_contact_points_tracking "
+                                     "wb_supervisor_node_enable_pose_tracking "
+                                     "wb_supervisor_node_export_string "
+                                     "wb_supervisor_node_get_base_node_field "
+                                     "wb_supervisor_node_get_base_node_field_by_index "
                                      "wb_supervisor_node_get_base_type_name "
                                      "wb_supervisor_node_get_center_of_mass "
                                      "wb_supervisor_node_get_contact_point "
+                                     "wb_supervisor_node_get_contact_points "
                                      "wb_supervisor_node_get_def "
                                      "wb_supervisor_node_get_field "
+                                     "wb_supervisor_node_get_field_by_index "
                                      "wb_supervisor_node_get_from_def "
                                      "wb_supervisor_node_get_from_id "
+                                     "wb_supervisor_node_get_from_proto_def "
+                                     "wb_supervisor_node_get_from_device "
                                      "wb_supervisor_node_get_id "
+                                     "wb_supervisor_node_get_number_of_base_node_fields "
                                      "wb_supervisor_node_get_number_of_contact_points "
+                                     "wb_supervisor_node_get_number_of_fields "
                                      "wb_supervisor_node_get_orientation "
                                      "wb_supervisor_node_get_parent_node "
+                                     "wb_supervisor_node_get_pose "
                                      "wb_supervisor_node_get_position "
+                                     "wb_supervisor_node_get_proto "
                                      "wb_supervisor_node_get_root "
                                      "wb_supervisor_node_get_selected "
                                      "wb_supervisor_node_get_self "
@@ -413,12 +452,22 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_supervisor_node_get_type "
                                      "wb_supervisor_node_get_type_name "
                                      "wb_supervisor_node_get_velocity "
+                                     "wb_supervisor_node_is_proto "
+                                     "wb_supervisor_node_load_state "
                                      "wb_supervisor_node_move_viewpoint "
                                      "wb_supervisor_node_remove "
                                      "wb_supervisor_node_reset_physics "
                                      "wb_supervisor_node_restart_controller "
+                                     "wb_supervisor_node_save_state "
+                                     "wb_supervisor_node_set_joint_position "
                                      "wb_supervisor_node_set_velocity "
                                      "wb_supervisor_node_set_visibility "
+                                     "wb_supervisor_proto_get_number_of_parameters "
+                                     "wb_supervisor_proto_get_field "
+                                     "wb_supervisor_proto_get_field_by_index "
+                                     "wb_supervisor_proto_get_parent "
+                                     "wb_supervisor_proto_get_type_name "
+                                     "wb_supervisor_proto_is_derived "
                                      "wb_supervisor_set_label "
                                      "wb_supervisor_simulation_get_mode "
                                      "wb_supervisor_simulation_quit "
@@ -436,6 +485,15 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wb_touch_sensor_get_sampling_period "
                                      "wb_touch_sensor_get_type "
                                      "wb_touch_sensor_get_value "
+                                     "wb_touch_sensor_get_lookup_table_size "
+                                     "wb_touch_sensor_get_lookup_table "
+                                     "wb_vacuum_gripper_turn_on "
+                                     "wb_vacuum_gripper_turn_off "
+                                     "wb_vacuum_gripper_disable_presence "
+                                     "wb_vacuum_gripper_enable_presence "
+                                     "wb_vacuum_gripper_get_presence "
+                                     "wb_vacuum_gripper_get_presence_sampling_period "
+                                     "wb_vacuum_gripper_is_on "
                                      "wbu_car_cleanup "
                                      "wbu_car_enable_indicator_auto_disabling "
                                      "wbu_car_init "
@@ -444,13 +502,15 @@ static const char *C_API_FUNCTIONS = "wb_accelerometer_enable "
                                      "wbu_car_get_engine_type "
                                      "wbu_car_get_front_wheel_radius "
                                      "wbu_car_get_indicator_period "
-                                     "wbu_car_get_left_steering_angle "
                                      "wbu_car_enable_limited_slip_differential "
                                      "wbu_car_get_rear_wheel_radius "
                                      "wbu_car_get_track_front "
                                      "wbu_car_get_track_rear "
                                      "wbu_car_get_type "
+                                     "wbu_car_set_right_steering_angle "
+                                     "wbu_car_set_left_steering_angle "
                                      "wbu_car_get_right_steering_angle "
+                                     "wbu_car_get_left_steering_angle "
                                      "wbu_car_get_wheelbase "
                                      "wbu_car_get_wheel_encoder "
                                      "wbu_car_get_wheel_speed "
@@ -503,6 +563,7 @@ static const char *C_API_DATA_TYPES = "WbCameraRecognitionObject "
                                       "WbMouseState "
                                       "WbNodeRef "
                                       "WbNodeType "
+                                      "WbProtoRef "
                                       "WbRadarTarget "
                                       "WbRobotMode "
                                       "WbSimulationMode "
@@ -527,6 +588,7 @@ static const char *C_API_CONSTANTS = "INFINITY "
                                      "WB_IMAGE_RGBA "
                                      "WB_IMAGE_ARGB "
                                      "WB_IMAGE_BGRA "
+                                     "WB_IMAGE_ABGR "
                                      "WB_KEYBOARD_KEY "
                                      "WB_KEYBOARD_SHIFT "
                                      "WB_KEYBOARD_CONTROL "
@@ -565,11 +627,14 @@ static const char *C_API_CONSTANTS = "INFINITY "
                                      "WB_NODE_NO_NODE "
                                      "WB_NODE_APPEARANCE "
                                      "WB_NODE_ACCELEROMETER "
+                                     "WB_NODE_ALTIMETER "
                                      "WB_NODE_BACKGROUND "
                                      "WB_NODE_BALL_JOINT "
                                      "WB_NODE_BALL_JOINT_PARAMETERS "
+                                     "WB_NODE_BILLBOARD"
                                      "WB_NODE_BOX "
                                      "WB_NODE_BRAKE "
+                                     "WB_NODE_CAD_SHAPE "
                                      "WB_NODE_CAMERA "
                                      "WB_NODE_CAPSULE "
                                      "WB_NODE_CHARGER "
@@ -579,12 +644,10 @@ static const char *C_API_CONSTANTS = "INFINITY "
                                      "WB_NODE_CONNECTOR "
                                      "WB_NODE_CONTACT_PROPERTIES "
                                      "WB_NODE_COORDINATE "
-                                     "WB_NODE_CUBEMAP "
                                      "WB_NODE_CYLINDER "
                                      "WB_NODE_DAMPING "
                                      "WB_NODE_FLUID "
                                      "WB_NODE_FOCUS "
-                                     "WB_NODE_DIFFERENTIAL_WHEELS "
                                      "WB_NODE_DIRECTIONAL_LIGHT "
                                      "WB_NODE_DISPLAY "
                                      "WB_NODE_DISTANCE_SENSOR "
@@ -610,6 +673,7 @@ static const char *C_API_CONSTANTS = "INFINITY "
                                      "WB_NODE_LIGHT_SENSOR "
                                      "WB_NODE_LINEAR_MOTOR "
                                      "WB_NODE_MATERIAL "
+                                     "WB_NODE_MESH "
                                      "WB_NODE_PBR_APPEARANCE "
                                      "WB_NODE_PEN "
                                      "WB_NODE_PHYSICS "
@@ -617,6 +681,7 @@ static const char *C_API_CONSTANTS = "INFINITY "
                                      "WB_NODE_POINT_LIGHT "
                                      "WB_NODE_POINT_SET "
                                      "WB_NODE_POSITION_SENSOR "
+                                     "WB_NODE_POSE "
                                      "WB_NODE_PROPELLER "
                                      "WB_NODE_RADAR "
                                      "WB_NODE_RANGE_FINDER "
@@ -639,6 +704,7 @@ static const char *C_API_CONSTANTS = "INFINITY "
                                      "WB_NODE_TRACK "
                                      "WB_NODE_TRACK_WHEEL "
                                      "WB_NODE_TRANSFORM "
+                                     "WB_NODE_VACUUM_GRIPPER "
                                      "WB_NODE_VIEWPOINT "
                                      "WB_NODE_WORLD_INFO "
                                      "WB_NODE_ZOOM";
@@ -647,20 +713,21 @@ static const char *C_API_CONSTANTS = "INFINITY "
 //  "WB_NODE_SWITCH "      // private
 
 static const char *API_CLASSES =
-  "Accelerometer Brake Camera CameraRecognitionObject Car Compass Connector ControlMode "
-  "CoordinateSystem DifferentialWheels Driver Display DistanceSensor Emitter EngineType Field GPS Gyro Keyboard "
+  "Accelerometer Altimeter Brake Camera CameraRecognitionObject Car Compass Connector ControlMode "
+  "CoordinateSystem Driver Display DistanceSensor Emitter EngineType Field GPS Gyro Keyboard "
   "InertialUnit ImageRef IndicatorState Joystick LED Lidar LidarPoint LightSensor LinearMotor Mode Motion Motor "
-  "MouseState Node Pen PositionSensor Radar RadarTarget RangeFinder Receiver Robot RotationalMotor "
-  "SimulationMode Skin Speaker Supervisor TouchSensor Type UserInputEvent WiperMode WheelIndex";
+  "MouseState Node Pen PositionSensor Proto Radar RadarTarget RangeFinder Receiver Robot RotationalMotor "
+  "SimulationMode Skin Speaker Supervisor TouchSensor Type UserInputEvent VacuumGripper WiperMode WheelIndex";
 
-static const char *WBT_OBJECTS = "Appearance Background BallJoint BallJointParameters Box "
-                                 "Capsule Charger Color Cone ContactProperties Coordinate Cubemap Cylinder Damping "
-                                 "DirectionalLight ElevationGrid Fluid Focus Fog Group HingeJoint "
-                                 "HingeJointParameters Hinge2Joint ImageTexture ImmersionProperties "
-                                 "IndexedFaceSet IndexedLineSet JointParameters Lens LensFlare Material PBRAppearance Physics "
-                                 "Plane PointLight Propeller Recognition Shape SliderJoint Slot Solid SolidReference "
-                                 "Sphere SpotLight TextureCoordinate TextureTransform Track TrackWheel "
-                                 "Transform Viewpoint WorldInfo Zoom";
+static const char *WBT_OBJECTS =
+  "Appearance Background BallJoint BallJointParameters Billboard Box "
+  "Capsule Charger Color Cone ContactProperties Coordinate Cylinder Damping "
+  "DirectionalLight ElevationGrid Fluid Focus Fog Group HingeJoint "
+  "HingeJointParameters Hinge2Joint ImageTexture ImmersionProperties "
+  "IndexedFaceSet IndexedLineSet JointParameters Lens LensFlare Material Mesh Normal PBRAppearance "
+  "Physics Plane PointLight Pose Propeller Recognition Shape SliderJoint Slot Solid SolidReference "
+  "Sphere SpotLight TextureCoordinate TextureTransform Track TrackWheel "
+  "Transform Viewpoint WorldInfo Zoom";
 
 static WbLanguage **gLanguages = NULL;
 
@@ -670,26 +737,26 @@ void WbLanguage::cleanup() {
 }
 
 WbLanguage::WbLanguage(int code, const QString &name, const QString &defaultFileSuffix, const QString &commentPrefix,
-                       bool isCompilable) {
-  mCode = code;
-  mName = name;
-  mDefaultFileSuffix = defaultFileSuffix;
-  mCommentPrefix = commentPrefix;
-  mIsCompilable = isCompilable;
+                       bool isCompilable) :
+  mCode(code),
+  mName(name),
+  mDefaultFileSuffix(defaultFileSuffix),
+  mCommentPrefix(commentPrefix),
+  mIsCompilable(isCompilable) {
 }
 
 WbLanguage::~WbLanguage() {
 }
 
-void WbLanguage::addKeywords(QString words) {
+void WbLanguage::addKeywords(const QString &words) {
   mKeywords += words.split(" ");
 }
 
-void WbLanguage::addApiWords(QString words) {
+void WbLanguage::addApiWords(const QString &words) {
   mApiWords += words.split(" ");
 }
 
-void WbLanguage::addPreprocessorWords(QString words) {
+void WbLanguage::addPreprocessorWords(const QString &words) {
   mPreprocessorWords += words.split(" ");
 }
 
@@ -779,29 +846,29 @@ WbLanguage *WbLanguage::findByFileName(const QString &fileName) {
   QFileInfo fi(fileName);
   QString ext = fi.suffix().toLower();
 
-  int code = PLAIN_TEXT;
+  int suffixCode = PLAIN_TEXT;
   if (ext == "c" || ext == "h")
-    code = C;
+    suffixCode = C;
   else if (ext == "java")
-    code = JAVA;
+    suffixCode = JAVA;
   else if (ext == "py")
-    code = PYTHON;
+    suffixCode = PYTHON;
   else if (ext == "cpp" || ext == "cc" || ext == "c++" || ext == "hpp" || ext == "hh" || ext == "h++")
-    code = CPP;
+    suffixCode = CPP;
   else if (ext == "m")
-    code = MATLAB;
-  else if (ext == "wbt" || ext == "wrl" || ext == "wbo")
-    code = WBT;
-  else if (ext == "proto")
-    code = PROTO;
+    suffixCode = MATLAB;
+  else if (ext == "wbt")
+    suffixCode = WBT;
+  else if (ext == "proto" || ext == "generated_proto")
+    suffixCode = PROTO;
   else if (ext == "lua")
-    code = LUA;
+    suffixCode = LUA;
 
   QString baseName = fi.baseName().toLower();
   if (baseName == "makefile")
-    code = MAKEFILE;
+    suffixCode = MAKEFILE;
 
-  return findByCode(code);
+  return findByCode(suffixCode);
 }
 
 const QStringList &WbLanguage::sourceFileExtensions() {

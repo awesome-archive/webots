@@ -10,16 +10,12 @@ In order to get the `Mouse` instance, you should call the `Robot.getMouse` funct
 
 The state of a mouse is defined like this:
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
 ```c
 typedef struct {
-  // mouse buttons state
-  bool left;
-  bool middle;
-  bool right;
   // mouse 2D position in the 3D window
   double u;
   double v;
@@ -27,6 +23,10 @@ typedef struct {
   double x;
   double y;
   double z;
+  // mouse buttons state
+  bool left;
+  bool middle;
+  bool right;
 } WbMouseState;
 ```
 %tab-end
@@ -38,10 +38,6 @@ typedef struct {
 
 namespace webots {
   typedef struct {
-    // mouse buttons state
-    bool left;
-    bool middle;
-    bool right;
     // mouse 2D position in the 3D window
     double u;
     double v;
@@ -49,6 +45,10 @@ namespace webots {
     double x;
     double y;
     double z;
+    // mouse buttons state
+    bool left;
+    bool middle;
+    bool right;
   } MouseState;
 }
 ```
@@ -62,11 +62,11 @@ from controller import MouseState
 
 class MouseState:
     @property
-    left, middle, right  # mouse button state
-    @property
     u, v  # mouse 2D position in the 3D window
     @property
     x, y, z  # mouse 3D position
+    @property
+    left, middle, right  # mouse button state
 ```
 
 %tab-end
@@ -77,14 +77,14 @@ class MouseState:
 import com.cyberbotics.webots.controller.MouseState;
 
 public class MouseState {
-  public boolean getLeft();
-  public boolean getMiddle();
-  public boolean getRight();
   public double getU();
   public double getV();
   public double getX();
   public double getY();
   public double getZ();
+  public boolean getLeft();
+  public boolean getMiddle();
+  public boolean getRight();
 }
 ```
 
@@ -92,26 +92,20 @@ public class MouseState {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 structs.WbMouseState.members = struct(
-  'left', 'int8',
-  'middle', 'int8',
-  'right', 'int8',
   'u', 'double',
   'v', 'double',
   'x', 'double',
   'y', 'double',
-  'z', 'double'
+  'z', 'double',
+  'left', 'int8',
+  'middle', 'int8',
+  'right', 'int8'
 );
 ```
 
 %tab-end
-
-%tab "ROS"
-
-%tab-end
-
-> `MouseState` data is directly accessible from the related [`/mouse/mouse_get_state` service](#wb_mouse_enable).
 
 %end
 
@@ -132,7 +126,7 @@ These values may be `NaN` if not applicable, for example when the mouse is point
 #### `wb_mouse_get_sampling_period`
 #### `wb_mouse_get_state`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -198,22 +192,12 @@ public class Mouse {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_mouse_enable(sampling_period)
 wb_mouse_disable()
 period = wb_mouse_get_sampling_period()
 state = wb_mouse_get_state()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/mouse/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/mouse/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
-| `/mouse/mouse_get_state` | `service` | `webots_ros::mouse_get_state` | `uint8 ask`<br/>`---`<br/>`uint8 left`<br/>`uint8 middle`<br/>`uint8 right`<br/>`float64 u`<br/>`float64 v`<br/>`float64 x`<br/>`float64 y`<br/>`float64 z` |
 
 %tab-end
 
@@ -235,7 +219,7 @@ The `wb_mouse_disable` function should be used to stop the mouse readings.
 #### `wb_mouse_disable_3d_position`
 #### `wb_mouse_is_3d_position_enabled`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -297,21 +281,11 @@ public class Mouse {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_mouse_enable_3d_position()
 wb_mouse_disable_3d_position()
 enabled = wb_mouse_is_3d_position_enabled()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/mouse/mouse_enable_3d_position` | `service` | [`webots_ros::set_bool`](ros-api.md#common-services) | |
-| `/mouse/mouse_disable_3d_position` | `service` | [`webots_ros::set_bool`](ros-api.md#common-services) | |
-| `/mouse/mouse_is_3d_position_enabled` | `service` | [`webots_ros::get_bool`](ros-api.md#common-services) | |
 
 %tab-end
 

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,7 +31,6 @@
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QHash>
-#include <QtCore/QPair>
 #include <QtGui/QImageReader>
 
 static int cResizeIconSize = -1;
@@ -41,15 +40,13 @@ static int cBorderSizeVertical = 1;
 
 // Color values taken from textures in resources/ogre/textures
 static float cBorderColors[WbWrenTextureOverlay::OVERLAY_TYPE_COUNT][4] = {{1.0f, 0.0f, 1.0f, 1.0f},
-                                                                           {240.0f / 255.0f, 1.0f, 0.0f, 1.0f},
+                                                                           {1.0f, 0.815f, 0.0f, 1.0f},
                                                                            {0.0f, 1.0f, 1.0f, 1.0f}};
 
 // map storing status of overlay elements:
 // TRUE: overlay enabled
 // FALSE: overlay disabled, i.e. already open in an external window
-static QHash<WrOverlay *, QPair<WbWrenTextureOverlay *, bool>> cOverlayStatusMap;
-
-float WbWrenTextureOverlay::cScreenRatio = 1.0f;
+static QHash<WrOverlay *, std::pair<WbWrenTextureOverlay *, bool>> cOverlayStatusMap;
 
 ////////////////////////////////////////
 //  Constructor  and initializations  //
@@ -67,6 +64,7 @@ WbWrenTextureOverlay::WbWrenTextureOverlay(void *data, int width, int height, Te
   mPixelSize(1.0),
   mDataHasBeenAllocated(false),
   mWrenBackgroundTexture(NULL),
+  mWrenMaskTexture(NULL),
   mWrenForegroundTexture(NULL) {
   if (!mData)
     allocateBlackImageIntoData();
@@ -115,7 +113,6 @@ WbWrenTextureOverlay::WbWrenTextureOverlay(void *data, int width, int height, Te
   wr_overlay_set_texture(mWrenOverlay, mWrenTexture);
   wr_overlay_add_additional_texture(mWrenOverlay, WR_TEXTURE(mWrenCloseIconTexture));
   wr_overlay_add_additional_texture(mWrenOverlay, WR_TEXTURE(mWrenResizeIconTexture));
-  wr_overlay_set_screen_ratio(cScreenRatio);
   wr_overlay_set_program(mWrenOverlay, WbWrenShaders::overlayShader());
   wr_overlay_set_border_active(mWrenOverlay, true);
   wr_overlay_set_border_color(mWrenOverlay, cBorderColors[overlayType]);
@@ -130,7 +127,7 @@ WbWrenTextureOverlay::WbWrenTextureOverlay(void *data, int width, int height, Te
   updateTexture();
   updatePercentagePosition(0.0, 0.0);
 
-  cOverlayStatusMap.insert(mWrenOverlay, QPair<WbWrenTextureOverlay *, bool>(this, true));
+  cOverlayStatusMap.insert(mWrenOverlay, std::pair<WbWrenTextureOverlay *, bool>(this, true));
   setVisible(false, true);
 
   WbWrenOpenGlContext::doneWren();
@@ -201,17 +198,20 @@ bool WbWrenTextureOverlay::applyDimensionsToWren(bool showIfNeeded) {
   float overlayHeight = mPixelSize * mHeight;
   const float overlayRatio = overlayWidth / overlayHeight;
 
-  if (overlayWidth >= view3dWidth || overlayHeight >= view3dHeight) {
-    if (overlayWidth > overlayHeight) {
-      overlayWidth = view3dWidth - 2.0f * cBorderSizeHorizontal;
-      overlayHeight = overlayWidth / overlayRatio;
-      mPixelSize = view3dWidth / mWidth;
-    } else {
-      overlayHeight = view3dHeight - 2.0f * cBorderSizeVertical;
-      overlayWidth = overlayHeight * overlayRatio;
-      mPixelSize = view3dHeight / mHeight;
-    }
-  } else if (overlayWidth < minSize || overlayHeight < minSize) {
+  // enforce horizontal constraint
+  if (mPercentagePosition.x() * view3dWidth + overlayWidth > view3dWidth) {
+    overlayWidth = view3dWidth - mPercentagePosition.x() * view3dWidth - 2.0f * cBorderSizeHorizontal;
+    overlayHeight = overlayWidth / overlayRatio;
+    mPixelSize = overlayWidth / mWidth;
+  }
+  // enforce vertical constraint
+  if (mPercentagePosition.y() * view3dHeight + overlayHeight > view3dHeight) {
+    overlayHeight = view3dHeight - mPercentagePosition.y() * view3dHeight - 2.0f * cBorderSizeVertical;
+    overlayWidth = overlayHeight * overlayRatio;
+    mPixelSize = overlayHeight / mHeight;
+  }
+  // enforce minimal size constraint
+  if (overlayWidth < minSize || overlayHeight < minSize) {
     if (overlayWidth < overlayHeight) {
       overlayWidth = minSize;
       overlayHeight = overlayWidth / overlayRatio;
@@ -267,22 +267,30 @@ WrTexture2d *WbWrenTextureOverlay::createIconTexture(QString filePath) {
   assert(QFileInfo(filePath).isFile());
 
   // don't read the image from disk if it's already in the cache
-  WrTexture2d *texture = wr_texture_2d_copy_from_cache(filePath.toUtf8().constData());
-  if (texture)
-    return texture;
+  WrTexture2d *imageTexture = wr_texture_2d_copy_from_cache(filePath.toUtf8().constData());
+  if (imageTexture)
+    return imageTexture;
 
   QImageReader imageReader(filePath);
-  QImage image = imageReader.read().mirrored(false, true);  // account for inverted Y axis in OpenGL
+  QImage image = imageReader.read();
+
+  // account for inverted Y axis in OpenGL
+#ifdef _WIN32  // Windows builds against a newer version of Qt, which deprecates `mirrored`
+  image = image.flipped(Qt::Vertical);
+#else
+  image = image.mirrored(false, true);
+#endif
+
   const bool isTranslucent = image.pixelFormat().alphaUsage() == QPixelFormat::UsesAlpha;
 
-  texture = wr_texture_2d_new();
-  wr_texture_set_size(WR_TEXTURE(texture), image.width(), image.height());
-  wr_texture_set_translucent(WR_TEXTURE(texture), isTranslucent);
-  wr_texture_2d_set_data(texture, reinterpret_cast<const char *>(image.bits()));
-  wr_texture_2d_set_file_path(texture, filePath.toUtf8().constData());
-  wr_texture_setup(WR_TEXTURE(texture));
+  imageTexture = wr_texture_2d_new();
+  wr_texture_set_size(WR_TEXTURE(imageTexture), image.width(), image.height());
+  wr_texture_set_translucent(WR_TEXTURE(imageTexture), isTranslucent);
+  wr_texture_2d_set_data(imageTexture, reinterpret_cast<const char *>(image.bits()));
+  wr_texture_2d_set_file_path(imageTexture, filePath.toUtf8().constData());
+  wr_texture_setup(WR_TEXTURE(imageTexture));
 
-  return texture;
+  return imageTexture;
 }
 
 void WbWrenTextureOverlay::copyDataToTexture(void *data, TextureType type, int x, int y, int width, int height) {
@@ -294,7 +302,7 @@ void WbWrenTextureOverlay::copyDataToTexture(void *data, TextureType type, int x
 
   if (type == TEXTURE_TYPE_DEPTH) {
     int *processedData = new int[width * height];
-    float *originalData = static_cast<float *>(data);
+    const float *originalData = static_cast<float *>(data);
     const float multiplier = 255.0f / mMaxRange;
     for (int i = 0; i < width * height; ++i) {
       unsigned char v = (unsigned char)(multiplier * originalData[i]);
@@ -316,21 +324,21 @@ void WbWrenTextureOverlay::copyDataToTexture(void *data, TextureType type, int x
 void WbWrenTextureOverlay::allocateBlackImageIntoData() {
   assert(!mData);
 
-  int size = mWidth * mHeight;
+  int imageSize = mWidth * mHeight;
   switch (mTextureType) {
     case TEXTURE_TYPE_BGRA: {
-      mData = malloc(4 * size);
+      mData = malloc(4 * imageSize);
 
-      int *dataInt = (int *)mData;
-      for (int i = 0; i < size; i++)
+      int *dataInt = static_cast<int *>(mData);
+      for (int i = 0; i < imageSize; i++)
         dataInt[i] = 0xFF000000;
       break;
     }
     case TEXTURE_TYPE_DEPTH: {
-      mData = malloc(sizeof(float) * size);
+      mData = malloc(sizeof(float) * imageSize);
 
-      float *dataFloat = (float *)mData;
-      for (int i = 0; i < size; i++)
+      float *dataFloat = static_cast<float *>(mData);
+      for (int i = 0; i < imageSize; i++)
         dataFloat[i] = 0.0f;
       break;
     }
@@ -353,6 +361,13 @@ int WbWrenTextureOverlay::backgroundTextureGLId() const {
     return 0;
 }
 
+int WbWrenTextureOverlay::maskTextureGLId() const {
+  if (mWrenMaskTexture)
+    return wr_texture_get_gl_name(mWrenMaskTexture);
+  else
+    return 0;
+}
+
 int WbWrenTextureOverlay::foregroundTextureGLId() const {
   if (mWrenForegroundTexture)
     return wr_texture_get_gl_name(mWrenForegroundTexture);
@@ -365,28 +380,21 @@ int WbWrenTextureOverlay::foregroundTextureGLId() const {
 /////////////////////////////////////
 
 int WbWrenTextureOverlay::left() const {
-  return wr_overlay_get_x(mWrenOverlay) * wr_viewport_get_width(wr_scene_get_viewport(wr_scene_get_instance())) / cScreenRatio +
+  return wr_overlay_get_x(mWrenOverlay) * wr_viewport_get_width(wr_scene_get_viewport(wr_scene_get_instance())) +
          cBorderSizeHorizontal;
 }
 
 int WbWrenTextureOverlay::top() const {
-  return wr_overlay_get_y(mWrenOverlay) * wr_viewport_get_height(wr_scene_get_viewport(wr_scene_get_instance())) /
-           cScreenRatio +
+  return wr_overlay_get_y(mWrenOverlay) * wr_viewport_get_height(wr_scene_get_viewport(wr_scene_get_instance())) +
          cBorderSizeVertical;
 }
 
 int WbWrenTextureOverlay::width() const {
-  return wr_overlay_get_width(mWrenOverlay) * wr_viewport_get_width(wr_scene_get_viewport(wr_scene_get_instance())) /
-         cScreenRatio;
+  return wr_overlay_get_width(mWrenOverlay) * wr_viewport_get_width(wr_scene_get_viewport(wr_scene_get_instance()));
 }
 
 int WbWrenTextureOverlay::height() const {
-  return wr_overlay_get_height(mWrenOverlay) * wr_viewport_get_height(wr_scene_get_viewport(wr_scene_get_instance())) /
-         cScreenRatio;
-}
-
-bool WbWrenTextureOverlay::isTransparent() const {
-  return (mTextureType == TEXTURE_TYPE_BGRA);
+  return wr_overlay_get_height(mWrenOverlay) * wr_viewport_get_height(wr_scene_get_viewport(wr_scene_get_instance()));
 }
 
 bool WbWrenTextureOverlay::isVisible() const {
@@ -402,9 +410,9 @@ void WbWrenTextureOverlay::setBackgroundTexture(WrTexture *backgroundTexture) {
   wr_overlay_set_background_texture(mWrenOverlay, mWrenBackgroundTexture);
 }
 
-void WbWrenTextureOverlay::unsetBackgroundTexture() {
-  mWrenBackgroundTexture = NULL;
-  wr_overlay_set_background_texture(mWrenOverlay, mWrenBackgroundTexture);
+void WbWrenTextureOverlay::setMaskTexture(WrTexture *texture) {
+  mWrenMaskTexture = texture;
+  wr_overlay_set_mask_texture(mWrenOverlay, mWrenMaskTexture);
 }
 
 WrTexture2d *WbWrenTextureOverlay::createForegroundTexture() {
@@ -412,7 +420,10 @@ WrTexture2d *WbWrenTextureOverlay::createForegroundTexture() {
   wr_texture_set_size(WR_TEXTURE(texture2d), mWidth, mHeight);
   wr_texture_set_translucent(WR_TEXTURE(texture2d), true);
   wr_texture_2d_set_data(texture2d, NULL);
+  // make context active to generate immediately the foreground texture name
+  WbWrenOpenGlContext::makeWrenCurrent();
   wr_texture_setup(WR_TEXTURE(texture2d));
+  WbWrenOpenGlContext::doneWren();
 
   mWrenForegroundTexture = WR_TEXTURE(texture2d);
   wr_overlay_set_foreground_texture(mWrenOverlay, mWrenForegroundTexture);
@@ -472,13 +483,16 @@ QStringList WbWrenTextureOverlay::perspective() const {
 void WbWrenTextureOverlay::restorePerspective(QStringList &perspective, bool globalOverlaysEnabled) {
   assert(perspective.size() >= 4);
 
-  bool isVisible = perspective.takeFirst() == "1";
-  double pixelSize = perspective.takeFirst().toDouble();
+  bool visible = perspective.takeFirst() == "1";
+  // cppcheck-suppress duplicateAssignExpression
+  double pixelsSize = perspective.takeFirst().toDouble();
+  // cppcheck-suppress duplicateAssignExpression
   double x = perspective.takeFirst().toDouble();
+  // cppcheck-suppress duplicateAssignExpression
   double y = perspective.takeFirst().toDouble();
-  resize(pixelSize);
+  resize(pixelsSize);
   updatePercentagePosition(x, y);
-  setVisible(isVisible, globalOverlaysEnabled);
+  setVisible(visible, globalOverlaysEnabled);
 }
 
 /////////////////////////////////////////////////
@@ -524,18 +538,13 @@ bool WbWrenTextureOverlay::isInsideCloseButton(int x, int y) const {
 //////////////////////////////////////////////////////
 
 void WbWrenTextureOverlay::updateOverlayDimensions() {
-  for (const QPair<WbWrenTextureOverlay *, bool> &p : cOverlayStatusMap)
+  for (const std::pair<WbWrenTextureOverlay *, bool> &p : cOverlayStatusMap)
     p.first->applyChangesToWren();
 }
 
 void WbWrenTextureOverlay::setElementsVisible(OverlayType type, bool visible) {
-  for (const QPair<WbWrenTextureOverlay *, bool> &p : cOverlayStatusMap) {
+  for (const std::pair<WbWrenTextureOverlay *, bool> &p : cOverlayStatusMap) {
     if (p.first->mOverlayType == type && p.second)  // skip explicitly closed overlays
       wr_overlay_set_visible(p.first->mWrenOverlay, visible);
   }
-}
-
-void WbWrenTextureOverlay::setScreenRatio(float screenRatio) {
-  cScreenRatio = screenRatio;
-  wr_overlay_set_screen_ratio(cScreenRatio);
 }

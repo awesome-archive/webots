@@ -1,10 +1,11 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+#!/usr/bin/env python3
+# Copyright 1996-2024 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +20,7 @@ import sys
 
 try:
     import pyproj
-except:
+except Exception:
     sys.exit("Error: pyproj python module not installed. You can install it using pip: 'pip install pyproj'")
 
 
@@ -57,7 +58,9 @@ class Projection(object):
             # WARNING: this default UTM projection should match the one of Webots GPS model
             utm_zone = 1 + math.floor((float(long0) + 180) / 6)
             hemisphere = 'south' if lat0 < 0 else 'north'
-            Projection.projectionString = "+proj=utm +%s +zone=%d +lon_0=%f +lat_0=%f +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs" % (hemisphere, utm_zone, long0, lat0)
+            Projection.projectionString = \
+                "+proj=utm +%s +zone=%d +lon_0=%f +lat_0=%f +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs" % \
+                (hemisphere, utm_zone, long0, lat0)
         else:
             Projection.projectionString = projection
         Projection.projection = pyproj.Proj(Projection.projectionString)

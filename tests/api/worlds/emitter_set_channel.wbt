@@ -1,11 +1,16 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
   info [
     "Test world checking the wb_emitter_set_channel function"
   ]
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.99097079 -0.10994398 -0.076741283 5.27504
+  orientation 0.9909707851006649 -0.10994397945643969 -0.07674128262059299 5.27504
   position 0.141085 2.28425 1.39394
 }
 Background {
@@ -15,9 +20,14 @@ Background {
 }
 DEF FLOOR Solid {
   children [
-    Shape {
-      geometry Plane {
-      }
+    Pose {
+      rotation 1 0 0 -1.57079632679
+      children [
+        Shape {
+          geometry Plane {
+          }
+        }
+      ]
     }
   ]
   locked TRUE
@@ -58,7 +68,9 @@ DEF RECEIVER1 Robot {
   ]
   name "robot_receiver1"
   controller "emitter_set_channel"
-  controllerArgs "emitter_set_channel_receiver_1"
+  controllerArgs [
+    "emitter_set_channel_receiver_1"
+  ]
 }
 DEF RECEIVER2 Robot {
   translation 0.3 0.05 0.3
@@ -77,16 +89,23 @@ DEF RECEIVER2 Robot {
   ]
   name "robot_receiver2"
   controller "emitter_set_channel"
-  controllerArgs "emitter_set_channel_receiver_2"
+  controllerArgs [
+    "emitter_set_channel_receiver_2"
+  ]
 }
 DEF EMITTER Robot {
   translation -0.3 0.05 -0.3
   children [
-    Shape {
-      geometry Cylinder {
-        height 0.1
-        radius 0.07
-      }
+    Pose {
+      rotation 1 0 0 -1.57079632679
+      children [
+        Shape {
+          geometry Cylinder {
+            height 0.1
+            radius 0.07
+          }
+        }
+      ]
     }
     DEF EMITTER Emitter {
       channel 1
@@ -96,7 +115,9 @@ DEF EMITTER Robot {
   ]
   name "robot_emitter"
   controller "emitter_set_channel"
-  controllerArgs "emitter_set_channel_emitter"
+  controllerArgs [
+    "emitter_set_channel_emitter"
+  ]
 }
 TestSuiteSupervisor {
 }

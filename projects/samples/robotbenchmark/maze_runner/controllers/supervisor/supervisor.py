@@ -1,25 +1,25 @@
 """Supervisor of the Maze Runner benchmark."""
 
 from controller import Supervisor
-from controller import Field
-from controller import Node
 import os
 import sys
 
 try:
-    includePath = os.environ.get("WEBOTS_HOME") + "/projects/samples/robotbenchmark/include"
-    includePath.replace('/', os.sep)
-    sys.path.append(includePath)
+    sys.path.append(os.path.join(os.path.normpath(os.environ.get("WEBOTS_HOME")), 'projects', 'samples', 'robotbenchmark',
+                                 'include'))
     from robotbenchmark import robotbenchmarkRecord
 except ImportError:
     sys.stderr.write("Warning: 'robotbenchmark' module not found.\n")
     sys.exit(0)
 
+
 def isPositionChanged(v1, v2):
-    return abs(v1[0] - v2[0]) > 0.001 or abs(v1[2] - v2[2]) > 0.001
+    return abs(v1[1] - v2[1]) > 0.001 or abs(v1[0] - v2[0]) > 0.001
+
 
 def isMazeEndReached(position):
-    return position[0] < 0.60 and position[0] > 0.45 and position[2] < 0.15 and position[2] > -0.15
+    return position[0] < 0.15 and position[0] > -0.15 and position[1] > -0.60 and position[1] < -0.45
+
 
 robot = Supervisor()
 timestep = int(4 * robot.getBasicTimeStep())
@@ -36,12 +36,12 @@ topNodesCount = topChildrenField.getCount()
 for i in range(topNodesCount):
     node = topChildrenField.getMFNode(i)
     if node.getTypeName() == "MazeBlock":
-         object = {
-             "node": node,
-             "initialPosition": node.getPosition()
-         }
-         mazeBlocksList.append(object)
-         mazeBlocksListCount += 1
+        object = {
+            "node": node,
+            "initialPosition": node.getPosition()
+        }
+        mazeBlocksList.append(object)
+        mazeBlocksListCount += 1
 
 
 running = True
@@ -69,7 +69,13 @@ while robot.step(timestep) != -1:
             stopMessageSent = True
         else:
             message = robot.wwiReceiveText()
-            if message and message.startswith("record:"):
-                record = robotbenchmarkRecord(message, "maze_runner", -time)
-                robot.wwiSendText(record)
-                break
+            while message:
+                if message.startswith("record:"):
+                    record = robotbenchmarkRecord(message, "maze_runner", -time)
+                    robot.wwiSendText(record)
+                    break
+                elif message == "exit":
+                    break
+                message = robot.wwiReceiveText()
+
+robot.simulationSetMode(Supervisor.SIMULATION_MODE_PAUSE)

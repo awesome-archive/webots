@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -68,8 +68,6 @@ void WbFluid::preFinalize() {
     boundingObject()->preFinalize();
 
   setMatrixNeedUpdate();  // force the matrix update after the first ode update
-
-  checkScaleAtLoad(true);
 }
 
 void WbFluid::postFinalize() {
@@ -150,19 +148,6 @@ void WbFluid::updateBoundingObject() {
   mBoundingObjectHasChanged = true;
 }
 
-// Scale
-
-void WbFluid::updateScale(bool warning) {
-  const int constraint = constraintType();
-  if (checkScale(constraint, warning))
-    return;
-
-  WbMatter::applyToScale();
-
-  if (WbOdeContext::instance() && boundingObject())
-    applyToOdeScale();
-}
-
 // Sets the fluid into placeable ODE dGeoms
 void WbFluid::attachGeomsToFluid(dGeomID g) {
   dSpaceID space = WbSolidUtilities::dynamicCastInSpaceID(g);
@@ -194,7 +179,7 @@ void WbFluid::createOdeGeomFromInsertedGroupItem(WbBaseNode *node) {
 void WbFluid::updateDensity() {
   const double d = mDensity->value();
   if (d < 0.0) {
-    warn(tr("'density' must be greater than or equal to zero. Reset to default value 1000 kg/m^3"));
+    parsingWarn(tr("'density' must be greater than or equal to zero. Reset to default value 1000 kg/m^3"));
     mDensity->setValue(1000.0);
     return;
   }
@@ -206,7 +191,7 @@ void WbFluid::updateDensity() {
 void WbFluid::updateViscosity() {
   const double v = mViscosity->value();
   if (v < 0.0) {
-    warn(tr("'viscosity' must be greater than or equal to zero. Reset to default value 0.001 kg/(ms)"));
+    parsingWarn(tr("'viscosity' must be greater than or equal to zero. Reset to default value 0.001 kg/(ms)"));
     mViscosity->setValue(1000.0);
     return;
   }
@@ -226,16 +211,6 @@ double WbFluid::density() const {
 
 double WbFluid::viscosity() const {
   return mViscosity->value();
-}
-
-void WbFluid::propagateScale() {
-  WbMatter::propagateScale();
-  updateOdeGeomPosition();
-  WbWorld::instance()->awake();
-}
-
-void WbFluid::applyToOdeScale() {
-  propagateScale();
 }
 
 void WbFluid::propagateSelection(bool selected) {

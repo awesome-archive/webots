@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,11 @@
 #ifndef WB_RENDERING_DEVICE_WINDOW_HPP
 #define WB_RENDERING_DEVICE_WINDOW_HPP
 
-#include <QtGui/QOpenGLFunctions_3_3_Core>
+#include "WbRenderingDevice.hpp"
+
 #include <QtGui/QWindow>
+#include <QtOpenGL/QOpenGLFunctions_3_3_Core>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -24,7 +27,6 @@
 class QOpenGLContext;
 class QOpenGLShaderProgram;
 
-class WbRenderingDevice;
 class WbAbstractCamera;
 
 class WbRenderingDeviceWindow : public QWindow {
@@ -54,13 +56,17 @@ private:
   WbAbstractCamera *mAbstractCamera;
   GLuint mTextureGLId;
   GLuint mBackgroundTextureGLId;
+  GLuint mMaskTextureGLId;
   GLuint mForegroundTextureGLId;
   GLuint mMaxRangeUniform;
   GLuint mImageUniform;
   GLuint mBackgroundTextureUniform;
+  GLuint mMaskTextureUniform;
   GLuint mForegroundTextureUniform;
+  GLuint mActiveTexturesUniform;
   GLuint mVaoId;
-  GLuint mVboId[2];
+  GLuint *mVboId;
+  bool mInitialized;
   float mXFactor;
   float mYFactor;
   QRect mPreviousGeometry;
@@ -74,9 +80,9 @@ private:
 private slots:
   void renderNow();
   void requestUpdate();
-  void updateTextureGLId(int id);
-  void updateBackgroundTextureGLId(int id);
-  void updateForegroundTextureGLId(int id);
+  void updateTextureGLId(int id, WbRenderingDevice::TextureRole);
+  void listenToBackgroundImageChanges(const WbRenderingDevice *previousAttachedDevice,
+                                      const WbRenderingDevice *newAttachedDevice);
   void closeFromMainWindow();
 };
 

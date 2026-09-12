@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -91,6 +91,7 @@ namespace wren {
       SpotLight mSpotLights[gMaxActiveSpotLights];
       glm::vec4 mAmbientLight;
       glm::ivec3 mLightCount;
+      float pad;  // pad the struct to get the same size as the std140 struct in shaders where vec3 is counted as a vec4
     };
 
     // Used for doing one pass per light
@@ -110,10 +111,10 @@ namespace wren {
       glm::vec4 mDefaultSize;      // x,y: size, z: render default size instead of actual overlay
       glm::vec4 mBorderColor;
       glm::vec4 mBackgroundColor;
-      glm::vec4 mActiveFlags;   // x: bg texture, y: main texture, z: fg texture, w: border
       glm::vec4 mTextureFlags;  // x: flip vertically, y: additional texture count, z:  maxRange (depth textures only),
                                 // w: overlay transparency
-      glm::vec4 mSizeInPixels;  // x,y: size in screen pixels, z: screen ratio, w: unused (std140 padding)
+      glm::uvec2 mActiveFlags;  // x: active textures, y: border
+      glm::vec2 mSizeInPixels;  // x,y: size in screen pixels
       glm::vec2 mBorderSize;    // x: vertical size, y: horizontal size
     };
 

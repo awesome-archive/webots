@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,7 +28,7 @@ class WbExtendedStringEditor : public WbStringEditor {
 
 public:
   explicit WbExtendedStringEditor(QWidget *parent = NULL);
-  virtual ~WbExtendedStringEditor();
+  virtual ~WbExtendedStringEditor() override;
 
   void recursiveBlockSignals(bool block) override;
 
@@ -49,14 +49,20 @@ private:
     REMOTE_CONTROL_PLUGIN,
     ROBOT_WINDOW_PLUGIN,
     SOLID_REFERENCE,
-    // No info
+    // No info from there.
+    N_STRING_TYPE_INFO,  // counter
+
     REGULAR,
     SOUND,
-    TEXTURE_URL
+    TEXTURE_URL,
+    HDR_TEXTURE_URL,
+    MESH_URL,
+    CAD_URL,
+    SKIN_URL
   };
   StringType mStringType;
 
-  bool isWorldInfoPluginType(StringType type);
+  bool isWorldInfoPluginType(StringType type) const;
 
   // optional buttons below the string field
   QPushButton *mSelectButton, *mEditButton;
@@ -75,15 +81,13 @@ private:
   void updateWidgets();
 
   void selectFile(const QString &folder, const QString &title, const QString &types);
-  QString makeAbsoluteTexturePath(const QString &fileName) const;
-  QString makeRelativeTexturePath(const QString &fileName) const;
 
   // selection of a solid reference / a fluid name / a reference area
   bool selectItem();
   bool populateItems(QStringList &items);
 
-  static StringType fieldNameToStringType(const QString &fieldName);
-  static const QStringList ITEM_LIST_INFO[9];
+  static StringType fieldNameToStringType(const QString &fieldName, const WbNode *parentNode);
+  static const QStringList ITEM_LIST_INFO[N_STRING_TYPE_INFO];
   static const QStringList REFERENCE_AREA_ITEMS;
 
 private slots:

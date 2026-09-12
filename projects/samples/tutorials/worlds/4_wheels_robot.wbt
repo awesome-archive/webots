@@ -1,10 +1,15 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "webots://projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+
 WorldInfo {
   basicTimeStep 16
 }
 Viewpoint {
-  orientation -0.24852896702592445 -0.9044928799946061 -0.3465919540152224 2.16502
-  position -0.894428 1.0418 -0.559745
+  orientation 0.34588368390275137 -0.5404856700754533 -0.7669678726341472 4.947810560141415
+  position -0.4592975982312491 -0.6945563703501848 0.8399831457842541
 }
 TexturedBackground {
 }
@@ -14,7 +19,7 @@ Floor {
   size 1 1
 }
 DEF WALL_1 Solid {
-  translation 0.5 0.05 0
+  translation 0.5 0 0.05
   children [
     DEF WALL_SHAPE Shape {
       appearance PBRAppearance {
@@ -23,14 +28,14 @@ DEF WALL_1 Solid {
         metalness 0
       }
       geometry Box {
-        size 0.02 0.1 0.98
+        size 0.02 0.98 0.1
       }
     }
   ]
   boundingObject USE WALL_SHAPE
 }
 DEF WALL_2 Solid {
-  translation -0.5 0.05 0
+  translation -0.5 0 0.05
   children [
     USE WALL_SHAPE
   ]
@@ -38,8 +43,8 @@ DEF WALL_2 Solid {
   boundingObject USE WALL_SHAPE
 }
 DEF WALL_3 Solid {
-  translation 0 0.05 -0.5
-  rotation 0 1 0 1.5708
+  translation 0 -0.5 0.05
+  rotation 0 0 1 1.5708
   children [
     USE WALL_SHAPE
   ]
@@ -47,8 +52,8 @@ DEF WALL_3 Solid {
   boundingObject USE WALL_SHAPE
 }
 DEF WALL_4 Solid {
-  translation 0 0.05 0.5
-  rotation 0 1 0 1.5708
+  translation 0 0.5 0.05
+  rotation 0 0 1 1.5708
   children [
     USE WALL_SHAPE
   ]
@@ -56,8 +61,8 @@ DEF WALL_4 Solid {
   boundingObject USE WALL_SHAPE
 }
 Robot {
-  translation 0 0.05 0
-  rotation 0 -1 0 2.78858
+  translation 0 0 0.05
+  rotation 0 0 -1 2.78858
   children [
     DEF BODY Shape {
       appearance PBRAppearance {
@@ -66,12 +71,13 @@ Robot {
         metalness 0
       }
       geometry Box {
-        size 0.1 0.05 0.2
+        size 0.2 0.1 0.05
       }
     }
     DEF WHEEL1 HingeJoint {
       jointParameters HingeJointParameters {
-        anchor 0.06 0 0.05
+        axis 0 1 0
+        anchor 0.05 0.06 0
       }
       device [
         RotationalMotor {
@@ -79,25 +85,20 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.06 0 0.05
-        rotation 1 0 0 0
+        translation 0.05 0.06 0
+        rotation 1 0 0 1.5708
         children [
-          DEF WHEEL Transform {
-            rotation 0 0 1 1.5708
-            children [
-              Shape {
-                appearance PBRAppearance {
-                  baseColor 0.305882 0.898039 0.25098
-                  roughness 1
-                  metalness 0
-                }
-                geometry Cylinder {
-                  height 0.02
-                  radius 0.04
-                  subdivision 24
-                }
-              }
-            ]
+          DEF WHEEL Shape {
+            appearance PBRAppearance {
+              baseColor 0.305882 0.898039 0.25098
+              roughness 1
+              metalness 0
+            }
+            geometry Cylinder {
+              height 0.02
+              radius 0.04
+              subdivision 24
+            }
           }
         ]
         boundingObject USE WHEEL
@@ -107,7 +108,8 @@ Robot {
     }
     DEF WHEEL2 HingeJoint {
       jointParameters HingeJointParameters {
-        anchor -0.06 0 0.05
+        axis 0 1 0
+        anchor 0.05 -0.06 0
       }
       device [
         RotationalMotor {
@@ -115,8 +117,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.06 0 0.05
-        rotation 1 0 0 0
+        translation 0.05 -0.06 0
+        rotation 1 0 0 1.5708
         children [
           USE WHEEL
         ]
@@ -128,7 +130,8 @@ Robot {
     }
     DEF WHEEL3 HingeJoint {
       jointParameters HingeJointParameters {
-        anchor 0.06 0 -0.05
+        axis 0 1 0
+        anchor -0.05 0.06 0
       }
       device [
         RotationalMotor {
@@ -136,8 +139,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.06 0 -0.05
-        rotation 1 0 0 0
+        translation -0.05 0.06 0
+        rotation 1 0 0 1.5708
         children [
           USE WHEEL
         ]
@@ -149,7 +152,8 @@ Robot {
     }
     DEF WHEEL4 HingeJoint {
       jointParameters HingeJointParameters {
-        anchor -0.06 0 -0.05
+        axis 0 1 0
+        anchor -0.05 -0.06 0
       }
       device [
         RotationalMotor {
@@ -157,8 +161,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.06 0 -0.05
-        rotation 1 0 0 0
+        translation -0.05 -0.06 0
+        rotation 1 0 0 1.5708
         children [
           USE WHEEL
         ]
@@ -169,8 +173,8 @@ Robot {
       }
     }
     DEF DS_RIGHT DistanceSensor {
-      translation -0.03 0 0.1
-      rotation 0 1 0 -1.87079
+      translation 0.1 -0.03 0
+      rotation 0 0 1 -0.3
       children [
         Shape {
           appearance PBRAppearance {
@@ -186,8 +190,8 @@ Robot {
       name "ds_right"
     }
     DEF DS_LEFT DistanceSensor {
-      translation 0.03 0 0.1
-      rotation 0 1 0 -1.27079
+      translation 0.1 0.03 0
+      rotation 0 0 1 0.3
       children [
         Shape {
           appearance PBRAppearance {
@@ -208,5 +212,5 @@ Robot {
     density -1
     mass 1
   }
-  controller "4_wheels_collision_avoidance"
+  controller "four_wheels_collision_avoidance"
 }

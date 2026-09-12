@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -69,7 +69,7 @@ public:
   void setDecorationVisible(bool visible);
 
   int &handleWidth() { return mHandleWidth; }
-  void setHandleWidth(int &handleWidth) { mHandleWidth = handleWidth; }
+  void setHandleWidth(const int &handleWidth) { mHandleWidth = handleWidth; }
 
   // save/restore splitter perspective
   QList<QByteArray> saveState() const;
@@ -92,12 +92,21 @@ signals:
   void needsMinimize();
   void requestOpenUrl(const QString &fileName, const QString &message, const QString &title);
 
+  // signals for screenshots and thumbnails
+  void screenshotWritten();
+  void thumbnailTaken();
+
+public slots:
+  void disableRendering(bool disabled);
+  void disableStepButton(bool disabled);
+  void takeThumbnail(const QString &fileName);
+
 protected slots:
   void keyReleaseEvent(QKeyEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
   void hideEvent(QHideEvent *event) override;
   void showEvent(QShowEvent *event) override;
-  void showMenu(const QPoint &position);
+  void showMenu(const QPoint &position, QWidget *parentWidget);
 
 private slots:
   void makeMovie();
@@ -108,16 +117,19 @@ private slots:
   void stopVideoCapture(bool canceled = false);
   void takeScreenshotAndSaveAs(const QString &fileName, int quality = -1);
   void takeScreenshot();
+  void takeScreesnhotForThumbnail();
+  void restoreViewAfterThumbnail();
   void pause();
   void step();
   void realTime();
-  void run();
   void fast();
+  void toggleRendering();
   void updateVisibility();
-  void writeScreenshot(QImage image);
+  void writeScreenshot();
+  void writeScreenshotForThumbnail();
   void updateTitleBarTitle();
-  void disableStepButton(bool disabled);
   void updatePlayButtons();
+  void updateRendering();
   void updateSoundButtons();
   void needsActionsUpdate(int position, int index);
   void toggleSceneTreeVisibility();
@@ -149,7 +161,8 @@ private:
   QHBoxLayout *mToolsLayout;
   QLabel *mMessageLabel;
   QSlider *mSoundVolumeSlider;
-  bool mNeedRestoreFastMode;
+  bool mNeedToRestoreBlackRenderingOverlay;
+  bool mNeedToRestoreRendering;
 
   QAction *mToggleView3DAction, *mToggleSceneTreeAction;
   QToolButton *mShowSceneTreeButton;
@@ -161,13 +174,16 @@ private:
   QList<int> mScreenshotQualityList;
   QStringList mScreenshotFileNameList;
 
+  QSize mSizeBeforeThumbnail;
+  QString mThumbnailFileName;
+
   void createActions();
   QToolBar *createToolBar();
-  void updateFastModeOverlay();
+  void updateBlackRenderingOverlay();
   void renderABlackScreen();
   void retrieveSimulationView();
-  void switchToRunModeIfNecessary();
-  void restoreFastModeIfNecessary();
+  void showRenderingIfNecessary();
+  void restoreNoRenderingIfNecessary();
   void toggleMovieAction(bool isRecording);
   void updateSceneTreeActions(bool enabled);
   void updateToggleView3DAction(bool enabled);

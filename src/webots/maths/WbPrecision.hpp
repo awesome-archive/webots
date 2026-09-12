@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@
 
 #include <math.h>
 #include <QtCore/QString>
+#include <limits>
 
 namespace WbPrecision {
 
@@ -25,11 +26,11 @@ namespace WbPrecision {
   // `R` programming language set this to k * epsilon, where k is an arbitrary constant set to 1000.
   // cf. https://www.rdocumentation.org/packages/scales/versions/0.4.1/topics/zero_range
   // In Webots, it turns out we need to set this constant to 10000 to fix issue
-  // https://github.com/omichel/webots/issues/6519
+  // https://github.com/omichel/webots-dev/issues/6519
 
   const double DOUBLE_EQUALITY_TOLERANCE = 10000.0 * std::numeric_limits<double>::epsilon();
 
-  enum Level { DOUBLE_MAX, FLOAT_MAX, GUI_MEDIUM, GUI_LOW };
+  enum Level { DOUBLE_MAX, FLOAT_MAX, FLOAT_ROUND_6, GUI_MEDIUM, GUI_LOW };
 
   // - GUI_MEDIUM and GUI_LOW case (reserved for the GUI):
   //     - a string with an aribtrary precision is returned.
@@ -37,6 +38,8 @@ namespace WbPrecision {
   //     - a string <-> floating point conversion without loosing precision.
   //     - the result is the shortest possible string.
   QString doubleToString(double value, Level level);
+
+  double roundValue(double value, Level level);
 
 };  // namespace WbPrecision
 

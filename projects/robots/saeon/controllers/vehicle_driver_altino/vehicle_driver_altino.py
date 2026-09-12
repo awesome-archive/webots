@@ -1,10 +1,10 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+# Copyright 1996-2024 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,11 +14,6 @@
 
 """vehicle_driver_altino controller."""
 
-import math
-import os
-import sys
-from controller import Keyboard
-
 from vehicle import Driver
 
 sensorMax = 1000
@@ -26,27 +21,28 @@ sensorMax = 1000
 driver = Driver()
 
 basicTimeStep = int(driver.getBasicTimeStep())
-front_left_sensor = driver.getDistanceSensor('front_left_sensor')
-front_center_sensor = driver.getDistanceSensor('front_center_sensor')
-front_right_sensor = driver.getDistanceSensor('front_right_sensor')
+sensorTimeStep = 4 * basicTimeStep
+front_left_sensor = driver.getDevice('front_left_sensor')
+front_center_sensor = driver.getDevice('front_center_sensor')
+front_right_sensor = driver.getDevice('front_right_sensor')
 
-headlights = driver.getLED("headlights")
-backlights = driver.getLED("backlights")
+headlights = driver.getDevice("headlights")
+backlights = driver.getDevice("backlights")
 
 keyboard = driver.getKeyboard()
-keyboard.enable(basicTimeStep)
+keyboard.enable(sensorTimeStep)
 
-front_left_sensor.enable(basicTimeStep)
-front_center_sensor.enable(basicTimeStep)
-front_right_sensor.enable(basicTimeStep)
+front_left_sensor.enable(sensorTimeStep)
+front_center_sensor.enable(sensorTimeStep)
+front_right_sensor.enable(sensorTimeStep)
 
-side_left_sensor = driver.getDistanceSensor('side_left_sensor')
-side_right_sensor = driver.getDistanceSensor('side_right_sensor')
-back_sensor = driver.getDistanceSensor('back_sensor')
+side_left_sensor = driver.getDevice('side_left_sensor')
+side_right_sensor = driver.getDevice('side_right_sensor')
+back_sensor = driver.getDevice('back_sensor')
 
-side_left_sensor.enable(basicTimeStep)
-side_right_sensor.enable(basicTimeStep)
-back_sensor.enable(basicTimeStep)
+side_left_sensor.enable(sensorTimeStep)
+side_right_sensor.enable(sensorTimeStep)
+back_sensor.enable(sensorTimeStep)
 
 # speed refers to the speed in km/h at which we want Altino to travel
 speed = 0
@@ -164,9 +160,10 @@ while driver.step() != -1:
         angle = -0.4
 
     if (printCounter % 10) == 0:
-        print("\fWelcome to the Altino Sample Controller")
+        print("Welcome to the Altino Sample Controller")
         print("----------------------------------------------")
-        print("This sample controller is based on a Braitenberg vehicle, \n it uses the vehicle's infrared distance sensors to avoid obstacles.")
+        print("This sample controller is based on a Braitenberg vehicle, \n")
+        print("it uses the vehicle's infrared distance sensors to avoid obstacles.")
         print("\n-----------------Controls---------------------")
         print("'M' to enable manual control")
         print("'N' to disable manual control")

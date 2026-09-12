@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,10 +13,12 @@
 // limitations under the License.
 
 #include "WbMicrophone.hpp"
+
+#include "WbDataStream.hpp"
 #include "WbSFDouble.hpp"
 #include "WbSensor.hpp"
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../controller/c/messages.h"
 
 #include <QtCore/QDataStream>
 #include <cassert>
@@ -60,10 +62,10 @@ void WbMicrophone::postFinalize() {
 
 void WbMicrophone::updateAperture() {
   if (mAperture->value() < 0.0 && mAperture->value() != -1.0)
-    warn(tr("'aperture' must be either -1 (infinity) or between 0 and 2*pi."));
+    parsingWarn(tr("'aperture' must be either -1 (infinity) or between 0 and 2*pi."));
 }
 
-void WbMicrophone::writeConfigure(QDataStream &stream) {
+void WbMicrophone::writeConfigure(WbDataStream &stream) {
   mSensor->connectToRobotSignal(robot());
 
   stream << tag();
@@ -72,7 +74,7 @@ void WbMicrophone::writeConfigure(QDataStream &stream) {
   stream << (double)mSensitivity->value();
 }
 
-void WbMicrophone::writeAnswer(QDataStream &stream) {
+void WbMicrophone::writeAnswer(WbDataStream &stream) {
   if (isPowerOn() && mSensor->needToRefresh()) {
     // get sample from plugin
     computeValue();
@@ -90,12 +92,12 @@ void WbMicrophone::writeAnswer(QDataStream &stream) {
 
 void WbMicrophone::handleMessage(QDataStream &stream) {
   unsigned char command;
-  stream >> (unsigned char &)command;
+  stream >> command;
 
   switch (command) {
     case C_SET_SAMPLING_PERIOD: {
       short rate;
-      stream >> (short &)rate;
+      stream >> rate;
       mSensor->setRefreshRate(rate);
       return;
     }

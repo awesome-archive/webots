@@ -1,9 +1,9 @@
-#version 330
+#version 330 core
 
 layout(location = 0) in vec3 vCoord;
 layout(location = 2) in vec2 vTexCoord;
 
-const float closeButtonSize = 10.0;
+const float closeButtonSize = 14.0;
 const float resizeButtonSize = 16.0;
 
 out float aspectRatio;
@@ -21,19 +21,19 @@ layout(std140) uniform Overlay {
   vec4 defaultSize;      // x,y: size, z: render default size instead of actual overlay
   vec4 borderColor;
   vec4 backgroundColor;
-  vec4 activeFlags;   // x: bg texture, y: main texture, z: fg texture, w: border
   vec4 textureFlags;  // x: flip vertically, y: additional texture count, z: maxRange (depth textures only),
                       // w: overlay transparency
-  vec4 sizeInPixels;  // x,y: size in screen pixels, z: screen ratio, w: unused (std140 padding)
+  uvec2 activeFlags;  // x: textures, y: border
+  vec2 sizeInPixels;  // x,y: size in screen pixels
   vec2 borderSize;    // x: vertical size, y: horizontal size in percentage of OpenGL viewport size
 }
 overlay;
 
 void main() {
   aspectRatio = overlay.sizeInPixels.x / overlay.sizeInPixels.y;
-  closeButtonProportionX = overlay.sizeInPixels.z * closeButtonSize / overlay.sizeInPixels.x;
+  closeButtonProportionX = closeButtonSize / overlay.sizeInPixels.x;
   closeButtonProportionY = aspectRatio * closeButtonProportionX;
-  resizeButtonProportionX = overlay.sizeInPixels.z * resizeButtonSize / overlay.sizeInPixels.x;
+  resizeButtonProportionX = resizeButtonSize / overlay.sizeInPixels.x;
   resizeButtonProportionY = aspectRatio * resizeButtonProportionX;
 
   texUv = vTexCoord;
@@ -45,7 +45,7 @@ void main() {
 
   // if texcoords are not in [0.0, 1.0], the border color will be used in the fragment shader
   vec2 sizeWithBorder = actualSize;
-  if (overlay.activeFlags.w > 0.0) {
+  if (overlay.activeFlags.y != 0u) {
     sizeWithBorder += 2.0 * overlay.borderSize;
     vec2 scaleFactor = sizeWithBorder / actualSize;
     texUv -= vec2(0.5);

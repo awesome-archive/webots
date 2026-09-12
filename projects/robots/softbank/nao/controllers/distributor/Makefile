@@ -1,10 +1,10 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+# Copyright 1996-2024 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -50,8 +50,6 @@
 ### --- Webots included libraries ---
 ### In your C++ program, if you want to use the C API, add
 ### USE_C_API = true
-### or if you want to link with the Qt framework embedded in Webots:
-### QT = core gui widgets network
 ###
 ### ----- Java -----
 ### if your program uses several C source files:
@@ -64,7 +62,7 @@
 ###-----------------------------------------------------------------------------
 
 ### Do not modify: this includes Webots global Makefile.include
-space :=
-space +=
-WEBOTS_HOME_PATH=$(subst $(space),\ ,$(strip $(subst \,/,$(WEBOTS_HOME))))
+null :=
+space := $(null) $(null)
+WEBOTS_HOME_PATH?=$(subst $(space),\ ,$(strip $(subst \,/,$(WEBOTS_HOME))))
 include $(WEBOTS_HOME_PATH)/resources/Makefile.include

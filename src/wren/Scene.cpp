@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,9 +41,15 @@
 #include <wren/renderable.h>
 #include <wren/scene.h>
 
+#ifdef __EMSCRIPTEN__
+#include <GL/gl.h>
+#include <GLES3/gl3.h>
+#else
 #include <glad/glad.h>
+#endif
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 
 #define INVERSE_LOG2 1.442695
@@ -96,11 +102,10 @@ namespace wren {
     assert(!Texture2d::cachedItemCount());
   }
 
-  void Scene::getMainBuffer(int width, int height, unsigned int format, unsigned int data_type, unsigned int buffer_type,
-                            void *buffer) {
-    assert(buffer_type == GL_FRONT || buffer_type == GL_BACK);
-    glstate::bindFrameBuffer(0);
-    glReadBuffer(buffer_type);
+  void Scene::getMainBuffer(int width, int height, unsigned int format, unsigned int data_type, void *buffer) {
+    glstate::bindFrameBuffer(instance()->mMainViewport->frameBuffer()->glName());
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glFinish();
     glReadPixels(0, 0, width, height, format, data_type, buffer);
   }
 
@@ -114,11 +119,20 @@ namespace wren {
     }
   }
 
-  void Scene::bindPixelBuffer(int buffer) { glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer); }
+  void Scene::bindPixelBuffer(int buffer) {
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer);
+  }
 
-  void *Scene::mapPixelBuffer(unsigned int accessMode) { return glMapBuffer(GL_PIXEL_PACK_BUFFER, accessMode); }
-
-  void Scene::unMapPixelBuffer() { glUnmapBuffer(GL_PIXEL_PACK_BUFFER); }
+  void *Scene::mapPixelBuffer(unsigned int accessMode) {
+#ifdef __EMSCRIPTEN__
+    return NULL;
+#else
+    return glMapBuffer(GL_PIXEL_PACK_BUFFER, accessMode);
+#endif
+  }
+  void Scene::unMapPixelBuffer() {
+    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+  }
 
   void Scene::terminateFrameCapture() {
     glDeleteBuffers(mPixelBufferCount, mPixelBufferIds);
@@ -203,10 +217,14 @@ namespace wren {
     }
   }
 
-  int Scene::computeNodeCount() const { return 1 + mRoot->computeChildCount(); }
-  void Scene::printSceneTree() { debug::printSceneTree(); }
+  int Scene::computeNodeCount() const {
+    return 1 + mRoot->computeChildCount();
+  }
+  void Scene::printSceneTree() {
+    debug::printSceneTree();
+  }
 
-  void Scene::render() {
+  void Scene::render(bool culling, bool offScreen) {
     assert(glstate::isInitialized());
 
     ++mFrameCounter;
@@ -215,16 +233,16 @@ namespace wren {
     // debug::printCacheContents();
     // debug::printSceneTree();
 
+    renderToViewports({mMainViewport}, culling, offScreen);
+  }
+
+  void Scene::renderToViewports(const std::vector<Viewport *> &viewports, bool culling, bool offScreen) {
+    assert(glstate::isInitialized());
+
     DEBUG("Notify frame listeners...");
 
     for (auto listener : mListeners)
       listener();
-
-    renderToViewports({mMainViewport});
-  }
-
-  void Scene::renderToViewports(std::vector<Viewport *> viewports) {
-    assert(glstate::isInitialized());
 
     DEBUG("\nScene::renderToViewports: viewports.size()=" << viewports.size());
 
@@ -263,11 +281,12 @@ namespace wren {
           mCurrentViewport->applyPostProcessing();
         }
       } else {
-        renderToViewport();
-        if (mCurrentViewport == mMainViewport && mCurrentViewport->frameBuffer()) {
+        renderToViewport(culling);
+        if (!offScreen && mCurrentViewport == mMainViewport && mCurrentViewport->frameBuffer()) {
           glstate::bindDrawFrameBuffer(0);
-          mCurrentViewport->frameBuffer()->blit(0, true, false, false, 0, 0, 0, 0, 0, 0, mCurrentViewport->width(),
-                                                mCurrentViewport->height());
+          mCurrentViewport->frameBuffer()->blit(0, true, false, false, 0, 0, 0, 0, 0, 0,
+                                                std::ceil(mCurrentViewport->width() * mCurrentViewport->pixelRatio()),
+                                                std::ceil(mCurrentViewport->height() * mCurrentViewport->pixelRatio()));
         }
       }
 
@@ -346,7 +365,7 @@ namespace wren {
     updateFogUniformBuffer();
   }
 
-  void Scene::renderToViewport() {
+  void Scene::renderToViewport(bool culling) {
     DEBUG("Scene::renderToViewport, viewport = " << mCurrentViewport);
 
     LightNode::updateUniforms();
@@ -374,6 +393,16 @@ namespace wren {
       DEBUG("Rendering skybox");
 
       glstate::setBlend(false);
+
+// GL_DEPTH_CLAMP is not available in webgl, so it is a way to work around
+// It must be here and not in glstate::setDepthClamp because we need to access the camera
+#ifdef __EMSCRIPTEN__
+      float near = mCurrentViewport->camera()->nearDistance();
+      mCurrentViewport->camera()->setNear(0.05);
+      float far = mCurrentViewport->camera()->farDistance();
+      mCurrentViewport->camera()->setFar(1000000.0f);
+      mCurrentViewport->camera()->updateUniforms();
+#endif
       glstate::setDepthClamp(true);
       glstate::setDepthMask(false);
       glstate::setDepthTest(true);
@@ -382,6 +411,12 @@ namespace wren {
       glstate::setColorMask(true, true, true, true);
 
       mSkybox->render();
+
+#ifdef __EMSCRIPTEN__
+      mCurrentViewport->camera()->setNear(near);
+      mCurrentViewport->camera()->setFar(far);
+      mCurrentViewport->camera()->updateUniforms();
+#endif
     }
 
     RenderQueue *renderQueue = &mRenderQueues[WR_RENDERABLE_DRAWING_ORDER_MAIN];
@@ -390,7 +425,8 @@ namespace wren {
     RenderQueueIterator firstInvisibleRenderable = partitionByVisibility(renderQueue->begin(), renderQueue->end());
     DEBUG("Number of visible Renderables: " << firstInvisibleRenderable - renderQueue->begin());
 
-    RenderQueueIterator firstCulledRenderable = partitionByViewability(renderQueue->begin(), firstInvisibleRenderable);
+    RenderQueueIterator firstCulledRenderable =
+      culling ? partitionByViewability(renderQueue->begin(), firstInvisibleRenderable) : renderQueue->end();
     DEBUG("Number of non-culled Renderables: " << firstCulledRenderable - renderQueue->begin());
 
     RenderQueueIterator firstOpaqueRenderable = renderQueue->begin();
@@ -485,7 +521,8 @@ namespace wren {
       DEBUG("Rendering queue " << i << ", number of Renderables: " << renderQueue->size());
 
       firstInvisibleRenderable = partitionByVisibility(renderQueue->begin(), renderQueue->end());
-      firstCulledRenderable = partitionByViewability(renderQueue->begin(), firstInvisibleRenderable);
+      firstCulledRenderable =
+        culling ? partitionByViewability(renderQueue->begin(), firstInvisibleRenderable) : renderQueue->end();
       firstOpaqueRenderable = renderQueue->begin();
 
       if (mTranslucence)
@@ -548,10 +585,6 @@ namespace wren {
     return std::partition(first, last, [](const Renderable *r) -> bool { return !r->receiveShadows(); });
   }
 
-  Scene::RenderQueueIterator Scene::partitionByZOrder(RenderQueueIterator first, RenderQueueIterator last) {
-    return std::partition(first, last, [](const Renderable *r) -> bool { return r->zSortedRendering(); });
-  }
-
   Scene::ShadowVolumeIterator Scene::partitionShadowsByVisibility(ShadowVolumeIterator first, ShadowVolumeIterator last,
                                                                   LightNode *light) {
     return std::partition(first, last, [this, &light](ShadowVolumeCaster *shadowVolume) -> bool {
@@ -563,7 +596,7 @@ namespace wren {
     std::sort(first, last, [](const Renderable *a, const Renderable *b) -> bool { return a->sortingId() > b->sortingId(); });
   }
 
-  void Scene::sortRenderQueueByDistance(RenderQueueIterator first, RenderQueueIterator last) {
+  void Scene::sortRenderQueueByDistance(RenderQueueIterator first, RenderQueueIterator last) const {
     for (auto it = first; it < last; ++it)
       (*it)->recomputeBoundingSphereInViewSpace(mCurrentViewport->camera()->view());
 
@@ -604,9 +637,19 @@ namespace wren {
       const float radius = positionalLight->radius() + boundingSphere.mRadius;
       // Check if light is too far away
       visible = (distance <= radius &&
-                 positionalLight->attenuationConstant() +
-                     distance * (positionalLight->attenuationLinear() + distance * positionalLight->attenuationQuadratic()) <
-                   255.0f);
+                 (distance < boundingSphere.mRadius ||  // Light is inside the boundingSphere, necessary because pow(distance -
+                                                        // boundingSphere.mRadius, 2) can be very big in this case.
+                  positionalLight->attenuationConstant() +
+                      (distance - boundingSphere.mRadius) *
+                        (positionalLight->attenuationLinear() +
+                         (distance - boundingSphere.mRadius) * positionalLight->attenuationQuadratic()) <
+                    2000.0f));
+      // In the shaders, the attenuation is used as such:
+      // attenuationFactor = 1/(attenuation[0] + distanceToLight * (attenuation[1] + distanceToLight * attenuation[2])
+      // color = 1/attenuationFactor * color * ...
+      // Due to this there is no well-defined upper bound for the attenuationFactor.
+      // 2000 is a trade-off value in which the remaining light is very weak but still visible. The light become really
+      // invisible around 8000.
     }
     return visible;
   }
@@ -618,15 +661,15 @@ namespace wren {
       mShadowVolumeProgram->bind();
 
       Camera *camera = mCurrentViewport->camera();
-      const primitive::Plane farPlane = camera->frustum().plane(Frustum::FRUSTUM_PLANE_FAR);
+      const primitive::Plane &farPlane = camera->frustum().plane(Frustum::FRUSTUM_PLANE_FAR);
 
       const primitive::Aabb &cameraAabb = camera->aabb();
       glm::vec3 cameraToLightInv;
       if (light->type() != LightNode::TYPE_DIRECTIONAL) {
-        PositionalLight *positionalLight = static_cast<PositionalLight *>(light);
+        const PositionalLight *positionalLight = static_cast<PositionalLight *>(light);
         cameraToLightInv = 1.0f / glm::normalize(positionalLight->position() - camera->position());
       } else {
-        DirectionalLight *directionalLight = static_cast<DirectionalLight *>(light);
+        const DirectionalLight *directionalLight = static_cast<DirectionalLight *>(light);
         cameraToLightInv = 1.0f / -directionalLight->direction();
       }
 
@@ -668,10 +711,17 @@ namespace wren {
     glstate::setDepthFunc(GL_LESS);
     glstate::setStencilTest(true);
     glstate::setStencilFunc(GL_ALWAYS, 0, ~0);
-    glstate::setStencilOpFront(GL_KEEP, GL_KEEP, GL_INCR_WRAP);
-    glstate::setStencilOpBack(GL_KEEP, GL_KEEP, GL_DECR_WRAP);
     glstate::setCullFace(false);
     glstate::setColorMask(false, false, false, false);
+
+    // Special case for cw triangles
+    if (shadowVolume->renderable()->invertFrontFace()) {
+      glstate::setStencilOpFront(GL_KEEP, GL_KEEP, GL_DECR_WRAP);
+      glstate::setStencilOpBack(GL_KEEP, GL_KEEP, GL_INCR_WRAP);
+    } else {
+      glstate::setStencilOpFront(GL_KEEP, GL_KEEP, GL_INCR_WRAP);
+      glstate::setStencilOpBack(GL_KEEP, GL_KEEP, GL_DECR_WRAP);
+    }
 
     // Compute silhouette without caps
     shadowVolume->computeSilhouette(light, false);
@@ -688,10 +738,17 @@ namespace wren {
     glstate::setDepthFunc(GL_GEQUAL);
     glstate::setStencilTest(true);
     glstate::setStencilFunc(GL_ALWAYS, 0, ~0);
-    glstate::setStencilOpFront(GL_KEEP, GL_KEEP, GL_DECR_WRAP);
-    glstate::setStencilOpBack(GL_KEEP, GL_KEEP, GL_INCR_WRAP);
     glstate::setCullFace(false);
     glstate::setColorMask(false, false, false, false);
+
+    // Special case for cw triangles
+    if (shadowVolume->renderable()->invertFrontFace()) {
+      glstate::setStencilOpFront(GL_KEEP, GL_KEEP, GL_INCR_WRAP);
+      glstate::setStencilOpBack(GL_KEEP, GL_KEEP, GL_DECR_WRAP);
+    } else {
+      glstate::setStencilOpFront(GL_KEEP, GL_KEEP, GL_DECR_WRAP);
+      glstate::setStencilOpBack(GL_KEEP, GL_KEEP, GL_INCR_WRAP);
+    }
 
     // Compute silhouette with caps
     shadowVolume->computeSilhouette(light, true);
@@ -751,7 +808,7 @@ namespace wren {
     }
   }
 
-  void Scene::renderStencilFog(RenderQueueIterator first, RenderQueueIterator last) {
+  void Scene::renderStencilFog(RenderQueueIterator first, RenderQueueIterator last) const {
     glstate::setBlend(true);
     glstate::setBlendEquation(GL_FUNC_ADD);
     glstate::setBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -827,9 +884,8 @@ void wr_scene_apply_pending_updates(WrScene *scene) {
   reinterpret_cast<wren::Scene *>(scene)->applyPendingUpdates();
 }
 
-void wr_scene_get_main_buffer(WrScene *scene, int width, int height, unsigned int format, unsigned int data_type,
-                              unsigned int buffer_type, void *buffer) {
-  reinterpret_cast<wren::Scene *>(scene)->getMainBuffer(width, height, format, data_type, buffer_type, buffer);
+void wr_scene_get_main_buffer(int width, int height, unsigned int format, unsigned int data_type, void *buffer) {
+  wren::Scene::getMainBuffer(width, height, format, data_type, buffer);
 }
 
 void wr_scene_init_frame_capture(WrScene *scene, int pixel_buffer_count, unsigned int *pixel_buffer_ids, int frame_size) {
@@ -852,22 +908,23 @@ void wr_scene_terminate_frame_capture(WrScene *scene) {
   reinterpret_cast<wren::Scene *>(scene)->terminateFrameCapture();
 }
 
-void wr_scene_render(WrScene *scene, const char *material_name) {
+void wr_scene_render(WrScene *scene, const char *material_name, bool culling, bool offScreen) {
   if (material_name)
     wren::Renderable::setUseMaterial(material_name);
 
-  reinterpret_cast<wren::Scene *>(scene)->render();
+  reinterpret_cast<wren::Scene *>(scene)->render(culling, offScreen);
 
   wren::Renderable::setUseMaterial(NULL);
 }
 
-void wr_scene_render_to_viewports(WrScene *scene, int count, WrViewport **viewports, const char *material_name) {
+void wr_scene_render_to_viewports(WrScene *scene, int count, WrViewport **viewports, const char *material_name, bool culling,
+                                  bool offScreen) {
   if (material_name)
     wren::Renderable::setUseMaterial(material_name);
 
   wren::Viewport **start = reinterpret_cast<wren::Viewport **>(viewports);
   std::vector<wren::Viewport *> viewportsVector(start, start + count);
-  reinterpret_cast<wren::Scene *>(scene)->renderToViewports(viewportsVector);
+  reinterpret_cast<wren::Scene *>(scene)->renderToViewports(viewportsVector, culling, offScreen);
 
   wren::Renderable::setUseMaterial(NULL);
 }

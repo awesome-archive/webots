@@ -7,9 +7,10 @@ Motor {
   SFFloat  acceleration      -1       # {-1, [0, inf)}
   SFFloat  consumptionFactor 10       # [0, inf)
   SFVec3f  controlPID        10 0 0   # any positive vector
-  SFFloat  minPosition       0        # (-inf, inf) or [-pi, pi]
-  SFFloat  maxPosition       0        # (-inf, inf) or [-pi, pi]
+  SFFloat  minPosition       0        # (-inf, inf)
+  SFFloat  maxPosition       0        # (-inf, inf)
   SFFloat  maxVelocity       10       # [0, inf)
+  SFFloat  multiplier        1        # (inf, 0[ or ]0, inf)
   SFString sound             ""       # any string
   MFNode   muscles           []       # {Muscle, PROTO}
 }
@@ -21,13 +22,13 @@ A [Motor](#motor) node is an abstract node (not instantiated) whose derived clas
 These classes can be used in a mechanical simulation to power a joint hence producing a motion along, or around, one of its axes.
 
 A [RotationalMotor](rotationalmotor.md) can power a [HingeJoint](hingejoint.md) (resp. a [Hinge2Joint](hinge2joint.md)) when set inside the `device` (resp. `device` or `device2`) field of these nodes.
-It produces then a rotational motion around the choosen axis.
+It produces then a rotational motion around the chosen axis.
 Likewise, a [LinearMotor](linearmotor.md) can power a [SliderJoint](hingejoint.md), producing a sliding motion along its axis.
 
 ### Field Summary
 
 - The `acceleration` field defines the default acceleration of the P-controller.
-It is expressed in *meter per second squared* (m/s²) for linear motors and in *meter per radian squared* (rad/s²) for rotational motors.
+It is expressed in *meter per second squared* [m/s²] for linear motors and in *radian per second squared* [rad/s²] for rotational motors.
 A value of -1 (infinite) means that the acceleration is not limited by the P-controller.
 The acceleration can be changed at run-time with the `wb_motor_set_acceleration` function.
 
@@ -58,33 +59,43 @@ With a small *P*, more simulation steps are needed to reach the target position,
     `wb_motor_set_control_pid` function.
 
 - The `minPosition` and `maxPosition` fields specify *soft limits* for the target position.
+They are expressed in *meter* [m] for [LinearMotor](linearmotor.md) and in *radian* [rad] for  [RotationalMotor](rotationalmotor.md) .
 These fields are described in more detail in the [Motor Limits section](#motor-limits), see below.
 
 - The `maxVelocity` field specifies both the upper limit and the default value for the motor *velocity*.
-It is expressed in *meter per second* (m/s) for linear motors and in *meter per radian* (rad/s) for rotational motors.
+It is expressed in *meter per second* [m/s] for linear motors and in *radian per second* [rad/s] for rotational motors.
 The *velocity* can be changed at run-time with the `wb_motor_set_velocity` function.
 The value should always be positive (the default is 10).
 
-- The `sound` field specifies the URL of a WAVE sound file, relatively to the location of the world file or PROTO file which contains the `Motor` node.
+- The `multiplier` field specifies the factor by which position, velocity and force/torque commands sent by the controller are multiplied.
+Only the following API functions are affected by this field: `wb_motor_set_position`, `wb_motor_set_velocity`, `wb_motor_set_torque` and `wb_motor_set_force`.
+By default, this field is 1.
+
+> **Note:** When using a multiplier different from 1, the values `minPosition`, `maxPosition` and `maxVelocity` as displayed in the interface do not reflect the practical limits.
+For example, for a motor with `multiplier` = 2 and `maxVelocity` = 10, to remain within this limit the maximal velocity that the controller can set is 5, not 10.
+
+- The `sound` field specifies the URL of a WAVE sound file.
+If the `sound` value starts with `http://` or `https://`, Webots will get the file from the web.
+Otherwise it is considered as a relative URL with respect to the location of the world file or PROTO file which contains the `Motor` node.
 This sound is used to play the sound of the motor.
 It is modulated in volume and pitch according to the velocity of the motor to produce a realistic motor sound.
 
 - The `muscles` field optionally specifies one or more [Muscle](muscle.md) nodes that graphically display the contraction of an artificial muscle connecting the parent [Solid](solid.md) node and the `endPoint` node of the [Joint](joint.md).
-This functionality is not available for [Hinge2Joint](hinge2joint.md) and [Track](track.md) nodes.
+This functionality is not available for the [Track](track.md) node.
 
 ### Units
 
 The position of a motor corresponds to joint position as defined in [JointParameters](jointparameters.md).
-The position of a rotational motor is expressed in *radians* (rad) while the position of a linear motor is expressed in *meters* (m).
+The position of a rotational motor is expressed in *radian* [rad] while the position of a linear motor is expressed in *meter* [m].
 See [this table](#motor-units):
 
 %figure "Motor Units"
 
-| &nbsp;       | Rotational                          | Linear                           |
-| ------------ | ------------------------------------| ---------------------------------|
-| Position     | rad (radians)                       | m (meters)                       |
-| Velocity     | rad/s (radians per second)          | m/s (meters per second)          |
-| Acceleration | rad/s² (radians per second squared) | m/s² (meters per second squared) |
+| &nbsp;       | Rotational                         | Linear                           |
+| ------------ | -----------------------------------| ---------------------------------|
+| Position     | rad (radian)                       | m (meter)                       |
+| Velocity     | rad/s (radian per second)          | m/s (meter per second)          |
+| Acceleration | rad/s² (radian per second squared) | m/s² (meter per second squared) |
 
 %end
 
@@ -166,9 +177,9 @@ Finally, in MATLAB you should use the `inf` constant.
 
 ### Force and Torque Control
 
-The position (resp. velocity) control described above are performed by the Webots PID-controller and ODE's joint motor implementation (see ODE documentation).
-As an alternative, Webots does also allow the user to directly specify the amount of force (resp. torque) that must be applied by a [Motor](#motor).
-This is achieved with the `wb_motor_set_force` (resp. `wb_motor_set_torque`) function which specifies the desired amount of forces (resp. torques) and switches off the PID-controller and motor force (resp. motor torque).
+The position control described above is performed by the Webots PID-controller and ODE's joint motor implementation (see ODE documentation).
+As an alternative, Webots also allows the user to directly specify the amount of force (resp. torque) that must be applied by a [Motor](#motor).
+This is achieved with the `wb_motor_set_force` (resp. `wb_motor_set_torque`) function which specifies the desired amount of forces (resp. torques) and switches off the PID-controller.
 A subsequent call to the `wb_motor_set_position` function restores the original *position control*.
 Some care must be taken when using *force control*.
 Indeed the force (resp. torque) specified with the `wb_motor_set_force` (resp. `wb_motor_set_torque`) function is applied to the [Motor](#motor) continuously.
@@ -176,14 +187,14 @@ Hence the [Motor](#motor) will infinitely accelerate its rotational or linear mo
 
 %figure "Motor Control Summary"
 
-| &nbsp;                                                                         | position control                                 | velocity control                                 | force or torque control                      |
-| ------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | -------------------------------------------- |
-| uses PID-controller                                                            | yes                                              | no                                               | no                                           |
-| wb\_motor\_set\_position()                                                     | * specifies the desired position                 | should be set to INFINITY                        | switches to position/velocity control        |
-| wb\_motor\_set\_velocity()                                                     | specifies the max velocity                       | * specifies the desired velocity                 | is ignored                                   |
-| wb\_motor\_set\_acceleration()                                                 | specifies the max acceleration                   | specifies the max acceleration                   | is ignored                                   |
-| wb\_motor\_set\_available\_force() (resp. wb\_motor\_set\_available\_torque()) | specifies the available force (resp. torque)     | specifies the available force (resp. torque)     | specifies the max force (resp. max torque)   |
-| wb\_motor\_set\_force() (resp. wb\_motor\_set\_torque())                       | switches to force control (resp. torque control) | switches to force control (resp. torque control) | * specifies the desired force (resp. torque) |
+| &nbsp;                                                                         | position control                                 | velocity control                                              | force or torque control                      |
+| ------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------- | -------------------------------------------- |
+| uses PID-controller                                                            | yes (PID is applied on the velocity)             | no (internal ODE control loop is applied on the force/torque) | no                                           |
+| wb\_motor\_set\_position()                                                     | * specifies the desired position                 | should be set to INFINITY                                     | switches to position/velocity control        |
+| wb\_motor\_set\_velocity()                                                     | specifies the max velocity                       | * specifies the desired velocity                              | is ignored                                   |
+| wb\_motor\_set\_acceleration()                                                 | specifies the max acceleration                   | specifies the max acceleration                                | is ignored                                   |
+| wb\_motor\_set\_available\_force() (resp. wb\_motor\_set\_available\_torque()) | specifies the available force (resp. torque)     | specifies the available force (resp. torque)                  | specifies the max force (resp. max torque)   |
+| wb\_motor\_set\_force() (resp. wb\_motor\_set\_torque())                       | switches to force control (resp. torque control) | switches to force control (resp. torque control)              | * specifies the desired force (resp. torque) |
 
 %end
 
@@ -198,9 +209,61 @@ When both `minPosition` and `maxPosition` are zero (the default), the soft limit
 Note that the soft limits can be overstepped when an external force which exceeds the motor force is applied to the motor.
 For example, it is possible that the weight of a robot exceeds the motor force that is required to hold it up.
 
-Finally, note that when both soft (`minPosition` and `maxPosition`) and hard limits (`minStop` and `maxStop`, see [JointParameters](jointparameters.md)) are activated, the range of the soft limits must be included in the range of the hard limits, such that `minStop <= minValue` and `maxStop>= maxValue`.
+Finally, note that when both soft (`minPosition` and `maxPosition`) and hard limits (`minStop` and `maxStop`, see [JointParameters](jointparameters.md#joint-limits)) are activated, the range of the soft limits must be included in the range of the hard limits, such that `minStop <= minPosition` and `maxStop >= maxPosition`.
 Moreover a simulation instability can appear if `position` is exactly equal to one of the bounds defined by the `minStop` and `maxStop` fields at the simulation startup.
 Warnings are displayed if theses rules are not respected.
+
+### Coupled Motors
+
+If multiple motors, be it [RotationalMotor](rotationalmotor.md), [LinearMotor](linearmotor.md) or a mixture of the two, share the same name structure and they belong to the same [Robot](robot.md) then they are considered as being coupled.
+When giving a command to a coupled motor, for instance using the functions [`wb_motor_set_position`](#wb_motor_set_position) or [`wb_motor_set_velocity`](#wb_motor_set_velocity), then the same instruction is relayed to all others.
+Although each sibling motor receives the same command, what the motors actually enforce depends on their own `multiplier` value.
+
+> **Note**: The motors are *logically* coupled together, not *mechanically*.
+If one of the motors is physically blocked, the others are in no way affected by it.
+This provides a useful side-effect: when used in force-control mode, coupled-motors allow to easily simulate a mechanical differential.
+The role of a differential is to change the speed of the wheel relatively to each other.
+But also, it splits *equally* the motor torque to each wheel.
+Therefore it suffices to apply the same torque on multiple (coupled) motors, and the physics engine will adapt the speeds accordingly.
+It works for a regular car as well as for a 4x4 vehicle, as long as they have 3 differentials (front, rear, and central).
+Using `multiplier` here also makes sense, because some differentials do not split in half: sometimes a central differential splits 40%-60% to get more torque to the rear wheels.
+This parameter doesn't depend on the actual speed and characteristics of the wheels, it's only a mechanical setting.
+
+> **Note**: Although any among the coupled motors can be controlled, commands should be given to just one among them at any given time in order to avoid confusion or conflicts.
+For instance, it is not possible to do Position Control for one motor and Velocity Control another at the same time.
+Whatever command is given to a motor, it is relayed to all of its siblings hence overwriting any prior settings imposed on them.
+In other words, only the last command given is the one actually being enforced across the coupling.
+
+#### Naming Convention
+
+The naming convention for coupled motors is `"motor name::specifier name"`.
+Note the `::` used as delimiter.
+The string before the delimiter, here `"motor name"`, is used to determine to which coupling the specific motor belongs, therefore all the devices that share this same string will be coupled together.
+The string after the delimiter, here `"specifier name"`, allows to uniquely identify each motor among its siblings.
+When requesting the tag using the `wb_robot_get_device` function it is necessary to provide the full name, specifier included, otherwise no match will be found and `NULL` is returned.
+
+#### Coupled Motor Limits
+
+Since each motor applies the command received according to their own multiplier value, it must be ensured that the position and velocity limits are consistent across coupled motors.
+Therefore, in a coupled motor context, these motor limits have to be exactly a factor of each other.
+
+> **Note**: this rule is enforced only for `minPosition`, `maxPosition` and `maxVelocity`.
+For `maxForce` and `maxTorque` it is not and if due to the multiplier value a command beyond the limit is demanded, the corresponding warning messages are silenced but the limit itself as specified in the motor fields is nonetheless respected.
+
+For example, assume a set of four coupled motors having `multiplier` values of 2, 0.5, 4 and -4, the table below shows how the limits of motor B, C and D should be set.
+
+| motor (multiplier) | A (2) | B (0.5) | C (4) | D (-4) |
+|-------------------:|:-----:|:-------:|:-----:|:------:|
+|        minPosition |   -1  |  -0.25  |   -2  |   -4   |
+|        maxPosition |   2   |   0.5   |   4   |    2   |
+|        maxVelocity |   10  |   2.5   |   20  |   20   |
+
+
+> **Note**: For negative multipliers, the absolute value of the limit should be set.
+`minPosition` and `maxPosition` are an exception and they require additional care as in the presence of negative multipliers the two values might need to be swapped, as is the case here for motor D.
+
+> **Note**: If one motor of a coupling set has unlimited position (`minPosition` = `maxPosition` = 0), all its siblings must be unlimited as well.
+This same constraint is not enforced for `acceleration`.
 
 ### Energy Consumption
 
@@ -217,8 +280,13 @@ Similarly, for a linear motor it is computed according to the following equation
 
 Where `output_torque` is the value returned by the [`wb_motor_get_torque_feedback`](#wb_motor_get_torque_feedback) function, `output_force` is the value returned by the [`wb_motor_get_force_feedback`](#wb_motor_get_force_feedback) function and `consumptionFactor` is a constant provided by the `consumptionFactor` field of the [Motor](motor.md) node.
 
-> **Note**: This is a very simplified model for the energy consumption of an electrical motor, but it is sufficient for most prototyping purposes.
+> **Note**: This is a very simplified model for the energy consumption of an electrical motor (and will not work in case of a motor in a [Track](track.md) node), but it is sufficient for most prototyping purposes.
 If a more specific or accurate model is needed, it can be implemented in the robot controller itself.
+
+### Kinematics Mode
+
+In [*kinematics* mode](physics.md#how-to-use-physics-nodes), the joint acceleration is set to `Motor.acceleration`, unless `Motor.acceleration` is not defined (i.e. equals to `-1`) or is bigger than `RotationalMotor.maxTorque` or `LinearMotor.maxForce`.
+In such case the joint acceleration is set to `RotationalMotor.maxTorque` or `LinearMotor.maxForce`.
 
 ### Motor Functions
 
@@ -238,8 +306,9 @@ If a more specific or accurate model is needed, it can be implemented in the rob
 #### `wb_motor_get_max_force`
 #### `wb_motor_get_available_torque`
 #### `wb_motor_get_max_torque`
+#### `wb_motor_get_multiplier`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -262,6 +331,7 @@ double wb_motor_get_available_force(WbDeviceTag tag);
 double wb_motor_get_max_force(WbDeviceTag tag);
 double wb_motor_get_available_torque(WbDeviceTag tag);
 double wb_motor_get_max_torque(WbDeviceTag tag);
+double wb_motor_get_multiplier(WbDeviceTag tag);
 ```
 
 %tab-end
@@ -289,6 +359,7 @@ namespace webots {
     double getMaxForce() const;
     double getAvailableTorque() const;
     double getMaxTorque() const;
+    double getMultiplier() const;
     // ...
   }
 }
@@ -318,6 +389,7 @@ class Motor (Device):
     def getMaxForce(self):
     def getAvailableTorque(self):
     def getMaxTorque(self):
+    def getMultiplier(self):
     # ...
 ```
 
@@ -345,6 +417,7 @@ public class Motor extends Device {
   public double getMaxForce();
   public double getAvailableTorque();
   public double getMaxTorque();
+  public double getMultiplier();
   // ...
 }
 ```
@@ -353,7 +426,7 @@ public class Motor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_motor_set_position(tag, position)
 wb_motor_set_velocity(tag, velocity)
 wb_motor_set_acceleration(tag, acceleration)
@@ -370,30 +443,8 @@ force = wb_motor_get_available_force(tag)
 force = wb_motor_get_max_force(tag)
 torque = wb_motor_get_available_torque(tag)
 torque = wb_motor_get_max_torque(tag)
+multiplier = wb_motor_get_multiplier(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/set_position` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/<device_name>/set_velocity` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/<device_name>/set_acceleration` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/<device_name>/set_available_force` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/<device_name>/set_available_torque` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/<device_name>/set_control_pid` | `service` | `webots_ros::motor_set_control_pid` | `float64 controlp`<br/>`float64 controli`<br/>`float64 controld`<br/>`---`<br/>`int8 success` |
-| `/<device_name>/get_target_position` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_min_position` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_max_position` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_velocity` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_max_velocity` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_acceleration` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_available_force` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_max_force` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_available_torque` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_max_torque` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -404,7 +455,7 @@ torque = wb_motor_get_max_torque(tag)
 *change the parameters of the PID-controller*
 
 The `wb_motor_set_position` function specifies a new target position that the PID-controller will attempt to reach using the current velocity, acceleration and motor torque/force parameters.
-The specified position is expressed in *radian* (rad) for rotational motors and in *meter* (m) for linear motors.
+The specified position is expressed in *radian* [rad] for rotational motors and in *meter* [m] for linear motors.
 This function returns immediately (asynchronous) while the actual motion is carried out in the background by Webots.
 The target position will be reached only if the physics simulation allows it, that means, if the specified motor force is sufficient and the motion is not blocked by obstacles, external forces or the motor's own spring force, etc.
 It is also possible to wait until the [Motor](#motor) reaches the target position (synchronous) like this:
@@ -453,7 +504,7 @@ The `wb_motor_get_target_position` function allows the user to get the target po
 This value matches with the argument given to the last `wb_motor_set_position` function call.
 
 The `wb_motor_set_velocity` function specifies the velocity that a motor should reach while moving to the target position.
-The velocity is expressed in *radian per second* (rad/s) for rotational motors and in *meter per second* (m/s) for linear motors.
+The velocity is expressed in *radian per second* [rad/s] for rotational motors and in *meter per second* [m/s] for linear motors.
 In other words, this means that the motor will accelerate (using the specified acceleration, see below) until the target velocity is reached.
 The velocity argument passed to this function cannot exceed the limit specified in the `maxVelocity` field.
 The specified velocity can be retrieved using the `wb_motor_get_velocity` function.
@@ -461,13 +512,13 @@ The `wb_motor_get_max_velocity` function returns the limit specified in the `max
 Note that if the velocity is not explicitly set using the `wb_motor_set_velocity` function, then the `wb_motor_get_velocity` and `wb_motor_get_max_velocity` functions return the same value.
 
 The `wb_motor_set_acceleration` function specifies the acceleration that the PID-controller should use when trying to reach the specified velocity.
-The acceleration is expressed in *radian per second squared* (rad/s²) for rotational motors and in *meter per second squared* (m/s²) for linear motors.
+The acceleration is expressed in *radian per second squared* [rad/s²] for rotational motors and in *meter per second squared* [m/s²] for linear motors.
 Note that an infinite acceleration is obtained by passing -1 as the `acc` argument to this function.
 The specified acceleration overwrites the `acceleration` field value and can be retrieved using the `wb_motor_get_acceleration` function.
 
 The `wb_motor_set_available_force` (resp. `wb_motor_set_available_torque`) function specifies the maximum force (resp. torque) that will be available to the motor to carry out the requested motion.
-The force is expressed in *Newton* (N).
-The torque is expressed in *Newton meter* (N\*m).
+The force is expressed in *newton* [N].
+The torque is expressed in *newton meter* [N⋅m].
 The motor force/torque specified with this function cannot exceed the value specified in the `maxForce`/`maxTorque` field.
 The specified force (resp. torque) can be retrieved using the `wb_motor_get_available_force` (resp. `wb_motor_get_available_torque`) function.
 The `wb_motor_get_max_force` (reps. `wb_motor_get_max_torque`) function returns the limit specified in the `maxForce` (resp. `maxTorque`) field.
@@ -479,7 +530,9 @@ With a small *P*, a long time is needed to reach the target position, while too 
 The default value of *P, I* and *D* are specified by the `controlPID` field of the corresponding [Motor](#motor) node.
 
 The `wb_motor_get_[min|max]_position` functions allow to get the values of respectively the `minPosition` and the `maxPosition` fields.
-Positions are expressed in *radian* (rad) for rotational motors and in *meter* (m) for linear motors.
+Positions are expressed in *radian* [rad] for rotational motors and in *meter* [m] for linear motors.
+
+The `wb_motor_get_multiplier` function allows to retrieve the `multiplier` value specified for the provided motor.
 
 ---
 
@@ -492,7 +545,7 @@ Positions are expressed in *radian* (rad) for rotational motors and in *meter* (
 #### `wb_motor_get_torque_feedback`
 #### `wb_motor_get_torque_feedback_sampling_period`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -574,7 +627,7 @@ public class Motor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_motor_enable_force_feedback(tag, sampling_period)
 wb_motor_disable_force_feedback(tag)
 period = wb_motor_get_force_feedback_sampling_period(tag)
@@ -584,19 +637,6 @@ wb_motor_disable_torque_feedback(tag)
 period = wb_motor_get_torque_feedback_sampling_period(tag)
 torque = wb_motor_get_torque_feedback(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/force_feedback` | `topic` | webots_ros::Float64Stamped | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`float64 data` |
-| `/<device_name>/torque_feedback` | `topic` | webots_ros::Float64Stamped | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`float64 data` |
-| `/<device_name>/force_feedback_sensor/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/<device_name>/force_feedback_sensor/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
-| `/<device_name>/torque_feedback_sensor/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/<device_name>/torque_feedback_sensor/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -613,8 +653,8 @@ Note that the first measurement will be available only after the first sampling 
 
 The `wb_motor_get_force_feedback` (resp. `wb_motor_get_torque_feedback`) function returns the most recent motor force (resp. torque) measurement.
 This function measures the amount of motor force (resp. torque) that is currently being used by the motor in order to achieve the desired motion or hold the current position.
-For a rotational motor, the returned value is a torque, expressed in *Newton meter* (N\*m).
-For a linear motor, the returned value is a force, expressed in *Newton* (N).
+For a rotational motor, the returned value is a torque, expressed in *newton meter* [N⋅m].
+For a linear motor, the returned value is a force, expressed in *newton* [N].
 The returned value is an approximation computed by the physics engine, and therefore it may be inaccurate.
 The returned value normally does not exceed the available motor force (resp. torque) specified with the `wb_motor_set_force` (resp. `wb_motor_set_torque`) function.
 The default value is provided by the `maxForce` (resp. `maxTorque` field).
@@ -643,7 +683,7 @@ The `wb_motor_get_force_feedback_sampling_period` (resp. `wb_motor_get_torque_fe
 #### `wb_motor_set_force`
 #### `wb_motor_set_torque`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -701,19 +741,10 @@ public class Motor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_motor_set_force(tag, force)
 wb_motor_set_torque(tag, torque)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/set_force` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/<device_name>/set_torque` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -728,8 +759,8 @@ This function bypasses the PID-controller and ODE joint motors; it adds the forc
 This allows the user to design a custom controller, for example a PID controller.
 Note that when the `wb_motor_set_force` (resp. `wb_motor_set_torque`) function is invoked, this automatically resets the force previously added by the PID-controller.
 
-In a rotational motor, the *torque* parameter specifies the amount of torque expressed in *Newton meter* (N\*m) that will be applied around the motor rotation axis.
-In a linear motor, the *force* parameter specifies the amount of force expressed in *Newton* (N) that will be applied along the sliding axis.
+In a rotational motor, the *torque* parameter specifies the amount of torque expressed in *newton meter* [N⋅m] that will be applied around the motor rotation axis.
+In a linear motor, the *force* parameter specifies the amount of force expressed in *newton* [N] that will be applied along the sliding axis.
 A positive *force* (resp. *torque*) will move the bodies in the positive direction, which corresponds to the direction of the motor when its position value increases.
 When invoking the `wb_motor_set_force` (resp. `wb_motor_set_torque`) function, the specified *force* (resp. *torque*) parameter cannot exceed the currently available force (resp. torque) of the motor.
 The currently available force (resp. torque) is specified in the `maxForce` (resp. `maxTorque`) field or by calling the `wb_motor_set_available_force` (resp. `wb_motor_set_available_torque`) function.
@@ -738,13 +769,13 @@ Note that this function applies only to *physics-based* simulation.
 Therefore, the `physics` and `boundingObject` fields of the [Motor](#motor) node must be defined for this function to work properly.
 
 It is also possible, for example, to use this function to implement springs or dampers with controllable properties.
-The example in "projects/samples/howto/worlds/force\_control.wbt" demonstrates the usage of the `wb_motor_set_force` function for creating a simple spring and damper system.
+The example in "projects/samples/howto/force\_control/worlds/force\_control.wbt" demonstrates the usage of the `wb_motor_set_force` function for creating a simple spring and damper system.
 
 ---
 
 #### `wb_motor_get_type`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -804,19 +835,11 @@ public class Motor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_MOTOR_ROTATIONAL, WB_MOTOR_LINEAR
 
 type = wb_motor_get_type(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_type` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -843,7 +866,7 @@ If the value of the `type` field is "linear", this function returns WB\_LINEAR, 
 #### `wb_motor_get_brake`
 #### `wb_motor_get_position_sensor`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -907,19 +930,10 @@ public class Motor extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 tag = wb_brake_get_brake(tag)
 tag = wb_brake_get_position_sensor(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_brake_name` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
-| `/<device_name>/get_position_sensor_name` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
 
 %tab-end
 

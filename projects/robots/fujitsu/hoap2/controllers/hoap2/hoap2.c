@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -133,14 +133,15 @@ static const char *joint_number_to_name(int num) {
   }
 }
 
+// cppcheck-suppress constParameter
 int main(int argc, char *argv[]) {
   int i, sampling;
   int com_interval;
   int pos_from_cvs[22];
   char l[500];
   int file_ended = 0;
-  int pulse[] = {209,  209, 209,  209, -209, -209, -209, 209,  -209, 209, 209, 209, -209,
-                 -209, 209, -209, 209, 0,    209,  209,  -209, -209, 0,   0,   0};
+  const int pulse[] = {209,  209, 209,  209, -209, -209, -209, 209,  -209, 209, 209, 209, -209,
+                       -209, 209, -209, 209, 0,    209,  209,  -209, -209, 0,   0,   0};
   int tempMotor[] = {0,                /* body */
                      0, 0, 0, 0, 0, 0, /* lleg */
                      0, 0, 0, 0, 0, 0, /* rleg */
@@ -178,8 +179,10 @@ int main(int argc, char *argv[]) {
   gps = wb_robot_get_device("gps");
   emitter = wb_robot_get_device("emitter");
   FILE *file = fopen(filename, "r");
-  if (file == NULL)
+  if (file == NULL) {
     printf("unable to locate the %s file\n", filename);
+    return 1;
+  }
 
   tempMotor[larm_joint_5] = 0; /* currently not needed, */
   tempMotor[rarm_joint_5] = 0; /* because we don't use the fingers */
@@ -187,9 +190,12 @@ int main(int argc, char *argv[]) {
   next_position[larm_joint_5] = 0.0;
   next_position[rarm_joint_5] = 0.0;
 
-  char *ptr = fgets(l, 500, file);
-  if (ptr == NULL)
+  const char *ptr = fgets(l, 500, file);
+  if (ptr == NULL) {
     fprintf(stderr, "Error while reading the %s file\n", filename);
+    fclose(file);
+    return 1;
+  }
 
   sscanf(l,
          "%d, %*d, %d, %d, %d, %d ,%d, %d, %d, %d, %d, %d, %d, %d, %d, "

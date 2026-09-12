@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,11 +19,11 @@
 #include "WbMFColor.hpp"
 #include "WbNodeUtilities.hpp"
 #include "WbPerspective.hpp"
+#include "WbPose.hpp"
 #include "WbPreferences.hpp"
 #include "WbSFBool.hpp"
 #include "WbSFColor.hpp"
 #include "WbSFDouble.hpp"
-#include "WbTransform.hpp"
 #include "WbWorld.hpp"
 #include "WbWrenRenderingContext.hpp"
 
@@ -84,8 +84,9 @@ void WbLight::postFinalize() {
 }
 
 WbLight::~WbLight() {
+  cLights.removeOne(this);
+
   if (areWrenObjectsInitialized()) {
-    cLights.removeOne(this);
     applySceneAmbientColorToWren();
     if (!WbWorld::instance()->isCleaning())
       emit WbWrenRenderingContext::instance()->numberOfOnLightsChanged();
@@ -151,8 +152,8 @@ void WbLight::createWrenObjects() {
 }
 
 void WbLight::updateAmbientIntensity() {
-  if (WbFieldChecker::checkDoubleInRangeWithIncludedBounds(this, mAmbientIntensity, 0.0, 1.0,
-                                                           mAmbientIntensity->value() > 1.0 ? 1.0 : 0.0))
+  if (WbFieldChecker::resetDoubleIfNotInRangeWithIncludedBounds(this, mAmbientIntensity, 0.0, 1.0,
+                                                                mAmbientIntensity->value() > 1.0 ? 1.0 : 0.0))
     return;
 
   if (areWrenObjectsInitialized())
@@ -160,7 +161,7 @@ void WbLight::updateAmbientIntensity() {
 }
 
 void WbLight::updateIntensity() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mIntensity, 1.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mIntensity, 1.0))
     return;
 
   if (areWrenObjectsInitialized())
@@ -181,7 +182,7 @@ void WbLight::updateOn() {
 }
 
 void WbLight::updateColor() {
-  if (WbFieldChecker::checkColorIsValid(this, mColor))
+  if (WbFieldChecker::resetColorIfInvalid(this, mColor))
     return;
 
   if (areWrenObjectsInitialized())
@@ -224,52 +225,12 @@ int WbLight::numberOfLightsCastingShadows() {
   return counter;
 }
 
-void WbLight::exportNodeFields(WbVrmlWriter &writer) const {
-  if (writer.isWebots()) {
-    WbBaseNode::exportNodeFields(writer);
-    return;
-  }
-
-  if (writer.isX3d()) {
-    const WbNode *n = this;
-    while (n && !n->isWorldRoot()) {
-      if (n->isDefNode() && n->useCount() > 0) {
-        warn("DEF/USE mechanism for light nodes could not work in some X3D viewers, like X3DOM.");
-        break;
-      }
-      n = n->parent();
-    }
-  }
-
-  findField("on", true)->write(writer);
-  findField("color", true)->write(writer);
-  findField("intensity", true)->write(writer);
-  findField("ambientIntensity", true)->write(writer);
-  if (writer.isX3d() && castShadows()) {
-    QHash<QString, QString> x3dExportParameters = WbWorld::instance()->perspective()->x3dExportParameters();
-    if (x3dExportParameters.contains("shadowIntensity"))
-      writer << " shadowIntensity=\'" << x3dExportParameters.value("shadowIntensity") << "\'";
-    else
-      writer << " shadowIntensity=\'" << defaultX3dShadowsParameter("shadowIntensity") << "\'";
-    if (x3dExportParameters.contains("shadowMapSize"))
-      writer << " shadowMapSize=\'" << x3dExportParameters.value("shadowMapSize") << "\'";
-    else
-      writer << " shadowMapSize=\'" << defaultX3dShadowsParameter("shadowMapSize") << "\'";
-    if (x3dExportParameters.contains("shadowFilterSize") && !x3dExportParameters.value("shadowFilterSize").isEmpty())
-      writer << " shadowFilterSize=\'" << x3dExportParameters.value("shadowFilterSize") << "\'";
-    if (x3dExportParameters.contains("shadowsCascades") && !x3dExportParameters.value("shadowsCascades").isEmpty())
-      writer << " shadowsCascades=\'" << x3dExportParameters.value("shadowsCascades") << "\'";
-  }
-}
-
-QString WbLight::defaultX3dShadowsParameter(const QString &parameterName) {
-  if (parameterName == "shadowMapSize")
-    return "2048";
-  else if (parameterName == "shadowFilterSize")
-    return "0";
-  else if (parameterName == "shadowsCascades")
-    return "0";
-  else if (parameterName == "shadowIntensity")
-    return "0.5";
-  return QString();
+QStringList WbLight::fieldsToSynchronizeWithW3d() const {
+  QStringList fields;
+  fields << "color"
+         << "on"
+         << "intensity"
+         << "ambientIntensity"
+         << "castShadows";
+  return fields;
 }

@@ -16,7 +16,7 @@ In order to get the `Joystick` instance, you should call the `getJoystick` funct
 #### `wb_joystick_disable`
 #### `wb_joystick_get_sampling_period`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -78,20 +78,11 @@ public class Joystick {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_joystick_enable(sampling_period)
 wb_joystick_disable()
 period = wb_joystick_get_sampling_period()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/joystick/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/joystick/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -115,7 +106,7 @@ The `wb_joystick_get_sampling_period` function returns the value previously pass
 
 #### `wb_joystick_is_connected`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -169,17 +160,9 @@ public class Joystick {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 connected = wb_joystick_is_connected()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/joystick/is_connected` | `service` | [`webots_ros::get_bool`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -195,7 +178,7 @@ Once the joystick is enabled, this function can be used to check if a free joyst
 
 #### `wb_joystick_get_model`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -249,17 +232,9 @@ public class Joystick {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 model = wb_joystick_get_model()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/joystick/get_model` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -278,7 +253,7 @@ The returned model of the joystick may looks like: `Logitech G29 Driving Force R
 #### `wb_joystick_get_number_of_axes`
 #### `wb_joystick_get_axis_value`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -336,19 +311,10 @@ public class Joystick {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 axes_number = wb_joystick_get_number_of_axes()
 axis_value = wb_joystick_get_axis_value(axis)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/joystick/get_number_of_axes` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
-| `/joystick/axis<X>` | `topic` | webots_ros::Int8Stamped | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`int8 data` |
 
 %tab-end
 
@@ -367,7 +333,7 @@ The `wb_joystick_get_axis_value` function returns the current value of the axis 
 #### `wb_joystick_get_number_of_povs`
 #### `wb_joystick_get_pov_value`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -425,19 +391,10 @@ public class Joystick {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 povs_number = wb_joystick_get_number_of_povs()
 pov_value = wb_joystick_get_pov_value(pov)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/joystick/pov<X>` | `topic` | `webots_ros::Int8Stamped` | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`int8 data` |
-| `/joystick/get_number_of_povs` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -455,7 +412,7 @@ The `wb_joystick_get_pov_value` function returns the current value of the point 
 
 #### `wb_joystick_get_pressed_button`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -509,17 +466,9 @@ public class Joystick {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 button = wb_joystick_get_pressed_button()
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/joystick/pressed_button` | `topic` | webots_ros::Int8Stamped | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`int8 data` |
 
 %tab-end
 
@@ -545,7 +494,7 @@ On macOS, only the first 12 buttons and first 2 axes of the joystick are taken i
 #### `wb_joystick_set_resistance_gain`
 #### `wb_joystick_set_force_axis`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -615,25 +564,13 @@ public class Joystick {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_joystick_set_constant_force(level)
 wb_joystick_set_constant_force_duration(duration)
 wb_joystick_set_auto_centering_gain(gain)
 wb_joystick_set_resistance_gain(gain)
 wb_joystick_set_force_axis(axis)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/joystick/set_constant_force` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/joystick/set_constant_force_duration` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/joystick/set_auto_centering_gain` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/joystick/set_resistance_gain` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/joystick/set_force_axis` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
 
 %tab-end
 

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -53,19 +53,19 @@ void WbLens::postFinalize() {
 
 void WbLens::updateCenter() {
   if (mCenter->value().x() < 0.0) {
-    warn(tr("Invalid 'center.x' changed to 0. The value should be in the range [0;1]."));
+    parsingWarn(tr("Invalid 'center.x' changed to 0. The value should be in the range [0;1]."));
     mCenter->setX(0.0);
   }
   if (mCenter->value().y() < 0.0) {
-    warn(tr("Invalid 'center.y' changed to 0. The value should be in the range [0;1]."));
+    parsingWarn(tr("Invalid 'center.y' changed to 0. The value should be in the range [0;1]."));
     mCenter->setY(0.0);
   }
   if (mCenter->value().x() > 1.0) {
-    warn(tr("Invalid 'center.x' changed to 1. The value should be in the range [0;1]."));
+    parsingWarn(tr("Invalid 'center.x' changed to 1. The value should be in the range [0;1]."));
     mCenter->setX(1.0);
   }
   if (mCenter->value().y() > 1.0) {
-    warn(tr("Invalid 'center.y' changed to 1. The value should be in the range [0;1]."));
+    parsingWarn(tr("Invalid 'center.y' changed to 1. The value should be in the range [0;1]."));
     mCenter->setX(1.0);
   }
 

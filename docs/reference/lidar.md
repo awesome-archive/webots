@@ -4,26 +4,32 @@ Derived from [Device](device.md) and [Solid](solid.md).
 
 ```
 Lidar {
-  SFFloat  tiltAngle            0.0       # [-pi/2, pi/2]
-  SFInt32  horizontalResolution 512       # [0, inf)
-  SFFloat  fieldOfView          1.5708    # [0, 2*pi]
-  SFFloat  verticalFieldOfView  0.2       # [0, pi]
-  SFInt32  numberOfLayers       4         # [0, inf)
-  SFFloat  near                 0.01      # [0, inf)
-  SFFloat  minRange             0.01      # [near, inf)
-  SFFloat  maxRange             1.0       # [minRange, inf)
-  SFString type                 "fixed"   # {"fixed", "rotating"}
-  SFBool   spherical            TRUE      # {TRUE, FALSE}
-  SFFloat  noise                0.0       # [0, inf)
-  SFFloat  resolution           -1.0      # {-1, [0, inf)}
-  SFFloat  defaultFrequency     10        # [minFrequency, maxFrequency]
-  SFFloat  minFrequency         1         # [0, maxFrequency)
-  SFFloat  maxFrequency         25        # [minFrequency, inf)
-  SFNode   rotatingHead         NULL      # {Solid (or derived), PROTO}
+  SFFloat  tiltAngle            0.0           # [-pi/2, pi/2]
+  SFInt32  horizontalResolution 512           # [0, inf)
+  SFFloat  fieldOfView          1.5708        # [0, 2*pi]
+  SFFloat  verticalFieldOfView  0.2           # [0, pi]
+  SFInt32  numberOfLayers       4             # [0, inf)
+  SFFloat  near                 0.01          # [0, inf)
+  SFFloat  minRange             0.01          # [near, inf)
+  SFFloat  maxRange             1.0           # [minRange, inf)
+  SFString type                 "fixed"       # {"fixed", "rotating"}
+  SFString projection           "cylindrical" # {"planar", "cylindrical"}
+  SFFloat  noise                0.0           # [0, inf)
+  SFFloat  resolution           -1.0          # {-1, [0, inf)}
+  SFFloat  defaultFrequency     10            # [minFrequency, maxFrequency]
+  SFFloat  minFrequency         1             # [0, maxFrequency)
+  SFFloat  maxFrequency         25            # [minFrequency, inf)
+  SFNode   rotatingHead         NULL          # {Solid (or derived), PROTO}
 }
 ```
 
 ### Description
+
+%figure "Lidar Image"
+
+![lidar.png](images/lidar.thumbnail.jpg)
+
+%end
 
 The [Lidar](#lidar) node is used to model a robot's on-board lidar (laser-scanner).
 
@@ -43,7 +49,7 @@ Be aware that the point cloud mode is computationally expensive and can therefor
 
 A point of the lidar point cloud is defined like this:
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -107,7 +113,7 @@ public class LidarPoint {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 structs.WbLidarPoint.members = struct(
   'x', 'single',
   'y', 'single',
@@ -119,12 +125,6 @@ structs.WbLidarPoint.members = struct(
 
 %tab-end
 
-%tab "ROS"
-
-> `LidarPoint` data is directly accessible from the related [topics](#wb_lidar_get_point_cloud).
-
-%tab-end
-
 %end
 
 The X, Y and Z coordinates are relative to the [Lidar](#lidar) node origin.
@@ -133,12 +133,12 @@ With lidar devices, all the points are not acquired at the exact same time but r
 
 ### Field Summary
 
-- The `tiltAngle` field defines the tilt angle of the sensor (rotation around the X axis of to the [Lidar](#lidar) node).
+- The `tiltAngle` field defines the tilt angle of the sensor (rotation around the x-axis of to the [Lidar](#lidar) node).
 
 - The `horizontalResolution` field defines the number of points returned by layers.
 
 - The `fieldOfView` field defines the horizontal field of view angle of the lidar.
-The value is limited to the range 0 to &pi; radians if the `spherical` field is set to FALSE, otherwise there is no upper limit.
+The value is limited to the range 0 to &pi; radians if the `projection` field is set to "planar", otherwise there is no upper limit.
 
 - The `verticalFieldOfView` field defines the vertical repartition of the layers (angle between first and last layer).
 
@@ -153,15 +153,18 @@ A typically good value for this field is to set it just big enough so that the s
 More information about the frustum is provided in the [frustum](camera.md#frustum) section of the [Camera](camera.md) node.
 
 - The `minRange` field defines the minimum range of the lidar, objects closer to the lidar than the minimum range are not detected (but still occlude other objects).
+If the range value is smaller than the `minRange` value then infinity is returned.
 
 - The `maxRange` field defines the distance between the lidar and the far clipping plane of the OpenGL view frustum.
 This field defines the maximum range that the lidar can achieve and so the maximum possible value of the range image (in meter).
+If the range value is bigger than the `maxRange` value then infinity is returned.
 
 - The `type` field should either be 'fixed' or 'rotating', it defines if the lidar has a rotating or fixed head.
 
-- The `spherical` field switches between a planar or a spherical projection.
-It is highly recommended to use the spherical projection in case of fixed-head lidar.
-More information on spherical projections is provided in the [spherical projection](camera.md#spherical-projection) section of the [Camera](camera.md) node.
+- `projection`: switch between a planar or a cylindrical projection.
+It is highly recommended to use the cylindrical projection in case of fixed-head lidar.
+More information on cylindrical projections is provided in the [projections](camera.md#spherical-and-cylindrical-projections) section of the [Camera](camera.md) node.
+The "spherical" projection is not available for a lidar device.
 
 - If the `noise` field is greater than 0.0, a gaussian noise is added to each depth value of a lidar image.
 A value of 0.0 corresponds to no noise and thus saves computation time.
@@ -181,21 +184,19 @@ The value of this field should be smaller or equal to the value of the `maxFrequ
 - A node can be inserted in the `rotatingHead` field to define the rotating head of the lidar.
 
 > **Note**: The fields `numberOfLayers`, `verticalFieldOfView`, `horizontalResolution` and `fieldOfView` should respect the following constraint in order to be able to simulate the lidar:
-
-        numberOfLayers < verticalFieldOfView * horizontalResolution / fieldOfView
-
-    In case of 'rotating' lidar, the `fieldOfView` term in the constraint is
-    replaced by `2 * &pi;`.
+> ```
+> numberOfLayers < verticalFieldOfView * horizontalResolution / fieldOfView
+> ```
+> In case of 'rotating' lidar, the `fieldOfView` term in the constraint is replaced by 2 * &pi;.
 
 #### Rotating Lidar
 
 A lidar is said rotating if its `type` field is set to 'rotating'.
-In that case, the node inserted in the `rotatingHead` rotates along the Y axis at the frequency defined in the `defaultFrequency` field.
+In that case, the node inserted in the `rotatingHead` rotates along the y-axis at the frequency defined in the `defaultFrequency` field.
 This rotation starts as soon as the lidar is enabled.
-The internal depth camera is attached to this node and is therefore also rotating along the Y axis.
+The internal depth camera is attached to this node and is therefore also rotating along the y-axis.
 
 > **Note**: The internal depth camera is using a horizontal field of view defined in the `fieldOfView` field, but since it is rotating, the actual field of view is 2 * &pi;.
-The same comment applies to the horizontal resolution, the internal depth camera is using a horizontal resolution defined in the `horizontalResolution` field, but the actual returned resolution of the lidar is equal to: horizontalResolution * 2 * pi / fieldOfView.
 
 > **Note**: If the resulting point cloud of a rotating lidar looks distorted, it probably means that you have to reduce the simulation time step.
 
@@ -205,7 +206,7 @@ The same comment applies to the horizontal resolution, the internal depth camera
 #### `wb_lidar_disable`
 #### `wb_lidar_get_sampling_period`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -267,20 +268,11 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_lidar_enable(tag, sampling_period)
 wb_lidar_disable(tag)
 period = wb_lidar_get_sampling_period(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/<device_name>/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -291,6 +283,8 @@ period = wb_lidar_get_sampling_period(tag)
 *enable and disable lidar updates*
 
 The `wb_lidar_enable` function allows the user to enable lidar updates.
+Once the lidar is enabled, it will copy range images from GPU memory to CPU memory at each time step, regardless of `wb_lidar_get_range_image` calls.
+
 The `sampling_period` argument specifies the sampling period of the sensor and is expressed in milliseconds.
 Note that the first measurement will be available only after the first sampling period elapsed.
 
@@ -304,7 +298,7 @@ The `wb_lidar_get_sampling_period` function returns the period given into the `w
 #### `wb_lidar_disable_point_cloud`
 #### `wb_lidar_is_point_cloud_enabled`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -366,20 +360,11 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_lidar_enable_point_cloud(tag)
 wb_lidar_disable_point_cloud(tag)
 state = wb_lidar_is_point_cloud_enabled(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/enable_point_cloud` | `service` | [`webots_ros::set_bool`](ros-api.md#common-services) | |
-| `/<device_name>/is_point_cloud_enabled` | `service` | `webots_ros::node_get_status` | `uint8 ask`<br/>`---`<br/>`uint8 status` |
 
 %tab-end
 
@@ -403,7 +388,7 @@ First the lidar should be enabled using the `wb_lidar_enable` function.
 #### `wb_lidar_get_range_image`
 #### `wb_lidar_get_layer_range_image`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -461,18 +446,10 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 range = wb_lidar_get_range_image(tag)
 range = wb_lidar_get_layer_range_image(tag, layer)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/range_image` | `topic` | [`sensor_msgs::Image`](http://docs.ros.org/api/sensor_msgs/html/msg/Image.html) | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`uint32 height`<br/>`uint32 width`<br/>`string encoding`<br/>`uint8 is_bigendian`<br/>`uint32 step`<br/>`uint8[] data` |
 
 %tab-end
 
@@ -480,14 +457,17 @@ range = wb_lidar_get_layer_range_image(tag, layer)
 
 ##### Description
 
-*get the range image and range image associate with a specific layer*
+*get the range image and range image associated with a specific layer*
 
 The `wb_lidar_get_range_image` function allows the user to read the contents of the last range image grabbed by a lidar.
+It should not be called if the lidar was in point cloud mode during the most recent step.
 The range image is computed using the depth buffer produced by the OpenGL rendering.
 The range image is coded as an array of single precision floating point values corresponding to the range value of each pixel of the image.
 The precision of the lidar values decreases when the objects are located farther from the near clipping plane.
 Pixels are stored in scan lines running from left to right and from first to last layer.
 The memory chunk returned by this function shall not be freed, as it is managed by the lidar internally.
+The contents of the image are subject to change between a call to `wb_robot_step_begin` and the subsequent call to `wb_robot_step_end`.
+As a result, if you want to access the image during a step, you should copy it before the step begins and access the copy.
 The size in bytes of the range image can be computed as follows:
 
 ```
@@ -508,7 +488,7 @@ Their content are identical but their handling is of course different.
 #### `wb_lidar_get_layer_point_cloud`
 #### `wb_lidar_get_number_of_points`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -545,8 +525,8 @@ namespace webots {
 from controller import Lidar
 
 class Lidar (Device):
-    def getPointCloud(self):
-    def getLayerPointCloud(self, layer):
+    def getPointCloud(self, data_type='list'):
+    def getLayerPointCloud(self, layer, data_type='list'):
     def getNumberOfPoints(self):
     # ...
 ```
@@ -570,21 +550,11 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 points = wb_lidar_get_point_cloud(tag)
 points = wb_lidar_get_layer_point_cloud(tag, layer)
 number_of_points = wb_lidar_get_number_of_points(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/point_cloud` | `topic` | [`sensor_msgs::PointCloud`](http://docs.ros.org/api/sensor_msgs/html/msg/PointCloud.html) | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>[`geometry_msgs/Point32[]`](http://docs.ros.org/api/geometry_msgs/html/msg/Point32.html) `points`<br/>[`sensor_msgs/ChannelFloat32[]`](http://docs.ros.org/api/sensor_msgs/html/msg/ChannelFloat32.html) `channels`<br/>Note: the first channel is filled with the corresponding layer id. |
-| `/<device_name>/laser_scan/layer<X>` | `topic` | [`sensor_msgs::LaserScan`](http://docs.ros.org/api/sensor_msgs/html/msg/LaserScan.html) | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`float32 angle_min`<br/>`float32 angle_max`<br/>`float32 angle_increment`<br/>`float32 time_increment`<br/>`float32 scan_time`<br/>`float32 range_min`<br/>`float32 range_max`<br/>`float32[] ranges`<br/>`float32[] intensities` |
-| `/<device_name>/get_layer_point_cloud` | `service` | `webots_ros::lidar_get_layer_point_cloud` | `int32 layer`<br/>`---`<br/>[`sensor_msgs::PointCloud`](http://docs.ros.org/api/sensor_msgs/html/msg/PointCloud.html) pointCloud |
 
 %tab-end
 
@@ -595,6 +565,7 @@ number_of_points = wb_lidar_get_number_of_points(tag)
 *get the points array, points array associate with a specific layer and total number of point*
 
 The `wb_lidar_get_point_cloud` function returns the pointer to the point cloud array, each point consists of a [`WbLidarPoint`](#wblidarpoint).
+It should not be called unless the lidar was in point cloud mode during the most recent step.
 The memory chunk returned by this function shall not be freed, as it is managed by the lidar internally.
 The size in bytes of the point cloud can be computed as follows:
 
@@ -603,17 +574,23 @@ size = lidar_number_of_points * sizeof(WbLidarPoint)
 ```
 
 Attempting to read outside the bounds of this memory chunk will cause an error.
+The contents of the point cloud are subject to change between a call to `wb_robot_step_begin` and the subsequent call to `wb_robot_step_end`.
+As a result, if you want to access the point cloud during a step, you should copy it before the step begins and access the copy.
 
 The `wb_lidar_get_layer_point_cloud` function is a convenient way of getting directly the sub point cloud associated with one layer.
 
 The `wb_lidar_get_number_of_points` function returns the total number of points contained in the point cloud (each layer is assumed to have the same number of points associated to).
+
+> **Note** [Python]: The `getPointCloud` and `getLayerPointCloud` methods have `data_type` parameter which can be `list` (default) or `buffer`.
+If `data_type` is equal to `list` then the function returns a list of points, but it is slow as it has to create a list of objects.
+If `data_type` is equal to `buffer` then the function returns `bytearray` and it is fast as there is no memory copying.
 
 ---
 
 #### `wb_lidar_get_frequency`
 #### `wb_lidar_set_frequency`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -671,19 +648,10 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 frequency = wb_lidar_get_frequency(tag)
 wb_lidar_set_frequency(tag, frequency)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_frequency_info` | `service` | `webots_ros::lidar_get_frequency_info` | `uint8 ask`<br/>`---`<br/>`float64 frequency`<br/>`float64 minFrequency`<br/>`float64 maxFrequency` |
-| `/<device_name>/set_frequency` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -703,7 +671,7 @@ The `frequency` argument should be in the range [minFrequency; maxFrequency].
 #### `wb_lidar_get_horizontal_resolution`
 #### `wb_lidar_get_number_of_layers`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -761,18 +729,10 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 horizontal_resolution = wb_lidar_get_horizontal_resolution(tag)
 number_of_layers = wb_lidar_get_number_of_layers(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_info` | `service` | `webots_ros::lidar_get_info` | `uint8 ask`<br/>`---`<br/>`uint32 horizontalResolution`<br/>`uint32 numberOfLayers`<br/>`float64 fov`<br/>`float64 verticalFov`<br/>`float64 minRange`<br/>`float64 maxRange` |
 
 %tab-end
 
@@ -791,7 +751,7 @@ The `wb_lidar_get_number_of_layers` function returns the number of layers of the
 #### `wb_lidar_get_min_frequency`
 #### `wb_lidar_get_max_frequency`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -849,18 +809,10 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 min_frequency = wb_lidar_get_min_frequency(tag)
 max_frequency = wb_lidar_get_max_frequency(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_frequency_info` | `service` | `webots_ros::lidar_get_frequency_info` | `uint8 ask`<br/>`---`<br/>`float64 frequency`<br/>`float64 minFrequency`<br/>`float64 maxFrequency` |
 
 %tab-end
 
@@ -877,7 +829,7 @@ The `wb_lidar_get_min_frequency` and `wb_lidar_get_max_frequency` functions retu
 #### `wb_lidar_get_fov`
 #### `wb_lidar_get_vertical_fov`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -885,7 +837,7 @@ The `wb_lidar_get_min_frequency` and `wb_lidar_get_max_frequency` functions retu
 #include <webots/lidar.h>
 
 double wb_lidar_get_fov(WbDeviceTag tag);
-int wb_lidar_get_vertical_fov(WbDeviceTag tag);
+double wb_lidar_get_vertical_fov(WbDeviceTag tag);
 ```
 
 %tab-end
@@ -935,18 +887,10 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 fov = wb_lidar_get_fov(tag)
 vertical_fov = wb_lidar_get_vertical_fov(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_info` | `service` | `webots_ros::lidar_get_info` | `uint8 ask`<br/>`---`<br/>`uint32 horizontalResolution`<br/>`uint32 numberOfLayers`<br/>`float64 fov`<br/>`float64 verticalFov`<br/>`float64 minRange`<br/>`float64 maxRange` |
 
 %tab-end
 
@@ -965,7 +909,7 @@ The `wb_lidar_get_vertical_fov` function returns the vertical field of view of t
 #### `wb_lidar_get_min_range`
 #### `wb_lidar_get_max_range`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -1023,18 +967,10 @@ public class Lidar extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 min_range = wb_lidar_get_min_range(tag)
 max_range = wb_lidar_get_max_range(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_info` | `service` | `webots_ros::lidar_get_info` | `uint8 ask`<br/>`---`<br/>`uint32 horizontalResolution`<br/>`uint32 numberOfLayers`<br/>`float64 fov`<br/>`float64 verticalFov`<br/>`float64 minRange`<br/>`float64 maxRange` |
 
 %tab-end
 

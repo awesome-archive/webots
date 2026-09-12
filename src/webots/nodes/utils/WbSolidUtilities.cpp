@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,8 +19,9 @@
 #include "WbCylinder.hpp"
 #include "WbElevationGrid.hpp"
 #include "WbIndexedFaceSet.hpp"
+#include "WbMesh.hpp"
+#include "WbPose.hpp"
 #include "WbSphere.hpp"
-#include "WbTransform.hpp"
 
 #include <ode/ode.h>
 
@@ -53,6 +54,9 @@ void WbSolidUtilities::setDefaultMass(dMass *m) {
 
 // The mass is supposed to be homogeneously spread over the body boundingObject
 void WbSolidUtilities::addMass(dMass *const mass, WbNode *const node, double density, bool warning) {
+  if (!node)
+    return;
+
   const WbShape *const shape = dynamic_cast<WbShape *>(node);
   if (shape) {
     if (shape->geometry() == NULL)
@@ -64,35 +68,34 @@ void WbSolidUtilities::addMass(dMass *const mass, WbNode *const node, double den
   dMass m;
   dMassSetZero(&m);
 
-  // The WbTransform case must come before the WbGroup case
-  const WbTransform *const transform = dynamic_cast<WbTransform *>(node);
-  if (transform) {
-    WbGeometry *geometry = transform->geometry();
+  // The WbPose case must come before the WbGroup case
+  const WbPose *const pose = dynamic_cast<WbPose *>(node);
+  if (pose) {
+    WbGeometry *g = pose->geometry();
 
     // Computes the total mass
-    if (geometry && geometry->odeGeom())
-      addMass(&m, geometry, density, warning);
+    if (g && g->odeGeom())
+      addMass(&m, g, density, warning);
     else
       // invalid geometry
       return;
 
     // Rotates the inertia matrix
-    const WbRotation &r = transform->rotation();
+    const WbRotation &r = pose->rotation();
     dMatrix3 m3;
     dRFromAxisAndAngle(m3, r.x(), r.y(), r.z(), r.angle());
     dMassRotate(&m, m3);
 
     // Translates the inertia matrix
-    WbVector3 t = transform->translation();
-    t *= transform->upperTransform()->absoluteScale().x();
+    WbVector3 t = pose->translation();
     dMassTranslate(&m, t.x(), t.y(), t.z());
     dMassAdd(mass, &m);
 
-    geometry->setOdeMass(&m);
+    g->setOdeMass(&m);
     return;
   }
 
-  // The case of a WbGroup which is NOT a WbTransform
+  // The case of a WbGroup which is NOT a WbPose
   const WbGroup *const group = dynamic_cast<WbGroup *>(node);
   if (group) {
     WbMFNode::Iterator it(group->children());
@@ -112,7 +115,7 @@ void WbSolidUtilities::addMass(dMass *const mass, WbNode *const node, double den
     if (radius <= 0.0) {
       setDefaultMass(&m);
       if (warning)
-        sphere->warn(QObject::tr("Use a positive radius to allow proper mass settings") + defaultValues);
+        sphere->parsingWarn(QObject::tr("Use a positive radius to allow proper mass settings") + defaultValues);
     } else
       dMassSetSphere(&m, density, radius);
     dMassAdd(mass, &m);
@@ -128,10 +131,10 @@ void WbSolidUtilities::addMass(dMass *const mass, WbNode *const node, double den
     if (radius <= 0.0 || height <= 0.0) {
       setDefaultMass(&m);
       if (warning)
-        cylinder->warn(QObject::tr("Use a positive radius and a positive height to allow proper mass settings") +
-                       defaultValues);
+        cylinder->parsingWarn(QObject::tr("Use a positive radius and a positive height to allow proper mass settings") +
+                              defaultValues);
     } else
-      dMassSetCylinder(&m, density, 2, radius, height);  // 2 -> y-axis
+      dMassSetCylinder(&m, density, 3, radius, height);  // 3 -> z-axis
     dMassAdd(mass, &m);
     cylinder->setOdeMass(&m);
     return;
@@ -144,9 +147,10 @@ void WbSolidUtilities::addMass(dMass *const mass, WbNode *const node, double den
     if (radius <= 0.0 || height <= 0.0) {
       setDefaultMass(&m);
       if (warning)
-        capsule->warn(QObject::tr("Use a positive radius and a positive height to allow proper mass settings") + defaultValues);
+        capsule->parsingWarn(QObject::tr("Use a positive radius and a positive height to allow proper mass settings") +
+                             defaultValues);
     } else
-      dMassSetCapsule(&m, density, 2, radius, height);  // 2 -> y-axis
+      dMassSetCapsule(&m, density, 3, radius, height);  // 3 -> z-axis
     dMassAdd(mass, &m);
     capsule->setOdeMass(&m);
     return;
@@ -158,7 +162,7 @@ void WbSolidUtilities::addMass(dMass *const mass, WbNode *const node, double den
     if (size.x() <= 0.0 || size.y() <= 0.0 || size.z() <= 0.0) {
       setDefaultMass(&m);
       if (warning)
-        box->warn(QObject::tr("Use positive dimensions to allow proper mass settings") + defaultValues);
+        box->parsingWarn(QObject::tr("Use positive dimensions to allow proper mass settings") + defaultValues);
     } else
       dMassSetBox(&m, density, size.x(), size.y(), size.z());
     dMassAdd(mass, &m);
@@ -166,15 +170,24 @@ void WbSolidUtilities::addMass(dMass *const mass, WbNode *const node, double den
     return;
   }
 
-  WbIndexedFaceSet *const ifs = dynamic_cast<WbIndexedFaceSet *>(node);
-  if (ifs) {
-    dGeomID g = ifs->odeGeom();
+  WbTriangleMeshGeometry *const tmg = dynamic_cast<WbTriangleMeshGeometry *>(node);
+  if (tmg) {
+    QString name;
+    if (dynamic_cast<WbMesh *>(node))
+      name = "Mesh";
+    else if (dynamic_cast<WbIndexedFaceSet *>(node))
+      name = "IndexedFaceSet";
+    else
+      assert(0);
+
+    dGeomID g = tmg->odeGeom();
     // The trimesh failed to build, probably because of invalid faces
     if (g == NULL) {
       if (warning)
-        ifs->info(QObject::tr("The creation of the IndexedFaceSet physical boundaries failed because its geometry is not "
-                              "suitable for representing a bounded closed volume") +
-                  defaultValues);
+        tmg->parsingInfo(QObject::tr("The creation of the %1 physical boundaries failed because its geometry is not "
+                                     "suitable for representing a bounded closed volume")
+                           .arg(name) +
+                         defaultValues);
       setDefaultMass(&m);
       return;
     }
@@ -186,20 +199,20 @@ void WbSolidUtilities::addMass(dMass *const mass, WbNode *const node, double den
     if (m.mass <= 0.0 || !dIsPositiveDefinite(m.I, 3)) {
       setDefaultMass(&m);
       if (warning)
-        ifs->warn(
-          QObject::tr("Mass properties computation failed for this IndexedFaceSet") + defaultValues +
+        tmg->parsingWarn(
+          QObject::tr("Mass properties computation failed for this %1").arg(name) + defaultValues +
           QObject::tr("Please check this geometry has no singularities and can suitably represent a bounded closed volume. "
                       "Note in particular that every triangle should appear only once with its 'outward' orientation."));
     }
     dMassAdd(mass, &m);
-    ifs->setOdeMass(&m);
+    tmg->setOdeMass(&m);
 
     return;
   }
 
   const WbElevationGrid *const elevationGrid = dynamic_cast<WbElevationGrid *>(node);
   if (elevationGrid) {
-    elevationGrid->warn(QObject::tr("Webots cannot compute inertia for ElevationGrid objects."));
+    elevationGrid->parsingWarn(QObject::tr("Webots cannot compute inertia for ElevationGrid objects."));
     return;
   }
 }
@@ -210,30 +223,32 @@ bool WbSolidUtilities::checkBoundingObject(WbNode *const node) {
   if (node == NULL)
     return false;
 
-  const WbTransform *const transform = dynamic_cast<WbTransform *>(node);
-  if (transform) {
-    WbNode *child = transform->child(0);
+  const WbPose *const pose = dynamic_cast<WbPose *>(node);
+  // cppcheck-suppress knownConditionTrueFalse
+  if (pose) {
+    WbNode *child = pose->child(0);
     if (child == NULL) {
-      node->warn(
-        QObject::tr("Invalid 'boundingObject' (a Transform has no 'geometry'): the inertia matrix cannot be calculated."));
+      node->parsingWarn(
+        QObject::tr("Invalid 'boundingObject' (a Pose has no 'geometry'): the inertia matrix cannot be calculated."));
       return false;
     }
 
-    const WbGeometry *const geometry = dynamic_cast<WbGeometry *>(child);
-    if (geometry)
+    const WbGeometry *const g = dynamic_cast<WbGeometry *>(child);
+    // cppcheck-suppress knownConditionTrueFalse
+    if (g)
       return true;
 
     const WbShape *const shape = dynamic_cast<WbShape *>(child);
     if (shape == NULL || shape->geometry() == NULL) {
-      node->warn(QObject::tr("Invalid 'boundingObject' (a Transform, or a Shape within a Transform, has no 'geometry'): the "
-                             "inertia matrix cannot be calculated."));
+      node->parsingWarn(QObject::tr("Invalid 'boundingObject' (a Pose, or a Shape within a Pose, has no 'geometry'): the "
+                                    "inertia matrix cannot be calculated."));
       return false;
     }
   }
 
   const WbShape *const shape = dynamic_cast<WbShape *>(node);
   if (shape && shape->geometry() == NULL) {
-    node->warn(QObject::tr(
+    node->parsingWarn(QObject::tr(
       "Invalid 'boundingObject' (a Shape's 'geometry' field is not set): the inertia matrix cannot be calculated."));
     return false;
   }
@@ -243,7 +258,8 @@ bool WbSolidUtilities::checkBoundingObject(WbNode *const node) {
     const WbMFNode &children = group->children();
     const int size = children.size();
     if (size == 0) {
-      node->warn(QObject::tr("Invalid 'boundingObject' (Group with no child set): the inertia matrix cannot be calculated."));
+      node->parsingWarn(
+        QObject::tr("Invalid 'boundingObject' (Group with no child set): the inertia matrix cannot be calculated."));
       return false;
     }
     for (int i = 0; i < size; ++i) {
@@ -260,22 +276,23 @@ WbGeometry *WbSolidUtilities::geometry(WbNode *const node) {
     return NULL;
 
   WbGeometry *const geometry = dynamic_cast<WbGeometry *>(node);
+  // cppcheck-suppress knownConditionTrueFalse
   if (geometry)
     return geometry;
 
   const WbShape *const shape = dynamic_cast<WbShape *>(node);
   if (shape) {
     if (shape->geometry() == NULL)
-      shape->info(QObject::tr("Please specify 'geometry' (of Shape placed in 'boundingObject')."));
+      shape->parsingInfo(QObject::tr("Please specify 'geometry' (of Shape placed in 'boundingObject')."));
 
     return shape->geometry();
   }
 
-  node->warn(QObject::tr("Ignoring illegal \"%1\" node in 'boundingObject'.").arg(node->usefulName()));
+  node->parsingWarn(QObject::tr("Ignoring illegal \"%1\" node in 'boundingObject'.").arg(node->usefulName()));
   return NULL;
 }
 
 bool WbSolidUtilities::isPermanentlyKinematic(const WbNode *node) {
-  const WbBaseNode *const p = node ? static_cast<WbBaseNode *>(node->parent()) : NULL;
+  const WbBaseNode *const p = node ? static_cast<WbBaseNode *>(node->parentNode()) : NULL;
   return p && p->nodeType() == WB_NODE_PROPELLER;
 }

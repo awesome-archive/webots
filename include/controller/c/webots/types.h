@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,31 +36,19 @@ typedef unsigned short WbDeviceTag;  // identifier of a device
 typedef struct WbImageStructPrivate *WbImageRef;
 typedef struct WbMotionStructPrivate *WbMotionRef;
 typedef struct WbNodeStructPrivate *WbNodeRef;
+typedef struct WbProtoInfoStructPrivate *WbProtoRef;
 typedef struct WbFieldStructPrivate *WbFieldRef;
 
 // define "bool" type for C controllers
 // C++ code will use the standard definition of "bool"
 #ifndef __cplusplus
 
-#ifndef bool
-#define bool char
-#endif
-
-#ifndef true
-// clang-format off
-#define true ((bool)1)
-// clang-format on
-#endif
-
-#ifndef false
-// clang-format off
-#define false ((bool)0)
-// clang-format on
-#endif
-
+#include <math.h>  // definition of INFINITY
 #ifndef INFINITY
 #define INFINITY (1.0 / 0.0)
 #endif
+
+#include <stdbool.h>
 
 #endif
 

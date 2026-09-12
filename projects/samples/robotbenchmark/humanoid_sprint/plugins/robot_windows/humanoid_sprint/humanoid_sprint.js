@@ -1,22 +1,25 @@
-$('#infotabs').tabs();
+import RobotWindow from 'https://cyberbotics.com/wwi/R2025a/RobotWindow.js';
 
-var benchmarkName = "Humanoid Sprint";
-var humanoid_sprint_time_string;
-var humanoid_sprint_time;
+/* global sendBenchmarkRecord, showBenchmarkRecord, showBenchmarkError */
 
-webots.window('humanoid_sprint').receive = function(message, robot) {
+window.robotWindow = new RobotWindow();
+const benchmarkName = 'Humanoid Sprint';
+let humanoidSprintTimeString;
+let humanoidSprintTime;
+
+window.robotWindow.receive = function(message, robot) {
   if (message.startsWith('time:')) {
-    humanoid_sprint_time = parseFloat(message.substr(5));
-    humanoid_sprint_time_string = parseSecondsIntoReadableTime(humanoid_sprint_time);
-    $('#time-display').html(humanoid_sprint_time_string);
-  } else if (message == 'stop') {
-    if (typeof sendBenchmarkRecord === "undefined" || !sendBenchmarkRecord(robot, this, benchmarkName, -humanoid_sprint_time, metricToString))
-      $('#time-display').css('color','red');
+    humanoidSprintTime = parseFloat(message.substr(5));
+    humanoidSprintTimeString = parseSecondsIntoReadableTime(humanoidSprintTime);
+    document.getElementById('time-display').innerHTML = humanoidSprintTimeString;
+  } else if (message === 'stop') {
+    if (typeof sendBenchmarkRecord === 'undefined' || !sendBenchmarkRecord(robot, this, benchmarkName, -humanoidSprintTime, metricToString))
+      document.getElementById('time-display').style.color = 'red';
   } else if (message.startsWith('record:OK:')) {
-    $('#time-display').css('font-weight','bold');
+    document.getElementById('time-display').style.fontWeight = 'bold';
     showBenchmarkRecord(message, benchmarkName, metricToString);
   } else if (message.startsWith('record:Error:')) {
-    $('#time-display').css('color','red');
+    document.getElementById('time-display').style.color = 'red';
     showBenchmarkError(message, benchmarkName);
   } else
     console.log("Received unknown message for robot '" + robot + "': '" + message + "'");
@@ -25,18 +28,16 @@ webots.window('humanoid_sprint').receive = function(message, robot) {
     return parseSecondsIntoReadableTime(-parseFloat(s));
   }
 
-  function parseSecondsIntoReadableTime(s) {
-    var hours = s / 3600;
-    var absoluteHours = Math.floor(hours);
-    var minutes = (hours - absoluteHours) * 60;
-    var absoluteMinutes = Math.floor(minutes);
-    var m = absoluteMinutes > 9 ? absoluteMinutes : '0' +  absoluteMinutes;
-    var seconds = (minutes - absoluteMinutes) * 60;
-    var absoluteSeconds = Math.floor(seconds);
-    var s = absoluteSeconds > 9 ? absoluteSeconds : '0' + absoluteSeconds;
-    var cs = Math.floor((seconds - absoluteSeconds) * 100);
+  function parseSecondsIntoReadableTime(timeInSeconds) {
+    const minutes = timeInSeconds / 60;
+    const absoluteMinutes = Math.floor(minutes);
+    const m = absoluteMinutes > 9 ? absoluteMinutes : '0' + absoluteMinutes;
+    const seconds = (minutes - absoluteMinutes) * 60;
+    const absoluteSeconds = Math.floor(seconds);
+    const s = absoluteSeconds > 9 ? absoluteSeconds : '0' + absoluteSeconds;
+    let cs = Math.floor((Math.round(seconds * 100) / 100 - absoluteSeconds) * 100);
     if (cs < 10)
       cs = '0' + cs;
     return m + ':' + s + ':' + cs;
   }
-}
+};

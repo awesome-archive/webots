@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,7 +25,10 @@
 #include "WbTextBuffer.hpp"
 #include "WbWorld.hpp"
 
-#include <QtWidgets/QAction>
+#include "../../../include/controller/c/webots/utils/ansi_codes.h"
+
+#include <QtGui/QAction>
+#include <QtWidgets/QPushButton>
 #include <QtWidgets/QToolBar>
 #include <QtWidgets/QToolButton>
 
@@ -39,13 +42,10 @@ WbBuildEditor *WbBuildEditor::instance() {
 
 WbBuildEditor::WbBuildEditor(QWidget *parent, const QString &toolBarAlign) :
   WbTextEditor(parent, toolBarAlign),
-  mTargetModificationTimeBeforeMake(),
-  mTargetFile(),
   mIsCleaning(false) {
   gInstance = this;
   mProcess = NULL;
   createActions();
-  updateGui();
 }
 
 WbBuildEditor::~WbBuildEditor() {
@@ -72,7 +72,7 @@ void WbBuildEditor::createActions() {
   action->setText(tr("C&lean"));
   action->setStatusTip(tr("Remove intermediate build files."));
   action->setToolTip(action->statusTip());
-  action->setShortcut(Qt::SHIFT + Qt::Key_F7);
+  action->setShortcut(Qt::SHIFT | Qt::Key_F7);
   action->setIcon(icon);
   connect(action, &QAction::triggered, this, &WbBuildEditor::clean);
 
@@ -87,7 +87,7 @@ void WbBuildEditor::createActions() {
   action->setText(tr("Cross-compilation cl&ean"));
   action->setStatusTip(tr("Remove intermediate cross-compilation files."));
   action->setToolTip(action->statusTip());
-  action->setShortcut(Qt::SHIFT + Qt::Key_F8);
+  action->setShortcut(Qt::SHIFT | Qt::Key_F8);
   connect(action, &QAction::triggered, this, &WbBuildEditor::cleanCrossCompilation);
 
   action = mMakeJarAction = new QAction(this);
@@ -102,12 +102,6 @@ void WbBuildEditor::createActions() {
   bar->widgetForAction(mBuildAction)->setObjectName("editorButton");
   bar->addAction(mCleanAction);
   bar->widgetForAction(mCleanAction)->setObjectName("editorButton");
-  /*
-    bar->addAction(mCrossCompileAction);
-    bar->widgetForAction(mCrossCompileAction)->setObjectName("menuButton");
-    bar->addAction(mCleanCrossCompilationAction);
-    bar->widgetForAction(mCleanCrossCompilationAction)->setObjectName("menuButton");
-  */
 }
 
 void WbBuildEditor::updateBuildButtons() {
@@ -127,6 +121,7 @@ void WbBuildEditor::updateBuildButtons() {
 // find the directory just above the compilationDirectories list
 const QDir WbBuildEditor::compileDir() const {
   static QStringList compilationDirectories;
+  // cppcheck-suppress knownConditionTrueFalse
   if (compilationDirectories.size() == 0) {
     compilationDirectories << "controllers";
     compilationDirectories << "libraries";
@@ -179,6 +174,7 @@ void WbBuildEditor::build() {
 void WbBuildEditor::clean() {
   unmarkError();
   mIsCleaning = true;
+  WbLog::appendStdout(ANSI_CLEAR_SCREEN, WbLog::COMPILATION);
   make("clean");
 }
 
@@ -196,6 +192,7 @@ void WbBuildEditor::crossCompile() {
 void WbBuildEditor::cleanCrossCompilation() {
   unmarkError();
   mIsCleaning = true;
+  WbLog::appendStdout(ANSI_CLEAR_SCREEN, WbLog::COMPILATION);
   make("-f " + mCrossCompileMakefile + " clean");
 }
 
@@ -208,7 +205,7 @@ void WbBuildEditor::readStdout() {
   out.replace("\r\n", "\n");
 #endif
 
-  WbLog::appendStdout(out);
+  WbLog::appendStdout(out, WbLog::COMPILATION);
 }
 
 void WbBuildEditor::readStderr() {
@@ -220,7 +217,7 @@ void WbBuildEditor::readStderr() {
   err.replace("\r\n", "\n");
 #endif
 
-  WbLog::appendStderr(err);
+  WbLog::appendStderr(err, WbLog::COMPILATION);
 }
 
 void WbBuildEditor::cleanupProcess() {
@@ -233,14 +230,17 @@ void WbBuildEditor::processFinished(int exitCode, QProcess::ExitStatus exitStatu
   switch (exitStatus) {
     case QProcess::NormalExit: {
       if (mIsCleaning)
-        WbLog::appendStdout("Clean finished.\n");
+        WbLog::appendStdout("Clean finished.\n", WbLog::COMPILATION);
       else
         reloadMessageBoxIfNeeded();
       break;
     }
     case QProcess::CrashExit:
       // should not happen, but just in case
-      WbLog::appendStderr("external make process crashed!\n");
+      WbLog::appendStderr("Make process crashed!\n", WbLog::COMPILATION);
+      break;
+    default:
+      WbLog::appendStderr("Make process finished with unknown exit status.\n", WbLog::COMPILATION);
       break;
   }
 
@@ -265,20 +265,24 @@ void WbBuildEditor::reloadMessageBoxIfNeeded() {
   if (targetFileInfo.exists() && targetFile.startsWith(WbProject::current()->path())) {
     QDateTime targetModificationTimeAfterMake = targetFileInfo.lastModified();
     if (!mTargetModificationTimeBeforeMake.isValid() || targetModificationTimeAfterMake > mTargetModificationTimeBeforeMake) {
-      WbLog::appendStdout("Build finished.\n");
+      WbLog::appendStdout("Build finished.\n", WbLog::COMPILATION);
       if (WbMessageBox::enabled()) {
         QMessageBox messageBox(QMessageBox::Question, tr("Compilation successful"),
                                tr("Do you want to reset or reload the world?"), QMessageBox::Cancel, this);
-        messageBox.addButton(tr("Reload"), QMessageBox::AcceptRole);
-        messageBox.setDefaultButton(messageBox.addButton(tr("Reset"), QMessageBox::AcceptRole));
-        const int ret = messageBox.exec();
-        if (ret == 0)
+        const QPushButton *reloadButton = messageBox.addButton(tr("Reload"), QMessageBox::AcceptRole);
+        QPushButton *resetButton = messageBox.addButton(tr("Reset"), QMessageBox::AcceptRole);
+        messageBox.setDefaultButton(resetButton);
+
+        messageBox.exec();
+
+        const QAbstractButton *clickedButton = messageBox.clickedButton();
+        if (clickedButton == reloadButton)
           emit reloadRequested();
-        else if (ret == 1)
+        else if (clickedButton == resetButton)
           emit resetRequested();
       }
     } else
-      WbLog::appendStdout("Nothing to be done for build targets.\n");
+      WbLog::appendStdout("Nothing to be done for build targets.\n", WbLog::COMPILATION);
   }
 }
 
@@ -304,14 +308,15 @@ void WbBuildEditor::make(const QString &target) {
   bool isJavaProgram = (currentBuffer()->language()->code() == WbLanguage::JAVA);
 
   // find out compilation directory
-  // WbTextBuffer *currentBuffer = currentBuffer();
   QString compilePath = compileDir().absolutePath();
-// On Windows, make won't work if the Makefile file is located in a path with UTF-8 characters (e.g., Chinese)
+
+  // On Windows, gcc won't work if the source file contains UTF-8 characters (e.g., Chinese)
 #ifdef _WIN32
-  if (!isJavaProgram && QString(compilePath.toUtf8()) != QString::fromLocal8Bit(compilePath.toLocal8Bit())) {
-    WbMessageBox::warning(tr("\'%1\'\n\nThe path to this Webots project contains non 8-bit characters. "
-                             "Webots won't be able to compile any C/C++ controller in this path. "
-                             "Please move this Webots project into a folder with only 8-bit characters.")
+  const QString controllerName = QFileInfo(compilePath).baseName();
+  if (!isJavaProgram && QString(controllerName.toUtf8()) != QString::fromLocal8Bit(controllerName.toLocal8Bit())) {
+    WbMessageBox::warning(tr("\'%1\'\n\nThe robot controller name contains non 8-bit characters. "
+                             "Webots won't be able to compile any C/C++ controller with such a name. "
+                             "Please rename this robot controller with only 8-bit characters.")
                             .arg(compilePath),
                           this);
     return;
@@ -322,8 +327,28 @@ void WbBuildEditor::make(const QString &target) {
   if (!WbProjectRelocationDialog::validateLocation(this, compilePath))
     return;
 
+  const QFileInfo dir(compilePath);
+  if (!dir.isWritable()) {
+    WbMessageBox::warning(tr("\'%1\'\n\nYou don't have write access to this folder. "
+                             "Webots won't be able to clean or compile any controller in this path. "
+                             "Please move this Webots project into a folder where you have write access.")
+                            .arg(compilePath),
+                          this);
+    return;
+  }
+#ifdef _WIN32
+  const QString PROGRAMFILES = QDir::fromNativeSeparators(qgetenv("PROGRAMFILES") + '\\');
+  if (compilePath.startsWith(PROGRAMFILES)) {
+    WbMessageBox::warning(tr("\'%1\'\n\nYou don't have write access to the 'Program Files' folder. "
+                             "Webots won't be able to clean or compile any controller in this path. "
+                             "Please move this Webots project into a folder where you have write access.")
+                            .arg(compilePath),
+                          this);
+    return;
+  }
+#endif
   // update path of modified files from external project
-  const QString oldProjectPath = WbProjectRelocationDialog::relocatedExternalProjectPath();
+  const QString &oldProjectPath = WbProjectRelocationDialog::relocatedExternalProtoProjectPath();
   if (!oldProjectPath.isEmpty())
     updateProjectPath(oldProjectPath, WbProject::current()->path());
 
@@ -337,36 +362,38 @@ void WbBuildEditor::make(const QString &target) {
   // store the target modification date
   updateTargetModificationTime();
 
-  QString commandLine = "";
-  if (isJavaProgram && !makefileExists(compilePath))
-    commandLine = getJavaCommandLine(target);
-  else {
-    commandLine = "make";
+  QString command;
+  QStringList arguments;
+
+  if (isJavaProgram && !makefileExists(compilePath)) {
+    QStringList list = getJavaCommandLine(target);
+    command = list[0];
+    list.removeFirst();
+    arguments = list;
+  } else {
+    command = "make";
 
     addMakefileIfNecessary(compilePath);
 
     int numberOfThreads = WbPreferences::instance()->value("General/numberOfThreads", 1).toInt();
-    if (numberOfThreads > 1 && target != "clean" && WbSimulationState::instance()->isPaused())
-      commandLine += " -j " + QString::number(numberOfThreads);
-
+    if (numberOfThreads > 1 && target != "clean" && WbSimulationState::instance()->isPaused()) {
+      arguments << "-j";
+      arguments << QString::number(numberOfThreads);
+    }
     if (!target.isEmpty())
-      commandLine += " " + target;
+      arguments << target;
   }
 
-  // clear console before build
-  WbLog::clear();
-  if (commandLine.isEmpty()) {
-    // unknown target
+  if (command.isEmpty())
     return;
-  } else
-    WbLog::appendStdout(commandLine + "\n");
+  WbLog::appendStdout(command + " " + arguments.join(" ") + "\n", WbLog::COMPILATION);
 
   // create mProcess
   mProcess = new QProcess(this);
   connect(mProcess, &QProcess::readyReadStandardOutput, this, &WbBuildEditor::readStdout);
   connect(mProcess, &QProcess::readyReadStandardError, this, &WbBuildEditor::readStderr);
-  void (QProcess::*processFinished)(int, QProcess::ExitStatus) = &QProcess::finished;
-  connect(mProcess, processFinished, this, &WbBuildEditor::processFinished);
+  void (QProcess::*processFinishedSignal)(int, QProcess::ExitStatus) = &QProcess::finished;
+  connect(mProcess, processFinishedSignal, this, &WbBuildEditor::processFinished);
 
   // we should clear environment variables which are used by the Makefile system as they may conflict with it
   QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -377,7 +404,12 @@ void WbBuildEditor::make(const QString &target) {
   env.remove("C_SOURCES");
   env.remove("CXX_SOURCES");
   env.remove("USE_C_API");
-  env.remove("QT");
+
+#ifdef __APPLE__
+  // we should add a new environment variable for the macOS build to include the "Contents/" directory
+  env.insert("WEBOTS_HOME_PATH", WbStandardPaths::webotsHomePath() + "Contents/");
+#endif
+
   mProcess->setProcessEnvironment(env);
 
   // disable buttons
@@ -385,58 +417,48 @@ void WbBuildEditor::make(const QString &target) {
 
   // launch external make and wait at most 5 sec
   mProcess->setWorkingDirectory(compilePath);
-  mProcess->start(commandLine);
-  bool started = mProcess->waitForStarted(5000);
+  mProcess->start(command, arguments);
 
   // check that program is available
-  if (!started) {
-    QString program = commandLine.split(" ")[0];
+  if (!mProcess->waitForStarted(5000)) {
 #ifdef _WIN32
-    WbLog::appendStderr(tr("Installation problem: could not start '%1'.\n").arg(program));
+    WbLog::appendStderr(tr("Installation problem: could not start '%1'.\n").arg(command), WbLog::COMPILATION);
 #else
-    WbLog::appendStderr(tr("The '%1' command appears not to be available on your system.\n").arg(program));
+    WbLog::appendStderr(tr("The '%1' command appears not to be available on your system.\n").arg(command), WbLog::COMPILATION);
 #endif
     cleanupProcess();
   }
 }
 
-QString WbBuildEditor::getJavaCommandLine(const QString &target) const {
+QStringList WbBuildEditor::getJavaCommandLine(const QString &target) const {
   QDir controllerDir = compileDir();
-  QString controllerPath = controllerDir.absolutePath();
-  QString controllerName = QFileInfo(controllerPath).baseName();
-  QString command;
+  const QString controllerPath = controllerDir.absolutePath();
+  const QString controllerName = QFileInfo(controllerPath).baseName();
+  QStringList commandLine;
 
-  if (target == "clean") {
-    QStringList classFiles = controllerDir.entryList(QStringList() << "*.class", QDir::Files);
-    command = "rm -fr " + classFiles.join(" ") + " " + controllerName + ".jar";
-
-  } else if (target == "jar") {
-    // create JAR with .class files and all the subfolders in the controller folder
-    QStringList classFiles = controllerDir.entryList(QStringList() << "*.class", QDir::Files);
-    command = "jar cf " + controllerName + ".jar " + classFiles.join(" ");
-
-  } else if (target == "") {  // build, compile all .java files in the controller folder
+  if (target == "clean")
+    commandLine << "rm"
+                << "-fr" << controllerDir.entryList(QStringList("*.class"), QDir::Files) << controllerName + ".jar";
+  else if (target == "jar")  // create JAR with .class files and all the subfolders in the controller folder
+    commandLine << "jar"
+                << "cf " << controllerName + ".jar " << controllerDir.entryList(QStringList("*.class"), QDir::Files);
+  else if (target == "") {  // build, compile all .java files in the controller folder
 #ifdef _WIN32
-    QString separator = ";";
+    const QString separator = ";";
 #else
-    QString separator = ":";
+    const QString separator = ":";
 #endif
-    QString CLASSPATH = qgetenv("CLASSPATH");
-    QString javaOptions = "-Xlint -classpath \"" + QDir::toNativeSeparators(WbStandardPaths::webotsLibPath() + "java/") +
-                          "Controller.jar" + separator;
+    QString classpath = QDir::toNativeSeparators(WbStandardPaths::controllerLibPath() + "java/Controller.jar") + separator;
+    const QString CLASSPATH = qgetenv("CLASSPATH");
     if (!CLASSPATH.isEmpty())
-      javaOptions += CLASSPATH + separator;
-    javaOptions += ".\"";
+      classpath += CLASSPATH + separator;
+    classpath += ".";
 
-    QStringList javaFiles = controllerDir.entryList(QStringList() << "*.java", QDir::Files);
-    command = "javac " + javaOptions + " " + javaFiles.join(" ");
-
-  } else {
-    // unknown target
-    return QString();
+    commandLine << "javac"
+                << "-Xlint"
+                << "-classpath" << classpath << controllerDir.entryList(QStringList("*.java"), QDir::Files);
   }
-
-  return command;
+  return commandLine;
 }
 
 void WbBuildEditor::computeTargetFile() {
@@ -491,11 +513,8 @@ void WbBuildEditor::jumpToError(QString fileName, int line, int column) {
   if (currentBuffer() && QDir::isRelativePath(fileName))
     fileName = compileDir().absoluteFilePath(fileName);
 
-  if (openFile(fileName)) {
-    WbTextBuffer *buffer = currentBuffer();
-    if (line != -1)
-      buffer->markError(line, column);
-  }
+  if (openFile(fileName) && line != -1)
+    currentBuffer()->markError(line, column);
 }
 
 void WbBuildEditor::unmarkError() {

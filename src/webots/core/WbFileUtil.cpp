@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,9 @@
 
 #include "WbFileUtil.hpp"
 
+#include "WbDesktopServices.hpp"
 #include "WbLog.hpp"
+#include "WbPreferences.hpp"
 #include "WbStandardPaths.hpp"
 
 #include <QtCore/QCryptographicHash>
@@ -25,27 +27,25 @@
 #include <QtCore/QTextStream>
 #include <QtCore/QUrl>
 
-#include <QtGui/QDesktopServices>
-
 #include <cassert>
 
 bool WbFileUtil::copyAndReplaceString(const QString &sourcePath, const QString &destinationPath, const QString &before,
                                       const QString &after) {
-  QList<QPair<QString, QString>> values;
-  values << QPair<QString, QString>(before, after);
+  QList<std::pair<QString, QString>> values;
+  values << std::pair<QString, QString>(before, after);
 
   return copyAndReplaceString(sourcePath, destinationPath, values);
 }
 
 bool WbFileUtil::copyAndReplaceString(const QString &sourcePath, const QString &destinationPath,
-                                      QList<QPair<QString, QString>> values) {
+                                      const QList<std::pair<QString, QString>> &values) {
   QFile sourceFile(sourcePath);
   if (!sourceFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
     return false;
   }
 
   QFile destinationFile(destinationPath);
-  if (!destinationFile.open(QIODevice::WriteOnly)) {
+  if (!destinationFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
     return false;
   }
 
@@ -89,7 +89,7 @@ int WbFileUtil::copyDir(const QString &sourcePath, const QString &destPath, bool
   // copy files
   int count = 0;
   QStringList files = sourceDir.entryList(QDir::Files | QDir::Hidden);
-  foreach (QString file, files) {
+  foreach (const QString &file, files) {
     QString srcName = sourcePath + "/" + file;
     QString destName = destPath + "/" + file;
     if (QFile::exists(destName)) {
@@ -109,7 +109,8 @@ int WbFileUtil::copyDir(const QString &sourcePath, const QString &destPath, bool
   // recurse in subdirectories
   if (recurse) {
     QStringList dirs = sourceDir.entryList(QDir::AllDirs | QDir::NoDotAndDotDot);
-    foreach (QString dir, dirs) {
+    foreach (const QString &dir, dirs) {
+      // cppcheck-suppress variableScope
       QString srcName = sourcePath + "/" + dir;
       QString destName = destPath + "/" + dir;
       if (!QDir(destName).exists() || merge)
@@ -155,10 +156,9 @@ bool WbFileUtil::isLocatedInDirectory(const QString &file, const QString &direct
 #endif
 }
 
-bool WbFileUtil::isLocatedInInstallationDirectory(const QString &file) {
-  bool forbidModifyInstallation = qgetenv("WEBOTS_ALLOW_MODIFY_INSTALLATION").isEmpty();
-  bool inWebots = WbFileUtil::isLocatedInDirectory(file, WbStandardPaths::webotsHomePath());
-  return inWebots && forbidModifyInstallation;
+bool WbFileUtil::isLocatedInInstallationDirectory(const QString &file, bool ignoreAllowModify) {
+  const bool inWebots = WbFileUtil::isLocatedInDirectory(file, WbStandardPaths::webotsHomePath());
+  return inWebots && (ignoreAllowModify || !WbPreferences::booleanEnvironmentVariable("WEBOTS_ALLOW_MODIFY_INSTALLATION"));
 }
 
 void WbFileUtil::searchDirectoryNameRecursively(QStringList &results, const QString &directoryName, const QString &root) {
@@ -179,37 +179,6 @@ void WbFileUtil::searchDirectoryNameRecursively(QStringList &results, const QStr
       results << subDirAbsolutePath + '/';
     else if (!projectFolder)
       searchDirectoryNameRecursively(results, directoryName, subDirAbsolutePath);
-  }
-}
-
-const QString &WbFileUtil::extension(FileType t) {
-  static QString unknownExtension = "";
-  static QString classExtension = ".class";
-  static QString jarExtension = ".jar";
-  static QString pythonExtension = ".py";
-  static QString matlabExtension = ".m";
-  static QString botstudioExtension = ".bsg";
-  static QString textExtension = ".txt";
-  switch (t) {
-    case WbFileUtil::EXECUTABLE:
-      return WbStandardPaths::executableExtension();
-    case WbFileUtil::CLASS:
-      return classExtension;
-    case WbFileUtil::JAR:
-      return jarExtension;
-    case WbFileUtil::PYTHON:
-      return pythonExtension;
-    case WbFileUtil::MATLAB:
-      return matlabExtension;
-    case WbFileUtil::BOTSTUDIO:
-      return botstudioExtension;
-    case WbFileUtil::TEXT:
-      return textExtension;
-    case WbFileUtil::UNKNOWN:
-      return unknownExtension;
-    default:
-      assert(0);
-      return unknownExtension;
   }
 }
 
@@ -240,7 +209,7 @@ bool WbFileUtil::isDirectoryWritable(const QString &path) {
 
 void WbFileUtil::revealInFileManager(const QString &file) {
 #ifdef _WIN32
-  QProcess::startDetached("explorer /select," + QDir::toNativeSeparators(file));
+  QProcess::startDetached("explorer", QStringList("/select," + QDir::toNativeSeparators(file)));
 #elif defined(__APPLE__)
   QStringList args;
   args << "-e"
@@ -271,6 +240,6 @@ void WbFileUtil::revealInFileManager(const QString &file) {
   else if (output == "kfmclient_dir.desktop")
     process.startDetached("konqueror", QStringList() << "--select" << file);
   else
-    QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(file).path()));
+    WbDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(file).path()).toString());
 #endif
 }

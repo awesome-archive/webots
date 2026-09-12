@@ -24,8 +24,8 @@ robot = Robot()
 
 timestep = int(robot.getBasicTimeStep())
 
-leftWheel = robot.getMotor('left wheel')
-rightWheel = robot.getMotor('right wheel')
+leftWheel = robot.getDevice('left wheel')
+rightWheel = robot.getDevice('right wheel')
 
 leftWheel.setVelocity(0)
 rightWheel.setVelocity(0)
@@ -33,10 +33,10 @@ rightWheel.setVelocity(0)
 leftWheel.setPosition(float('inf'))
 rightWheel.setPosition(float('inf'))
 
-leftWheelSensor = robot.getPositionSensor('left wheel sensor')
+leftWheelSensor = robot.getDevice('left wheel sensor')
 leftWheelSensor.enable(timestep)
 
-rightWheelSensor = robot.getPositionSensor('right wheel sensor')
+rightWheelSensor = robot.getDevice('right wheel sensor')
 rightWheelSensor.enable(timestep)
 
 
@@ -86,14 +86,14 @@ def move(value, threshold, rotation):
     # loops until the robot has reached the destination.
     while (robot.step(timestep) != -1 and absValue > 0):
         # full speed if threshold hasn't been reached.
-        if (absValue > threshold):
+        if absValue > threshold:
             speed = MAX_SPEED
         # otherwise we follow a linear decay down to a minimum
         # (so the robot doesn't completely stop before reaching the goal).
         else:
             speed = MAX_SPEED * (absValue / threshold)
 
-        if (speed < MIN_SPEED):
+        if speed < MIN_SPEED:
             speed = MIN_SPEED
 
         # applies the velocity to the wheels.

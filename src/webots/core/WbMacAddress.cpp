@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,9 +29,8 @@ bool WbMacAddress::check(const QString &macAddress) const {
 }
 
 QString WbMacAddress::address() const {
-  QString a;
-  a.sprintf("%02X%02X%02X%02X%02X%02X", mAddress[0], mAddress[1], mAddress[2], mAddress[3], mAddress[4], mAddress[5]);
-  return a;
+  return QString::asprintf("%02X%02X%02X%02X%02X%02X", mAddress[0], mAddress[1], mAddress[2], mAddress[3], mAddress[4],
+                           mAddress[5]);
 }
 
 #ifdef _WIN32
@@ -152,7 +151,7 @@ WbMacAddress::WbMacAddress() {
   memset(&ifr, 0, sizeof(ifr));
   strcpy(ifr.ifr_name, *interface);
   if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0) {
-    unsigned char *ch = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+    const unsigned char *ch = reinterpret_cast<unsigned char *>(ifr.ifr_hwaddr.sa_data);
     for (int i = 0; i < 6; i++)
       mAddress[i] = *ch++;
   }

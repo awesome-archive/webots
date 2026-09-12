@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,14 @@
 // limitations under the License.
 
 #include "WbJoint.hpp"
+
 #include "WbBrake.hpp"
 #include "WbJointParameters.hpp"
 #include "WbMotor.hpp"
+#include "WbNodeUtilities.hpp"
 #include "WbPositionSensor.hpp"
 #include "WbRobot.hpp"
+#include "WbSolidReference.hpp"
 #include "WbWrenRenderingContext.hpp"
 
 #include <wren/config.h>
@@ -35,7 +38,7 @@ void WbJoint::init() {
   mPosition = findSFDouble("position")->value();
   mOdePositionOffset = mPosition;
   mTimeStep = 0.0;
-  mInitialPosition = mPosition;
+  mSavedPositions[stateId()] = mPosition;
 }
 
 // Constructors
@@ -55,10 +58,23 @@ WbJoint::WbJoint(const WbNode &other) : WbBasicJoint(other) {
 WbJoint::~WbJoint() {
 }
 
+void WbJoint::downloadAssets() {
+  WbBasicJoint::downloadAssets();
+  WbMotor *m = motor();
+  if (m)
+    m->downloadAssets();
+  m = motor2();
+  if (m)
+    m->downloadAssets();
+  m = motor3();
+  if (m)
+    m->downloadAssets();
+}
+
 void WbJoint::preFinalize() {
   WbBasicJoint::preFinalize();
 
-  mInitialPosition = mPosition;
+  mSavedPositions[stateId()] = mPosition;
 
   for (int i = 0; i < devicesNumber(); ++i) {
     if (device(i) && !device(i)->isPreFinalizedCalled())
@@ -74,36 +90,48 @@ void WbJoint::postFinalize() {
       device(i)->postFinalize();
   }
 
+  connect(mDevice, &WbMFNode::itemChanged, this, &WbJoint::addDevice);
   connect(mDevice, &WbMFNode::itemInserted, this, &WbJoint::addDevice);
   if (brake())
     connect(brake(), &WbBrake::brakingChanged, this, &WbJoint::updateSpringAndDampingConstants, Qt::UniqueConnection);
 }
 
-void WbJoint::reset() {
-  WbBasicJoint::reset();
+void WbJoint::reset(const QString &id) {
+  WbBasicJoint::reset(id);
 
   for (int i = 0; i < mDevice->size(); ++i)
-    mDevice->item(i)->reset();
+    mDevice->item(i)->reset(id);
 
-  setPosition(mInitialPosition);
+  setPosition(mSavedPositions[id]);
 }
 
-void WbJoint::save() {
-  WbBasicJoint::save();
+void WbJoint::resetPhysics() {
+  updatePosition();
+
+  WbMotor *const m = motor();
+  if (m)
+    m->resetPhysics();
+}
+
+void WbJoint::save(const QString &id) {
+  WbBasicJoint::save(id);
 
   for (int i = 0; i < mDevice->size(); ++i)
-    mDevice->item(i)->save();
+    mDevice->item(i)->save(id);
 
-  mInitialPosition = mPosition;
+  mSavedPositions[id] = mPosition;
 }
 
 void WbJoint::setPosition(double position, int index) {
-  assert(index == 1);
+  if (index != 1)
+    return;
+
   mPosition = position;
   mOdePositionOffset = position;
   WbJointParameters *const p = parameters();
   if (p)
     p->setPosition(mPosition);
+
   WbMotor *const m = motor();
   if (m)
     m->setTargetPosition(position);
@@ -124,9 +152,9 @@ void WbJoint::addDevice(int index) {
     WbBaseNode *decendant = dynamic_cast<WbBaseNode *>(mDevice->item(index));
     r->descendantNodeInserted(decendant);
   }
-  WbBrake *brake = dynamic_cast<WbBrake *>(mDevice->item(index));
-  if (brake)
-    connect(brake, &WbBrake::brakingChanged, this, &WbJoint::updateSpringAndDampingConstants, Qt::UniqueConnection);
+  WbBrake *b = dynamic_cast<WbBrake *>(mDevice->item(index));
+  if (b)
+    connect(b, &WbBrake::brakingChanged, this, &WbJoint::updateSpringAndDampingConstants, Qt::UniqueConnection);
 }
 
 void WbJoint::updateParameters() {
@@ -283,4 +311,70 @@ void WbJoint::updateJointAxisRepresentation() {
 
   mMesh = wr_static_mesh_line_set_new(2, vertices, NULL);
   wr_renderable_set_mesh(mRenderable, WR_MESH(mMesh));
+}
+
+const QString WbJoint::urdfName() const {
+  if (motor())
+    return getUrdfPrefix() + motor()->deviceName();
+  else if (positionSensor())
+    return getUrdfPrefix() + positionSensor()->deviceName();
+  return WbBaseNode::urdfName();
+}
+
+void WbJoint::writeExport(WbWriter &writer) const {
+  if (writer.isUrdf() && solidEndPoint()) {
+    if (dynamic_cast<WbSolidReference *>(mEndPoint->value())) {
+      this->warn("Exporting a Joint node with a SolidReference endpoint to URDF is not supported.");
+      return;
+    }
+
+    const WbNode *const parentRoot = findUrdfLinkRoot();
+    const WbVector3 currentOffset = solidEndPoint()->translation() - anchor();
+    const WbVector3 translation = solidEndPoint()->translationFrom(parentRoot) - currentOffset + writer.jointOffset();
+    writer.setJointOffset(solidEndPoint()->rotationMatrixFrom(parentRoot).transposed() * currentOffset);
+    const WbVector3 eulerRotation = solidEndPoint()->rotationMatrixFrom(parentRoot).toEulerAnglesZYX();
+    const WbVector3 rotationAxis = axis() * solidEndPoint()->rotationMatrixFrom(WbNodeUtilities::findUpperPose(this));
+
+    writer.increaseIndent();
+    writer.indent();
+    const WbMotor *m = motor();
+    if (m && (m->minPosition() != 0.0 || m->maxPosition() != 0.0))
+      writer << QString("<joint name=\"%1\" type=\"revolute\">\n").arg(urdfName());
+    else
+      writer << QString("<joint name=\"%1\" type=\"continuous\">\n").arg(urdfName());
+
+    writer.increaseIndent();
+    writer.indent();
+    writer << QString("<parent link=\"%1\"/>\n").arg(parentRoot->urdfName());
+    writer.indent();
+    writer << QString("<child link=\"%1\"/>\n").arg(solidEndPoint()->urdfName());
+    writer.indent();
+    writer << QString("<axis xyz=\"%1\"/>\n").arg(rotationAxis.toString(WbPrecision::FLOAT_ROUND_6));
+    writer.indent();
+
+    if (m) {
+      if (m->minPosition() != 0.0 || m->maxPosition() != 0.0)
+        writer << QString("<limit effort=\"%1\" lower=\"%2\" upper=\"%3\" velocity=\"%4\"/>\n")
+                    .arg(m->maxForceOrTorque())
+                    .arg(m->minPosition())
+                    .arg(m->maxPosition())
+                    .arg(m->maxVelocity());
+      else
+        writer << QString("<limit effort=\"%1\" velocity=\"%2\"/>\n").arg(m->maxForceOrTorque()).arg(m->maxVelocity());
+      writer.indent();
+    }
+    writer << QString("<origin xyz=\"%1\" rpy=\"%2\"/>\n")
+                .arg(translation.toString(WbPrecision::FLOAT_ROUND_6))
+                .arg(eulerRotation.toString(WbPrecision::FLOAT_ROUND_6));
+    writer.decreaseIndent();
+
+    writer.indent();
+    writer << QString("</joint>\n");
+    writer.decreaseIndent();
+
+    WbNode::exportNodeSubNodes(writer);
+    return;
+  }
+
+  WbBasicJoint::writeExport(writer);
 }

@@ -3,6 +3,10 @@
 Webots can simulate a lot of standard robotic actuators.
 Using the nodes described [below](#generic-actuator-list) and their corresponding APIs is sufficient in most of the cases.
 
+More specific actuators are built on the top of these generic nodes, thanks to the [PROTO system](../reference/proto.md).
+These actuators are listed on [webots.cloud](https://webots.cloud/proto?keyword=actuator) under the *actuator* keyword.
+They typically correspond to commercially available devices.
+
 ### Generic Actuator List
 
 | Icon | Device | Description |

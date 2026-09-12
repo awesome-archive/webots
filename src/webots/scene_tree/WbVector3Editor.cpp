@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -103,19 +103,22 @@ void WbVector3Editor::applyIfNeeded() {
 }
 
 void WbVector3Editor::apply() {
-  mVector3.setXyz(mSpinBoxes[0]->value(), mSpinBoxes[1]->value(), mSpinBoxes[2]->value());
   if (field()->hasRestrictedValues())
     mVector3 = WbVector3(mComboBox->currentText());
-
+  else
+    mVector3.setXyz(WbPrecision::roundValue(mSpinBoxes[0]->value(), WbPrecision::GUI_MEDIUM),
+                    WbPrecision::roundValue(mSpinBoxes[1]->value(), WbPrecision::GUI_MEDIUM),
+                    WbPrecision::roundValue(mSpinBoxes[2]->value(), WbPrecision::GUI_MEDIUM));
+  mVector3.clamp();
   if (singleValue()) {
-    WbSFVector3 *const sfVector3 = static_cast<WbSFVector3 *>(singleValue());
+    const WbSFVector3 *const sfVector3 = static_cast<WbSFVector3 *>(singleValue());
     if (sfVector3->value() == mVector3)
       return;
 
     mPreviousValue->setVector3(sfVector3->value());
 
   } else if (multipleValue()) {
-    WbMFVector3 *const mfVector3 = static_cast<WbMFVector3 *>(multipleValue());
+    const WbMFVector3 *const mfVector3 = static_cast<WbMFVector3 *>(multipleValue());
     if (mfVector3->item(index()) == mVector3)
       return;
 

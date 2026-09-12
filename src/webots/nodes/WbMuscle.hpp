@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,17 +42,21 @@ public:
   explicit WbMuscle(WbTokenizer *tokenizer = NULL);
   WbMuscle(const WbMuscle &other);
   explicit WbMuscle(const WbNode &other);
-  virtual ~WbMuscle();
+  virtual ~WbMuscle() override;
 
   // reimplemented public functions
   int nodeType() const override { return WB_NODE_MUSCLE; }
   void createWrenObjects() override;
   void postFinalize() override;
+  QList<const WbBaseNode *> findClosestDescendantNodesWithDedicatedWrenNode() const override {
+    return QList<const WbBaseNode *>() << this;
+  };
 
   void animateMesh();
 
-public slots:
-  void updateRadius();
+private slots:
+  void updateVolume();
+  void computeStretchedDimensions();
 
 private:
   WbMuscle &operator=(const WbMuscle &);  // non copyable
@@ -61,16 +65,17 @@ private:
 
   void updateMeshCoordinates();
   void createMeshBuffers();
-  void computeStretchedDimensions();
   void updateVisibility() const;
   void updateMaterial();
 
-  WbSFDouble *mMaxRadius;
+  WbSFDouble *mVolume;
   WbSFVector3 *mStartOffset;
   WbSFVector3 *mEndOffset;
   WbMFColor *mColors;
   WbSFBool *mCastShadows;
   WbSFBool *mVisible;
+  // deprecated
+  WbSFDouble *mMaxRadius;
 
   WrTransform *mTransform;
   WrRenderable *mRenderable;
@@ -79,14 +84,13 @@ private:
   WrDynamicMesh *mMesh;
   QImage *mQImage;
 
-  const WbTransform *mParentTransform;
+  const WbPose *mParentPose;
   const WbSolid *mEndPoint;
   WbMatrix4 mMatrix;
   double mHeight;
+  double mPreviousHeight;
   double mRadius;
-  double mMinHeight;
   bool mDirectionInverted;
-  bool mValidLimits;
 
   double mStatus;  // idle = 0, contracting < 0, relaxing > 0
   double mMaterialStatus;
@@ -96,7 +100,7 @@ private slots:
   void updateEndPointPosition();
   void updateCastShadows();
   void updateVisible();
-  void updateStretchForce(double forcePercentage, bool immediateUpdate);
+  void updateStretchForce(double forcePercentage, bool immediateUpdate, int motorIndex);
   void stretch();
 };
 

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,11 +23,11 @@ class WbJointParameters : public WbBaseNode {
   Q_OBJECT
 
 public:
-  virtual ~WbJointParameters();
-  WbJointParameters(const QString &modelName, WbTokenizer *tokenizer = NULL);
+  explicit WbJointParameters(const QString &modelName, WbTokenizer *tokenizer = NULL);
   explicit WbJointParameters(WbTokenizer *tokenizer = NULL);
   WbJointParameters(const WbJointParameters &other);
   explicit WbJointParameters(const WbNode &other);
+  virtual ~WbJointParameters() override;
 
   int nodeType() const override { return WB_NODE_JOINT_PARAMETERS; }
   void preFinalize() override;
@@ -39,10 +39,12 @@ public:
   double springConstant() const { return mSpringConstant->value(); }
   double dampingConstant() const { return mDampingConstant->value(); }
   double staticFriction() const { return mStaticFriction->value(); }
-  const WbVector3 &axis() const { return mAxis->value(); }
+  const WbVector3 axis() const { return mAxis ? mAxis->value() : WbVector3(); }
 
   void setPosition(double p) { mPosition->setValue(p); }
   void setPositionFromOde(double p) { mPosition->setValueFromOde(p); }
+
+  bool clampPosition(double &p) const;
 
 signals:
   void positionChanged();
@@ -52,6 +54,7 @@ signals:
 
 protected:
   WbSFVector3 *mAxis;  // axis default value redefined in a derived classes
+  bool exportNodeHeader(WbWriter &writer) const override;
 
 private:
   WbJointParameters &operator=(const WbJointParameters &);  // non copyable

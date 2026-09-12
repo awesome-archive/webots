@@ -12,6 +12,7 @@ Receiver {
   SFInt32  bufferSize          -1        # {-1, [0, inf)}
   SFFloat  signalStrengthNoise 0         # [0, inf)
   SFFloat  directionNoise      0         # [0, inf)
+  MFInt32  allowedChannels     [ ]       # [0, inf)
 }
 ```
 
@@ -33,7 +34,7 @@ Currently, there is no implementation difference between the "radio" and "serial
 
 - `aperture`: opening angle of the reception cone (in radians); for "infra-red" only.
 The receiver can only receive messages from emitters currently located within its reception cone.
-The cone's apex is located at the origin ([0 0 0]) of the receiver's coordinate system and the cone's axis coincides with the *z*-axis of the receiver coordinate system (see [this figure](emitter.md#illustration-of-aperture-and-range-for-infra-red-emitter-receiver) in [this section](emitter.md)).
+The cone's apex is located at the origin ([0 0 0]) of the receiver's coordinate system and the cone's axis coincides with the x-axis of the receiver coordinate system (see [this figure](emitter.md#illustration-of-aperture-and-range-for-infra-red-emitter-receiver) in [this section](emitter.md)).
 An `aperture` of -1 (the default) is considered to be infinite, meaning that a signal can be received from any direction.
 For "radio" receivers, the `aperture` field is ignored.
 
@@ -61,13 +62,16 @@ The noise is proportionnal to the signal strength, e.g., a `signalStrengthNoise`
 - `directionNoise`: standard deviation of the gaussian noise added to each of the components of the direction returned by `wb_receiver_get_emitter_direction`.
 The noise is not dependent on the distance between emitter-receiver.
 
+- `allowedChannels`: specifies allowed channels [Receiver](#receiver) is allowed to listen to.
+Empty list (default) gives unlimited access.
+
 ### Receiver Functions
 
 #### `wb_receiver_enable`
 #### `wb_receiver_disable`
 #### `wb_receiver_get_sampling_period`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -129,20 +133,11 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 wb_receiver_enable(tag, sampling_period)
 wb_receiver_disable(tag)
 period = wb_receiver_get_sampling_period(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/enable` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/<device_name>/get_sampling_period` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -169,7 +164,7 @@ The `wb_receiver_get_sampling_period` function returns the period given into the
 #### `wb_receiver_get_queue_length`
 #### `wb_receiver_next_packet`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -227,19 +222,10 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 length = wb_receiver_get_queue_length(tag)
 wb_receiver_next_packet(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_queue_length` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
-| `/<device_name>/next_packet` | `service` | [`webots_ros::get_bool`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -277,7 +263,7 @@ Any user chosen format is suitable, as long as emitters and receivers agree.
 
 %figure "Receiver's packet queue"
 
-![receiver_queue.png](images/receiver_queue.png)
+![receiver_queue.png](images/receiver_queue.thumbnail.png)
 
 %end
 
@@ -298,7 +284,7 @@ Making assumptions based on timing will result in code that is not robust.
 #### `wb_receiver_get_data`
 #### `wb_receiver_get_data_size`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -333,7 +319,11 @@ namespace webots {
 from controller import Receiver
 
 class Receiver (Device):
-    def getData(self):
+    def getBytes(self):
+    def getString(self):
+    def getFloats(self):
+    def getInts(self):
+    def getBools(self):
     def getDataSize(self):
     # ...
 ```
@@ -356,19 +346,10 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 size = wb_receiver_get_data_size(tag)
-data = wb_receiver_get_data(tag)
+data = wb_receiver_get_data(tag, type)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/data` | `topic` | `webots_ros::StringStamped` | [`Header`](http://docs.ros.org/api/std_msgs/html/msg/Header.html) `header`<br/>`string data` |
-| `/<device_name>/get_data_size` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -388,24 +369,15 @@ The `wb_receiver_get_data_size` function returns the number of data bytes presen
 The *data size* is always equal to the *size* argument of the corresponding `emitter_send_packet` function call.
 It is illegal to call the `wb_receiver_get_data_size` function when the queue is empty (i.e. when `wb_receiver_get_queue_length() == 0`).
 
-> **Note** [Python]: The `getData` function returns a string.
-Similarly to the `sendPacket` function of the [Emitter](emitter.md) device, using the functions of the struct module is recommended for sending primitive data types.
-Here is an example for getting the data:
-
-> ```python
-> import struct
-> #...
-> message=receiver.getData()
-> dataList=struct.unpack("chd",message)
-> ```
+> **Note** [Python]: In the Python API, instead of having a single function returning the data, multiple functions are defined that automatically convert the data to the expected return type (bytes, string, list of floats, list of integers, list of booleans).
 
 <!-- -->
 
-> **Note** [MATLAB]: The MATLAB `wb_receiver_get_data` function returns a MATLAB *libpointer*.
+> **Note** [MATLAB]: The MATLAB `wb_receiver_get_data` function returns a MATLAB *libpointer* if the `type` argument is not set (type should be `uint8`, `double` or `string`).
 The receiving code is responsible for extracting the data from the *libpointer* using MATLAB's `setdatatype` and `get` functions.
 Here is an example on how to send and receive a 2x3 MATLAB matrix.
 
-> ```matlab
+> ```MATLAB
 > % sending robot
 > emitter = wb_robot_get_device('emitter');
 >
@@ -428,7 +400,7 @@ Here is an example on how to send and receive a 2x3 MATLAB matrix.
 In this case the function does not return a *libpointer* but an object of the specified type, and it is not necessary to call `setdatatype` and `get` functions.
 For example the `wb_receiver_get_data` function can be used like this:
 
-> ```matlab
+> ```MATLAB
 > % receiving robot
 > receiver = wb_robot_get_device('receiver');
 > wb_receiver_enable(receiver, TIME_STEP);
@@ -447,7 +419,7 @@ More sophisticated data typed must be accessed explicitly using `setdatatype` an
 #### `wb_receiver_get_signal_strength`
 #### `wb_receiver_get_emitter_direction`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -505,19 +477,10 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 strength = wb_receiver_get_signal_strength(tag)
-[x y z] = wb_receiver_get_emitter_direction(tag)
+x_y_z_array = wb_receiver_get_emitter_direction(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_signal_strength` | `service` | [`webots_ros::get_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_emitter_direction` | `service` | `webots_ros::receiver_get_emitter_direction` | `uint8 ask`<br/>`---`<br/>`float64[] direction` |
 
 %tab-end
 
@@ -530,15 +493,15 @@ strength = wb_receiver_get_signal_strength(tag)
 The `wb_receiver_get_signal_strength` function operates on the head packet in the receiver's queue (see [this figure](#receivers-packet-queue)).
 It returns the simulated signal strength at the time the packet was transmitted.
 This signal strength is equal to the inverse of the distance between the emitter and the receiver squared.
-In other words, *s = 1 / r^2*, where *s* is the signal strength and *r* is the distance between emitter and receiver.
+In other words, *s = 1 / r²*, where *s* is the signal strength and *r* is the distance between emitter and receiver.
 If the packet is sent from a physics plugin, the returned value will be positive infinity.
 It is illegal to call this function if the receiver's queue is empty (i.e. when `wb_receiver_get_queue_length() == 0`).
 
 The `wb_receiver_get_emitter_direction` function also operates on the head packet in the receiver's queue.
 It returns a normalized (length=1) vector that indicates the direction of the emitter with respect to the receiver's coordinate system.
-The three vector components indicate the *x, y *, and *z*-directions of the emitter, respectively.
-For example, if the emitter was exactly in front of the receiver, then the vector would be [0 0 1].
-In the usual orientation used for 2D simulations (robots moving in the *xz*-plane and the *y *-axis oriented upwards), a positive *x *-component indicates that the emitter is located to the left of the receiver while a negative *x *-component indicates that the emitter is located to the right.
+The three vector components indicate the *x, y*, and *z*-directions of the emitter, respectively.
+For example, if the emitter was exactly in front of the receiver, then the vector would be [1 0 0].
+In the usual orientation used for 2D simulations (robots moving in the *xy*-plane and the *z*-axis oriented upwards), a positive *y*-component indicates that the emitter is located to the left of the receiver while a negative *y*-component indicates that the emitter is located to the right.
 If the packet is sent from a physics plugin, the returned values will be NaN (Not a Number).
 The returned vector is valid only until the next call to the `wb_receiver_next_packet` function.
 It is illegal to call this function if the receiver's queue is empty (i.e. when `wb_receiver_get_queue_length() == 0`).
@@ -550,7 +513,7 @@ It is illegal to call this function if the receiver's queue is empty (i.e. when 
 #### `wb_receiver_set_channel`
 #### `wb_receiver_get_channel`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -616,21 +579,12 @@ public class Receiver extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_CHANNEL_BROADCAST
 
 wb_receiver_set_channel(tag, channel)
 channel = wb_receiver_get_channel(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/set_channel` | `service` | [`webots_ros::set_int`](ros-api.md#common-services) | |
-| `/<device_name>/get_channel` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -641,6 +595,7 @@ channel = wb_receiver_get_channel(tag)
 *set and get the receiver's channel.*
 
 The `wb_receiver_set_channel` function allows a receiver to change its reception channel.
+The target channel must be included in `allowedChannels` or `allowedChannels` should be empty.
 It modifies the `channel` field of the corresponding [Receiver](#receiver) node.
 Normally, a receiver can only receive data packets from emitters that use the same channel.
 However, the special WB\_CHANNEL\_BROADCAST value can be used to listen simultaneously to all channels.

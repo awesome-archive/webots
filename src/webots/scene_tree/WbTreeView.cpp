@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,6 @@
 #include "WbActionManager.hpp"
 #include "WbContextMenuGenerator.hpp"
 #include "WbNodeOperations.hpp"
-#include "WbSelection.hpp"
 #include "WbTreeItem.hpp"
 
 #include <QtWidgets/QHeaderView>
@@ -30,7 +29,7 @@ public:
   void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override {
     QStyleOptionViewItem itemOption(option);
 
-    WbTreeItem *item = static_cast<WbTreeItem *>(index.internalPointer());
+    const WbTreeItem *item = static_cast<WbTreeItem *>(index.internalPointer());
     if (item->isDefault())
       // paint unmodified tree items in black
       itemOption.palette.setColor(QPalette::Text, mDefaultColor);
@@ -63,7 +62,7 @@ WbTreeView::WbTreeView(QWidget *parent) : QTreeView(parent) {
 
   // display an horizontal scroll bar rather than
   // cutting strings with '...' characters
-  header()->setSectionResizeMode(QHeaderView::ResizeToContents);  // Qt5 version
+  header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   header()->setStretchLastSection(false);
   header()->setDefaultSectionSize(10000);
 
@@ -77,7 +76,7 @@ WbTreeView::~WbTreeView() {
 
 void WbTreeView::focusInEvent(QFocusEvent *event) {
   QTreeView::focusInEvent(event);
-  WbActionManager::instance()->enableTextEditActions(false);
+  WbActionManager::instance()->enableTextEditActions(false, true);
   WbActionManager::instance()->setFocusObject(this);
 
   // when this widget gets keyboard focus the higlighted color of the current
@@ -101,7 +100,7 @@ void WbTreeView::keyPressEvent(QKeyEvent *event) {
     else if (isExpanded(currentIndex()))
       collapse(currentIndex());
   } else if (event->key() == Qt::Key_Right && isExpanded(currentIndex()))
-    setCurrentIndex(currentIndex().child(0, 0));
+    setCurrentIndex(currentIndex().model()->index(0, 0, currentIndex()));
   else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
     emit doubleClickOrEnterPressed();
   else
@@ -121,8 +120,13 @@ void WbTreeView::itemInserted(const QModelIndex &index) {
 }
 
 void WbTreeView::showMenu(const QPoint &position) {
-  const WbBaseNode *selectedNode = WbSelection::instance() ? WbSelection::instance()->selectedNode() : NULL;
-  WbContextMenuGenerator::generateContextMenu(mapToGlobal(position), selectedNode);
+  emit beforeContextMenuShowed();
+  const QModelIndexList indexes = selectionModel()->selectedIndexes();
+  if (indexes.isEmpty())
+    return;
+  const WbTreeItem *item = static_cast<WbTreeItem *>(indexes.at(0).internalPointer());
+  assert(item);
+  WbContextMenuGenerator::generateContextMenu(mapToGlobal(position), item->node(), NULL);
 }
 
 void WbTreeView::scrollToModelIndex(const QModelIndex &index) {

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QTextStream>
 
 #include <cassert>
@@ -34,9 +35,7 @@ WbPerspective::WbPerspective(const QString &worldPath) :
   mMaximizedDockId(-1),
   mCentralWidgetVisible(true),
   mSelectedTab(-1),
-  mOrthographicViewHeight(1.0),
-  mSelectionDisabled(false),
-  mViewpointLocked(false) {
+  mOrthographicViewHeight(1.0) {
   const QFileInfo info(worldPath);
   mBaseName = info.absolutePath() + "/." + info.completeBaseName();
   mVersion = WbApplicationInfo::version();
@@ -52,6 +51,7 @@ bool WbPerspective::readContent(QTextStream &in, bool reloading) {
     return false;
 
   const bool skipNodeIdsOptions = mVersion.majorNumber() < 2018;
+  mConsolesSettings.clear();
   while (!in.atEnd()) {
     QString line(in.readLine());
     QTextStream ls(&line, QIODevice::ReadOnly);
@@ -88,39 +88,41 @@ bool WbPerspective::readContent(QTextStream &in, bool reloading) {
       if (reloading)
         continue;
       ls >> mRenderingMode;
-    } else if (key == "selectionDisabled:") {
+    } else if (key == "selectionDisabled:") {  // backward compatibility < R2020b
       if (reloading)
         continue;
       int i;
       ls >> i;
-      mSelectionDisabled = i;
-    } else if (key == "viewpointLocked:") {
+      mDisabledUserInteractionsMap[WbAction::DISABLE_SELECTION] = i;
+    } else if (key == "viewpointLocked:") {  // backward compatibility < R2020b
       if (reloading)
         continue;
       int i;
       ls >> i;
-      mViewpointLocked = i;
+      mDisabledUserInteractionsMap[WbAction::LOCK_VIEWPOINT] = i;
+    } else if (key == "userInteractions:") {
+      if (!mDisabledUserInteractionsMap.isEmpty() || reloading)
+        continue;
+      const QString s = line.right(line.length() - 17).trimmed();  // remove label
+      QStringList actionNamesList;
+      splitUniqueNameList(s, actionNamesList);
+      foreach (const QString &name, actionNamesList)
+        mDisabledUserInteractionsMap[getActionFromString(name)] = true;
     } else if (key == "orthographicViewHeight:") {
       double value;
-      ls >> (double &)value;
+      ls >> value;
       setOrthographicViewHeight(value);
     } else if (key == "textFiles:") {
       ls >> mSelectedTab;
       mFilesList.clear();
       const QDir dir(WbProject::current()->dir());
-      const QRegExp rx("(\"[^\"]*\")");  // to match string literals
-      int pos = 0;
-      while ((pos = rx.indexIn(line, pos)) != -1) {
-        QString file(rx.cap(1));
-        file.remove("\"");                              // remove double quotes
-        mFilesList.append(dir.absoluteFilePath(file));  // make absolute path
-        pos += rx.matchedLength();
+      const QRegularExpression rx("(\"[^\"]*\")");  // match string literals
+      QRegularExpressionMatch match = rx.match(line);
+      while (match.hasMatch()) {
+        mFilesList.append(dir.absoluteFilePath(match.captured().remove("\"")));
+        match = rx.match(line, match.capturedEnd());
       }
-    } else if (key == "documentationBook:")
-      ls >> mDocumentationBook;
-    else if (key == "documentationPage:")
-      ls >> mDocumentationPage;
-    else if (key == "robotWindow:") {
+    } else if (key == "robotWindow:") {
       if (!mRobotWindowNodeNames.isEmpty() || skipNodeIdsOptions)
         continue;
       QString s = line.right(line.length() - 12).trimmed();  // remove label
@@ -145,6 +147,14 @@ bool WbPerspective::readContent(QTextStream &in, bool reloading) {
         continue;
       QString s = line.right(line.length() - 15).trimmed();  // remove label
       splitUniqueNameList(s, mSupportPolygonNodeNames);
+    } else if (key == "consoles:") {
+      const QStringList s = line.right(line.length() - 10).trimmed().split(':');  // remove label
+      assert(s.size() == 3);
+      ConsoleSettings settings;
+      settings.name = s[0];
+      settings.enabledFilters = s[1].split(';');
+      settings.enabledLevels = s[2].split(';');
+      mConsolesSettings.append(settings);
     } else if (key == "renderingDevicePerspectives:") {
       if (skipNodeIdsOptions)
         continue;
@@ -161,16 +171,23 @@ bool WbPerspective::readContent(QTextStream &in, bool reloading) {
         // handle case where a Solid name contains the character ';'
         deviceUniqueName += ";" + values.takeFirst();
       mRenderingDevicesPerspectiveList.insert(deviceUniqueName, values);
-    } else if (key.startsWith("x3dExport-")) {
-      QString label = key.split("-")[1].remove(":");
-      QString value;
-      ls >> value;
-      mX3dExportParameters.insert(label, value);
     } else
       WbLog::warning(QObject::tr("Unknown key in perspective file: %1 (ignored).").arg(key));
   }
 
+  // Backward compatibility with < R2020b
+  if (mConsolesSettings.isEmpty() && mVersion < WbVersion(2020, 1, 0))
+    addDefaultConsole();
+
   return true;
+}
+
+void WbPerspective::addDefaultConsole() {
+  ConsoleSettings settings;
+  settings.name = "Console";
+  settings.enabledFilters = QStringList() << "All";
+  settings.enabledLevels = QStringList() << "All";
+  mConsolesSettings.append(settings);
 }
 
 bool WbPerspective::load(bool reloading) {
@@ -180,10 +197,12 @@ bool WbPerspective::load(bool reloading) {
   mRobotWindowNodeNames.clear();
   if (!reloading)
     mEnabledOptionalRenderingList.clear();
+  mConsolesSettings.clear();
+  addDefaultConsole();
   clearRenderingDevicesPerspectiveList();
   clearEnabledOptionalRenderings();
 
-  QFile file(mBaseName + ".wbproj");
+  QFile file(fileName());
   if (!file.open(QIODevice::ReadOnly))
     return false;
 
@@ -207,12 +226,11 @@ bool WbPerspective::load(bool reloading) {
 }
 
 bool WbPerspective::save() const {
-  const QString fileName(mBaseName + ".wbproj");
-  QFile file(fileName);
-  if (!file.open(QIODevice::WriteOnly) || !qgetenv("WEBOTS_DISABLE_SAVE_PERSPECTIVE_ON_CLOSE").isEmpty())
+  QFile outputFile(fileName());
+  if (!outputFile.open(QIODevice::WriteOnly))
     return false;
 
-  QTextStream out(&file);
+  QTextStream out(&outputFile);
   out << "Webots Project File version " << WbApplicationInfo::version().toString(false) << "\n";
   assert(!mState.isEmpty());
   out << "perspectives: " << mState.toHex() << "\n";
@@ -228,19 +246,24 @@ bool WbPerspective::save() const {
     out << "projectionMode: " << mProjectionMode << "\n";
   if (!mRenderingMode.isEmpty())
     out << "renderingMode: " << mRenderingMode << "\n";
-  out << "selectionDisabled: " << (int)mSelectionDisabled << "\n";
-  out << "viewpointLocked: " << (int)mViewpointLocked << "\n";
+
+  // save disabled user interaction options
+  QStringList userInteractionList;
+  QList<WbAction::WbActionKind> actions(mDisabledUserInteractionsMap.keys());
+  foreach (WbAction::WbActionKind action, actions) {
+    if (mDisabledUserInteractionsMap.value(action))
+      userInteractionList << getActionName(action);
+  }
+  if (!userInteractionList.isEmpty())
+    out << "userInteractions: " << joinUniqueNameList(userInteractionList) << "\n";
+
   out << "orthographicViewHeight: " << (double)mOrthographicViewHeight << "\n";
   out << "textFiles: " << mSelectedTab;
   // convert to relative paths and save
   const QDir dir(WbProject::current()->dir());
-  foreach (const QString file, mFilesList)
+  foreach (const QString &file, mFilesList)
     out << " \"" << dir.relativeFilePath(file) << "\"";
   out << "\n";
-  if (!mDocumentationBook.isEmpty())
-    out << "documentationBook: " << mDocumentationBook << "\n";
-  if (!mDocumentationPage.isEmpty())
-    out << "documentationPage: " << mDocumentationPage << "\n";
   if (!mRobotWindowNodeNames.isEmpty())
     out << "robotWindow: " << joinUniqueNameList(mRobotWindowNodeNames) << "\n";
   if (!mEnabledOptionalRenderingList.isEmpty())
@@ -252,27 +275,27 @@ bool WbPerspective::save() const {
   if (!mSupportPolygonNodeNames.isEmpty())
     out << "supportPolygon: " << joinUniqueNameList(mSupportPolygonNodeNames) << "\n";
 
-  QHash<QString, QStringList>::const_iterator it;
+  for (int i = 0; i < mConsolesSettings.size(); ++i)
+    out << "consoles: " << mConsolesSettings.at(i).name << ":" << mConsolesSettings.at(i).enabledFilters.join(";") << ":"
+        << mConsolesSettings.at(i).enabledLevels.join(";") << "\n";
+
+  QMap<QString, QStringList>::const_iterator it;
   for (it = mRenderingDevicesPerspectiveList.constBegin(); it != mRenderingDevicesPerspectiveList.constEnd(); ++it)
     out << "renderingDevicePerspectives: " << it.key() << ";" << it.value().join(";") << "\n";
 
-  QStringList x3dParametersKeys(mX3dExportParameters.keys());
-  x3dParametersKeys.sort();
-  foreach (QString key, x3dParametersKeys)
-    out << "x3dExport-" << key << ": " << mX3dExportParameters.value(key) << "\n";
-
-  file.close();
+  outputFile.close();
 
 #ifdef _WIN32
   // set hidden attribute to WBPROJ file
-  LPCSTR nativePath = QDir::toNativeSeparators(fileName).toUtf8().constData();
+  const QByteArray nativePathByteArray = QDir::toNativeSeparators(fileName()).toUtf8();
+  const LPCSTR nativePath = nativePathByteArray.constData();
   SetFileAttributes(nativePath, GetFileAttributes(nativePath) | FILE_ATTRIBUTE_HIDDEN);
 #endif
 
   return true;
 }
 
-void WbPerspective::setSimulationViewState(QList<QByteArray> state) {
+void WbPerspective::setSimulationViewState(const QList<QByteArray> &state) {
   assert(state.size() == 2);
   mSimulationViewState = state[0];
   mSceneTreeState = state[1];
@@ -319,10 +342,6 @@ void WbPerspective::clearRenderingDevicesPerspectiveList() {
   mRenderingDevicesPerspectiveList.clear();
 }
 
-void WbPerspective::setX3dExportParameter(const QString key, QString value) {
-  mX3dExportParameters.insert(key, value);
-}
-
 QString WbPerspective::joinUniqueNameList(const QStringList &nameList) {
   return nameList.join("::");
 }
@@ -333,4 +352,41 @@ void WbPerspective::splitUniqueNameList(const QString &text, QStringList &target
     return;
   // extract solid unique names joined by '::'
   targetList = WbSolid::splitUniqueNamesByEscapedPattern(text, "::");
+}
+
+QString WbPerspective::getActionName(WbAction::WbActionKind action) {
+  switch (action) {
+    case WbAction::DISABLE_SELECTION:
+      return "selectionDisabled";
+    case WbAction::LOCK_VIEWPOINT:
+      return "viewpointLocked";
+    case WbAction::DISABLE_3D_VIEW_CONTEXT_MENU:
+      return "3dContextMenuDisabled";
+    case WbAction::DISABLE_OBJECT_MOVE:
+      return "objectMoveDisabled";
+    case WbAction::DISABLE_FORCE_AND_TORQUE:
+      return "forceAndTorqueDisabled";
+    case WbAction::DISABLE_RENDERING:
+      return "renderingDisabled";
+    default:
+      return QString();
+  }
+}
+
+WbAction::WbActionKind WbPerspective::getActionFromString(const QString &actionString) {
+  if (actionString == "selectionDisabled")
+    return WbAction::DISABLE_SELECTION;
+  if (actionString == "viewpointLocked")
+    return WbAction::LOCK_VIEWPOINT;
+  if (actionString == "3dContextMenuDisabled")
+    return WbAction::DISABLE_3D_VIEW_CONTEXT_MENU;
+  if (actionString == "objectMoveDisabled")
+    return WbAction::DISABLE_OBJECT_MOVE;
+  if (actionString == "forceAndTorqueDisabled")
+    return WbAction::DISABLE_FORCE_AND_TORQUE;
+  if (actionString == "renderingDisabled")
+    return WbAction::DISABLE_RENDERING;
+
+  assert(false);
+  return WbAction::NACTIONS;
 }

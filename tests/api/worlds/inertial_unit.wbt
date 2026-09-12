@@ -1,8 +1,14 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.188339 0.946267 0.262883 4.15506
+  orientation 0.18833897307703992 0.9462668647316347 0.26288296242101467 4.15506
   position -0.929518 1.5538 -1.06563
 }
 Background {
@@ -11,6 +17,7 @@ Background {
   ]
 }
 Floor {
+  rotation 1 0 0 -1.5708
 }
 DirectionalLight {
   ambientIntensity 1
@@ -20,23 +27,29 @@ DEF AIRPLANE Robot {
   translation 0.484785 0.39156 -0.0676172
   children [
     InertialUnit {
+      noise 0.000005
     }
-    Shape {
-      appearance Appearance {
-        texture ImageTexture {
-          url [
-            "textures/plane_top_view.jpg"
-          ]
+    Pose {
+      rotation 1 0 0 -1.57079632679
+      children [
+        Shape {
+          appearance Appearance {
+            texture ImageTexture {
+              url [
+                "textures/plane_top_view.jpg"
+              ]
+            }
+            textureTransform TextureTransform {
+              rotation 1.5708
+            }
+          }
+          geometry Plane {
+          }
         }
-        textureTransform TextureTransform {
-          rotation 1.5708
-        }
-      }
-      geometry Plane {
-      }
+      ]
     }
-    Transform {
-      rotation 1 0 0 3.1416
+    Pose {
+      rotation 1 0 0 1.57080367321
       children [
         Shape {
           appearance Appearance {
@@ -57,7 +70,6 @@ DEF AIRPLANE Robot {
     TestSuiteEmitter {
     }
   ]
-  name "robot"
   controller "inertial_unit"
   supervisor TRUE
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,6 +36,9 @@ double wb_distance_sensor_get_value(WbDeviceTag tag);
 double wb_distance_sensor_get_max_value(WbDeviceTag tag);
 double wb_distance_sensor_get_min_value(WbDeviceTag tag);
 double wb_distance_sensor_get_aperture(WbDeviceTag tag);
+
+int wb_distance_sensor_get_lookup_table_size(WbDeviceTag tag);
+const double *wb_distance_sensor_get_lookup_table(WbDeviceTag tag);
 
 typedef enum {
   WB_DISTANCE_SENSOR_GENERIC = 0,

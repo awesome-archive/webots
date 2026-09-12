@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,8 @@ void WbHingeJointParameters::init(bool fromDeprecatedHinge2JointParameters) {
   mSuspensionSpringConstant = findSFDouble("suspensionSpringConstant");
   mSuspensionDampingConstant = findSFDouble("suspensionDampingConstant");
   mSuspensionAxis = findSFVector3("suspensionAxis");
+  mStopErp = findSFDouble("stopERP");
+  mStopCfm = findSFDouble("stopCFM");
 
   // DEPRECATED, only for backward compatibility
   if (fromDeprecatedHinge2JointParameters) {
@@ -28,7 +30,7 @@ void WbHingeJointParameters::init(bool fromDeprecatedHinge2JointParameters) {
       else
         mSuspensionAxis = new WbSFVector3(mAxis->value());
     }
-    warn(tr("'Hinge2JointParameters' is deprecated, please use 'HingeJointParameters' instead."));
+    parsingWarn(tr("'Hinge2JointParameters' is deprecated, please use 'HingeJointParameters' instead."));
   }
 }
 
@@ -56,10 +58,6 @@ WbHingeJointParameters::WbHingeJointParameters(const WbNode &other, bool fromDep
 WbHingeJointParameters::~WbHingeJointParameters() {
 }
 
-void WbHingeJointParameters::preFinalize() {
-  WbJointParameters::preFinalize();
-}
-
 void WbHingeJointParameters::postFinalize() {
   WbJointParameters::postFinalize();
 
@@ -67,12 +65,16 @@ void WbHingeJointParameters::postFinalize() {
   connect(mSuspensionSpringConstant, &WbSFDouble::changed, this, &WbHingeJointParameters::updateSuspension);
   connect(mSuspensionDampingConstant, &WbSFDouble::changed, this, &WbHingeJointParameters::updateSuspension);
   connect(mSuspensionAxis, &WbSFVector3::changed, this, &WbHingeJointParameters::updateSuspension);
+  connect(mStopErp, &WbSFDouble::changed, this, &WbHingeJointParameters::updateStopErp);
+  connect(mStopCfm, &WbSFDouble::changed, this, &WbHingeJointParameters::updateStopCfm);
+  updateStopErp();
+  updateStopCfm();
 }
 
 void WbHingeJointParameters::updateAxis() {
   const WbVector3 &a = mAxis->value();
   if (a.isNull()) {
-    warn(tr("'axis' must be non zero."));
+    parsingWarn(tr("'axis' must be non zero."));
     mAxis->setValue(1.0, 0.0, 0.0);
     return;
   }
@@ -83,10 +85,30 @@ void WbHingeJointParameters::updateAxis() {
 void WbHingeJointParameters::updateSuspension() {
   const WbVector3 &a = mSuspensionAxis->value();
   if (a.isNull()) {
-    warn(tr("'SuspensionAxis' must be non zero."));
+    parsingWarn(tr("'SuspensionAxis' must be non zero."));
     mSuspensionAxis->setValue(1.0, 0.0, 0.0);
     return;
   }
 
   emit suspensionChanged();
+}
+
+void WbHingeJointParameters::updateStopErp() {
+  if (mStopErp->value() < 0.0 && mStopErp->value() != -1) {
+    mStopErp->setValue(-1);
+    parsingWarn(tr("'stopERP' must be greater or equal to zero or -1. Reverting to -1 (use global ERP)."));
+    return;
+  }
+
+  emit stopErpChanged();
+}
+
+void WbHingeJointParameters::updateStopCfm() {
+  if (mStopCfm->value() <= 0.0 && mStopCfm->value() != -1) {
+    mStopCfm->setValue(-1);
+    parsingWarn(tr("'stopCFM' must be greater than zero or -1. Reverting to -1 (use global CFM)."));
+    return;
+  }
+
+  emit stopCfmChanged();
 }

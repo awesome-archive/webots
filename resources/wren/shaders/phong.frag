@@ -1,9 +1,11 @@
-#version 330
+#version 330 core
+
+precision highp float;
 
 // These constants must be kept in sync with the values in Constants.hpp
-const int maxDirectionalLights = 256;
-const int maxPointLights = 256;
-const int maxSpotLights = 256;
+const int maxDirectionalLights = 48;
+const int maxPointLights = 48;
+const int maxSpotLights = 48;
 
 const int mainTextureIndex = 0;
 const int penTextureIndex = 1;
@@ -18,6 +20,7 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec4 fragNormal;
 
 uniform sampler2D inputTextures[3];
+uniform bool reverseNormals;
 
 struct DirectionalLight {
   vec4 colorAndIntensity;
@@ -82,7 +85,7 @@ void main() {
   vec3 diffuseTotal = vec3(0.0);
   vec3 specularTotal = vec3(0.0);
 
-  vec3 fragmentNormal = normalize(normalTransformed);
+  vec3 fragmentNormal = normalize(reverseNormals ? -normalTransformed : normalTransformed);
   fragNormal = vec4(fragmentNormal, 1.0) * 0.5 + 0.5;
   vec3 viewDirection = normalize(-fragmentPosition);
 
@@ -196,7 +199,7 @@ void main() {
       if (material.textureFlags.z == 0.0)
         texColor = mainColor;
       else
-        texColor = vec4(mix(texColor.xyz, mainColor.xyz, mainColor.w), texColor.w + mainColor.w);
+        texColor = vec4(mix(texColor.xyz, mainColor.xyz, mainColor.w), clamp(texColor.w + mainColor.w, 0.0, 1.0));
     }
 
     // Mix with pen texture
@@ -241,6 +244,6 @@ void main() {
       fogFactor = (fogEnd - z) * fogInverseScale;
     fogFactor = clamp(fogFactor, 0.0, 1.0);
 
-    fragColor = vec4(mix(fragColor.xyz, fog.color.xyz, pow(1 - fogFactor, 2.2)), fragColor.w);
+    fragColor = vec4(mix(fragColor.xyz, fog.color.xyz, pow(1.0 - fogFactor, 2.2)), fragColor.w);
   }
 }

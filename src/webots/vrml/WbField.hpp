@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +30,7 @@
 
 class WbNode;  // circular dependency: needed by PROTO mechanism for easily retrieving the parent of internal fields
 class WbTokenizer;
-class WbVrmlWriter;
+class WbWriter;
 class WbValue;
 
 class WbField : public QObject {
@@ -38,10 +38,10 @@ class WbField : public QObject {
 
 public:
   // create from a field model
-  WbField(const WbFieldModel *model, WbNode *parentNode = NULL);
+  explicit WbField(const WbFieldModel *model, WbNode *parentNode = NULL);
 
   // create by copying another field
-  WbField(const WbField &other, WbNode *parentNode = NULL);
+  explicit WbField(const WbField &other, WbNode *parentNode = NULL);
   virtual ~WbField();
 
   // the field's model
@@ -55,8 +55,8 @@ public:
   virtual void reset(bool blockValueSignals = false);
 
   // write in VRML format
-  virtual void write(WbVrmlWriter &writer) const;
-  bool isVrml() const;
+  virtual void write(WbWriter &writer) const;
+  bool isW3d() const;
 
   bool isDeprecated() const;
 
@@ -66,10 +66,10 @@ public:
   // optional redirection to a proto parameter
   void setAlias(const QString &alias) { mAlias = alias; }
   const QString &alias() const { return mAlias; }
-  void redirectTo(WbField *parameter);
+  void redirectTo(WbField *parameter, bool skipCopy = false);
   WbField *parameter() const { return mParameter; }
   const QList<WbField *> &internalFields() const { return mInternalFields; }
-  bool isParameter() const { return mInternalFields.size() != 0; }
+  bool isParameter() const;
 
   void clearInternalFields() { mInternalFields.clear(); }
 
@@ -107,12 +107,19 @@ public:
 
   // accepted values
   bool hasRestrictedValues() const { return mModel->hasRestrictedValues(); }
-  const QList<WbVariant> acceptedValues() const { return mModel->acceptedValues(); }
+  const QList<WbFieldValueRestriction> acceptedValues() const { return mModel->acceptedValues(); }
+
+  // enable forwarding signals when the size of MF fields changes
+  void listenToValueSizeChanges() const;
+
+  const QString &scope() const { return mScope; }
+  void setScope(const QString &value) { mScope = value; }
 
 signals:
   void valueChanged();
   void valueChangedByOde();
   void valueChangedByWebots();
+  void valueSizeChanged();
 
 protected:
 private:
@@ -132,10 +139,13 @@ private:
   // for internal fields only
   WbNode *mParentNode;
 
+  QString mScope;
+
 private slots:
   void parameterChanged();
   void parameterNodeInserted(int index);
   void parameterNodeRemoved(int index);
+  void parameterNodeChanged(int index);
   void fieldChanged();
   void fieldChangedByOde();
   void removeInternalField(QObject *field);

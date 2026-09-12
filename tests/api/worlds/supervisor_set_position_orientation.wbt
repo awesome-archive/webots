@@ -1,8 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.619652 -0.733329 -0.279751 5.36419
+  orientation 0.619651800055127 -0.7333287633746461 -0.2797509097319493 5.36419
   position 0.360259 0.176281 0.684381
 }
 Background {
@@ -20,6 +25,7 @@ Robot {
     TestSuiteEmitter {
     }
   ]
+  name "supervisor"
   controller "supervisor_set_position_orientation"
   supervisor TRUE
 }
@@ -36,7 +42,7 @@ Robot {
         translation 0 0.2 0
         rotation 0 1 0 3.14159
         children [
-          DEF NODE Transform {
+          DEF NODE Pose {
             translation 0 0 0.3
             rotation 0 0 1 3.14159
             children [

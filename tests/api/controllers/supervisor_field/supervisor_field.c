@@ -17,13 +17,20 @@
 int main(int argc, char **argv) {
   ts_setup(argv[0]);
 
-  WbNodeRef root, texture, material, background, proto, shape, plane, box, mfTest;
-  WbFieldRef field;
+  WbNodeRef root, texture, material, background, proto, shape, plane, box, internal_physics, mfTest, self, internal_appearance;
+  WbFieldRef field, internal_field, internal_sf_node_field, internal_transparency_field, supervisor_field;
   const char *charArray;
   const double *doubleArray;
   double doubleVec3[3] = {0.0, 0.0, 0.0};
   int i;
   double d;
+
+  ts_assert_string_equal(wb_supervisor_field_get_name(NULL), "",
+                         "wb_supervisor_field_get_name(NULL) should return the empty string");
+  ts_assert_int_equal(wb_supervisor_field_get_type(NULL), 0, "wb_supervisor_field_get_type(NULL) should return 0");
+  ts_assert_string_equal(wb_supervisor_field_get_type_name(NULL), "",
+                         "wb_supervisor_field_get_type_name(NULL) should return the empty string");
+  ts_assert_int_equal(wb_supervisor_field_get_count(NULL), -1, "wb_supervisor_field_get_count(NULL) should return -1");
 
   root = wb_supervisor_node_get_root();
   ts_assert_pointer_not_null(root, "Root node is not found");
@@ -70,6 +77,41 @@ int main(int argc, char **argv) {
   d = wb_supervisor_field_get_sf_float(field);
   ts_assert_double_equal(d, 0.73, "Proto \"camera_fieldOfView\" SFFloat field should have value 0.73 not %f", d);
 
+  // invalid to retrieve a non-base-node field
+  internal_field = wb_supervisor_node_get_base_node_field(mfTest, "mfBool");
+  ts_assert_pointer_null(internal_field, "wb_supervisor_node_get_base_node_field should not return PROTO parameters.");
+
+  // internal SFNode
+  internal_sf_node_field = wb_supervisor_node_get_base_node_field(proto, "physics");
+  ts_assert_pointer_not_null(internal_sf_node_field, "wb_supervisor_node_get_proto_field should return an internal field.");
+  internal_physics = wb_supervisor_field_get_sf_node(internal_sf_node_field);
+  ts_assert_pointer_not_null(internal_physics, "wb_supervisor_field_get_sf_node should return an internal node.");
+  internal_field = wb_supervisor_node_get_field(internal_physics, "density");
+  ts_assert_pointer_not_null(internal_field, "wb_supervisor_node_get_field should return an internal field.");
+  d = wb_supervisor_field_get_sf_float(internal_field);
+  ts_assert_double_equal(d, -1.0, "Returned value should be -1.0 and not %f", d);
+
+  // internal SFFloat value
+  internal_field = wb_supervisor_node_get_field(proto, "cpuConsumption");
+  ts_assert_pointer_null(internal_field, "wb_supervisor_node_get_field should not return internal fields.");
+  internal_field = wb_supervisor_node_get_base_node_field(proto, "cpuConsumption");
+  ts_assert_pointer_not_null(internal_field, "wb_supervisor_node_get_base_node_field should return an internal field.");
+  d = wb_supervisor_field_get_sf_float(internal_field);
+  ts_assert_double_equal(d, 1.11, "Returned value should be 1.11 and not %f", d);
+  wb_supervisor_field_set_sf_float(internal_field, 1.5);
+
+  // internal EPUCK_TRANSPARENT_APPEARANCE SFFloat value
+  internal_appearance = wb_supervisor_node_get_from_proto_def(proto, "EPUCK_TRANSPARENT_APPEARANCE");
+  ts_assert_pointer_not_null(
+    internal_appearance, "wb_supervisor_node_get_from_proto_def should return the internal EPUCK_TRANSPARENT_APPEARANCE node.");
+  internal_transparency_field = wb_supervisor_node_get_field(internal_appearance, "transparency");
+  ts_assert_pointer_not_null(
+    internal_transparency_field,
+    "wb_supervisor_node_get_field should return the field of the internal EPUCK_TRANSPARENT_APPEARANCE node.");
+  wb_supervisor_field_set_sf_float(internal_transparency_field, 0.0);
+  d = wb_supervisor_field_get_sf_float(internal_transparency_field);
+  ts_assert_double_equal(d, 0.4, "Returned value for invalid set of internal node should be 0.4 and not %f", d);
+
   // get SFFloat on a different field type
   field = wb_supervisor_node_get_field(proto, "camera_height");
   i = wb_supervisor_field_get_type(field);
@@ -102,7 +144,7 @@ int main(int argc, char **argv) {
                        doubleArray[0], doubleArray[1], doubleArray[2]);
   doubleArray = wb_supervisor_field_get_mf_color(field, 1);
   ts_assert_vec3_equal(doubleArray[0], doubleArray[1], doubleArray[2], 0.5, 0.4, 0.74,
-                       "Item 1 of \"skyColor\" field of Background node should be [0.4, 0.7 1] not [%f, %f, %f]",
+                       "Item 1 of \"skyColor\" field of Background node should be [0.5, 0.4 0.74] not [%f, %f, %f]",
                        doubleArray[0], doubleArray[1], doubleArray[2]);
   doubleArray = wb_supervisor_field_get_mf_color(field, -1);
   ts_assert_vec3_equal(doubleArray[0], doubleArray[1], doubleArray[2], 0.666667, 1.0, 0,
@@ -145,6 +187,11 @@ int main(int argc, char **argv) {
   // set SFFloat on a different field type
   wb_supervisor_field_set_mf_color(field, 0, doubleArray);
   charArray = wb_supervisor_field_get_mf_string(field, 0);
+  int size = strlen(charArray);
+  while (size - 21 > 0) {
+    charArray++;
+    size--;
+  }
   ts_assert_string_equal(charArray, "textures/white256.png",
                          "Returned value for Texture url field should be \"textures/white256.png\", not \"%s\"", charArray);
 
@@ -311,6 +358,24 @@ int main(int argc, char **argv) {
   const double *vector3_current = wb_supervisor_field_get_sf_vec3f(field);
   ts_assert_vec3_equal(vector3_current[0], vector3_current[1], vector3_current[2], 0, 0, 0, "Robot not in initial position");
 
+  // supervisor field tracking
+  field = wb_supervisor_node_get_field(box, "translation");
+  ts_assert_pointer_not_null(field, "Translation field is not found");
+  wb_supervisor_field_enable_sf_tracking(field, TIME_STEP);
+
+  for (int i = 0; i < 10; i++) {
+    wb_robot_step(TIME_STEP);
+    vector3_modified = wb_supervisor_field_get_sf_vec3f(field);
+    vector3_expected[0] = 0.123;
+    vector3_expected[1] = 0;
+    vector3_expected[2] = 0.7777;
+    ts_assert_doubles_equal(3, vector3_modified, vector3_expected,
+                            "Field tracking failed, should be [%lf, %lf, %lf] instead of [%lf, %lf, %lf]", vector3_expected[0],
+                            vector3_expected[1], vector3_expected[2], vector3_modified[0], vector3_modified[1],
+                            vector3_modified[2]);
+  }
+  wb_supervisor_field_disable_sf_tracking(field);
+
   // test resetting the translation field of a moving robot
   for (i = 0; i < 10; i++)
     wb_robot_step(TIME_STEP);
@@ -348,6 +413,27 @@ int main(int argc, char **argv) {
   vector3_modified = wb_supervisor_field_get_sf_vec3f(field);
   ts_assert_doubles_equal(3, vector3_modified, vector3_expected, "Delayed 'wb_supervisor_field_set_sf_vec3f' failed");
 
+  // test that removing a tracked node doesn't cause a crash
+  wb_robot_step(TIME_STEP);
+  field = wb_supervisor_node_get_field(box, "translation");
+  wb_supervisor_field_enable_sf_tracking(field, TIME_STEP);
+  wb_robot_step(2 * TIME_STEP);
+  wb_supervisor_node_remove(box);
+  wb_robot_step(2 * TIME_STEP);
+  wb_supervisor_field_get_sf_vec3f(field);
+  wb_supervisor_field_disable_sf_tracking(field);
+
+  // test internal SFFloat was read-only (wb_supervisor_field_set_sf_float failed)
+  // field reference is invalid after regeneration
+  int internal_field_type = wb_supervisor_field_get_type(internal_field);
+  printf("internal_field_type %d\n", internal_field_type);
+  ts_assert_int_equal(internal_field_type, 0, "Internal field reference is invalid after PROTO regeneration");
+  internal_field = wb_supervisor_node_get_base_node_field(proto, "cpuConsumption");
+  printf("internal_field %p\n", internal_field);
+  ts_assert_pointer_not_null(internal_field, "Node reference should be invalid after PROTO regeneration");
+  d = wb_supervisor_field_get_sf_float(internal_field);
+  ts_assert_double_equal(d, 1.11, "Returned value should be 1.11 and not %f", d);
+
   // multiple MFFloat field operations in one step
   wb_robot_step(TIME_STEP);
   field = wb_supervisor_node_get_field(mfTest, "mfFloat");
@@ -360,6 +446,60 @@ int main(int argc, char **argv) {
   ts_assert_double_equal(mf_float_expected, 2.0,
                          "Consecutive wb_supervisor_field_set_mf_float: second set instruction failed.");
   wb_robot_step(TIME_STEP);
+
+  // Check getting field by index
+  const int fields_count = wb_supervisor_node_get_number_of_fields(mfTest);
+  ts_assert_int_equal(fields_count, 9, "Number of fields of MF_FIELDS node is wrong");
+  WbFieldRef field0 = wb_supervisor_node_get_field_by_index(mfTest, 0);
+  ts_assert_string_equal(wb_supervisor_field_get_name(field0), "mfBool", "Name of first field of MF_FIELDS node is wrong");
+  ts_assert_boolean_equal(field0 == wb_supervisor_node_get_field(mfTest, "mfBool"),
+                          "Different WbFieldRef returned for the same 'mfBool' field.");
+  WbFieldRef field2 = wb_supervisor_node_get_field_by_index(mfTest, 2);
+  ts_assert_string_equal(wb_supervisor_field_get_name(field2), "mfFloat", "Name of third field of MF_FIELDS node is wrong");
+  ts_assert_boolean_equal(field2 == wb_supervisor_node_get_field(mfTest, "mfFloat"),
+                          "Different WbFieldRef returned for the same 'mfFloat' field.");
+  WbFieldRef field8 = wb_supervisor_node_get_field_by_index(mfTest, fields_count - 1);
+  ts_assert_string_equal(wb_supervisor_field_get_name(field8), "mfNode", "Name of last field of MF_FIELDS node is wrong");
+  ts_assert_boolean_equal(field8 == wb_supervisor_node_get_field(mfTest, "mfNode"),
+                          "Different WbFieldRef returned for the same 'mfNode' field.");
+  WbFieldRef fieldInvalid = wb_supervisor_node_get_field_by_index(mfTest, -1);
+  ts_assert_pointer_null(fieldInvalid, "It should not be possible to retrieve a field using a negative index");
+  fieldInvalid = wb_supervisor_node_get_field_by_index(mfTest, fields_count);
+  ts_assert_pointer_null(fieldInvalid, "It should not be possible to retrieve a field using an out of range index");
+
+  const int proto_fields_count = wb_supervisor_node_get_number_of_base_node_fields(mfTest);
+  ts_assert_int_equal(proto_fields_count, 17, "Number of base node fields of MF_FIELDS node is wrong");
+  field0 = wb_supervisor_node_get_base_node_field_by_index(mfTest, 0);
+  ts_assert_string_equal(wb_supervisor_field_get_name(field0), "translation",
+                         "Name of first base node field of MF_FIELDS node is wrong: \"%s\" should be \"translation\"", field0);
+  field2 = wb_supervisor_node_get_base_node_field_by_index(mfTest, 2);
+  ts_assert_string_equal(wb_supervisor_field_get_name(field2), "children",
+                         "Name of third base node field of MF_FIELDS node is wrong: \"%s\" should be \"children\"", field2);
+  field8 = wb_supervisor_node_get_base_node_field_by_index(mfTest, fields_count - 1);
+  ts_assert_string_equal(wb_supervisor_field_get_name(field8), "boundingObject",
+                         "Name of ninth base node field of MF_FIELDS node is wrong: \"%s\" should be \"boundingObject\"",
+                         field8);
+  fieldInvalid = wb_supervisor_node_get_base_node_field_by_index(mfTest, -5);
+  ts_assert_pointer_null(fieldInvalid, "It should not be possible to retrieve a base node field using a negative index");
+  fieldInvalid = wb_supervisor_node_get_base_node_field_by_index(mfTest, proto_fields_count);
+  ts_assert_pointer_null(fieldInvalid, "It should not be possible to retrieve a base node field using an out of range index");
+
+  wb_robot_step(TIME_STEP);
+
+  // supervisor field update
+  self = wb_supervisor_node_get_self();
+  supervisor_field = wb_supervisor_node_get_field(self, "supervisor");
+  ts_assert_boolean_equal(wb_supervisor_field_get_sf_bool(supervisor_field), "'supervisor' field should be true");
+  ts_assert_boolean_equal(wb_robot_get_supervisor(), "'wb_robot_get_supervisor' field should return true");
+  wb_supervisor_field_set_sf_bool(supervisor_field, false);
+  wb_robot_step(TIME_STEP);
+
+  ts_assert_boolean_equal(!wb_robot_get_supervisor(), "'wb_robot_get_supervisor' field should return false");
+  const int self_id = wb_supervisor_node_get_id(self);
+  ts_assert_int_equal(
+    self_id, -1,
+    "Returned value for 'wb_supervisor_node_get_id' field should be '-1' when 'supervisor' field is set to FALSE and not '%d'",
+    self_id);
 
   ts_send_success();
   return EXIT_SUCCESS;

@@ -17,7 +17,7 @@ The [Brake](#brake) node can be inserted in the `device` field of a [HingeJoint]
 #### `wb_brake_set_damping_constant`
 #### `wb_brake_get_type`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -80,21 +80,12 @@ public class Brake extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 WB_ROTATIONAL, WB_LINEAR
 
 wb_brake_set_damping_constant(tag, damping_constant)
 type = wb_brake_get_type(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/set_damping_constant` | `service` | [`webots_ros::set_float`](ros-api.md#common-services) | |
-| `/<device_name>/get_type` | `service` | [`webots_ros::get_int`](ros-api.md#common-services) | |
 
 %tab-end
 
@@ -115,7 +106,7 @@ It will return `WB_ROTATIONAL` if the sensor is associated with a [HingeJoint](h
 #### `wb_brake_get_motor`
 #### `wb_brake_get_position_sensor`
 
-%tab-component
+%tab-component "language"
 
 %tab "C"
 
@@ -179,19 +170,10 @@ public class Brake extends Device {
 
 %tab "MATLAB"
 
-```matlab
+```MATLAB
 tag = wb_brake_get_motor(tag)
 tag = wb_brake_get_position_sensor(tag)
 ```
-
-%tab-end
-
-%tab "ROS"
-
-| name | service/topic | data type | data type definition |
-| --- | --- | --- | --- |
-| `/<device_name>/get_motor_name` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
-| `/<device_name>/get_position_sensor_name` | `service` | [`webots_ros::get_string`](ros-api.md#common-services) | |
 
 %tab-end
 

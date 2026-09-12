@@ -1,12 +1,18 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
   info [
     "Example use of a color Camera device."
   ]
   title "Camera"
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.999365 0.0303157 -0.0187006 5.29098
+  orientation 0.9993654210667938 0.030315712773045487 -0.01870060787920498 5.29098
   position -0.0424516 1.17179 0.823619
 }
 Background {
@@ -24,6 +30,7 @@ DirectionalLight {
   intensity 0
 }
 RectangleArena {
+  rotation 1 0 0 -1.5708
 }
 DEF GREEN_BOX Solid {
   translation -0.05 0.05 -0.25
@@ -106,7 +113,7 @@ DEF WHITE_BOX Solid {
   }
 }
 DEF PINK_BOX Solid {
-  translation 0.42 0.05 -0.1
+  translation 0.4 0.05 -0.1
   children [
     Shape {
       appearance Appearance {
@@ -135,8 +142,9 @@ Robot {
   translation 0.15 0 0
   rotation 0 1 0 1
   children [
-    Transform {
+    Pose {
       translation 0 0.0415 0
+      rotation 1 0 0 -1.5707
       children [
         Shape {
           appearance Appearance {
@@ -164,8 +172,8 @@ Robot {
         translation -0.045 0.025 0
         rotation 1 0 0 4.98467
         children [
-          DEF WHEEL Transform {
-            rotation 0 0 1 1.57
+          DEF WHEEL Pose {
+            rotation 0 1 0 -1.57079632679
             children [
               Shape {
                 appearance Appearance {
@@ -210,11 +218,11 @@ Robot {
     }
     Camera {
       translation 0 0.0915 -0.04
-      rotation 0 0 -1 0
+      rotation -0.577349935856137 0.577349935856137 0.5773509358560258 2.09439
       children [
-        Transform {
-          translation 0 0 0.015
-          rotation 1 0 0 1.57
+        Pose {
+          translation -0.015 0 0
+          rotation 0 1 0 1.5708
           children [
             Shape {
               appearance Appearance {
@@ -239,8 +247,9 @@ Robot {
     TestSuiteEmitter {
     }
   ]
-  boundingObject Transform {
+  boundingObject Pose {
     translation 0 0.0415 0
+    rotation 1 0 0 -1.57079632679
     children [
       USE BODY
     ]

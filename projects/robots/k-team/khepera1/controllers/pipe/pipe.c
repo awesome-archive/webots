@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,12 +38,15 @@ int main() {
   return 0;
 }
 #else
-#include <fcntl.h>    /* definition of O_RDONLY and O_WRONLY */
-#include <stdio.h>    /* definition of sprintf, fprintf, sscanf and stderr */
-#include <stdlib.h>   /* definition of exit() */
-#include <string.h>   /* definition of strcpy() and strlen() */
-#include <sys/stat.h> /* definition of mknod() and S_IFIFO */
-#include <unistd.h>   /* definition of close() */
+// clang-format off
+// clang-format 11.0.0 has problems with AlignTrailingComments when the line starts with a hash (#).
+#include <fcntl.h>     // definition of O_RDONLY and O_WRONLY
+#include <stdio.h>     // definition of sprintf, fprintf, sscanf and stderr
+#include <stdlib.h>    // definition of exit()
+#include <string.h>    // definition of strcpy() and strlen()
+#include <sys/stat.h>  // definition of mknod() and S_IFIFO
+#include <unistd.h>    // definition of close()
+// clang-format on
 #include <webots/distance_sensor.h>
 #include <webots/light_sensor.h>
 #include <webots/motor.h>
@@ -144,7 +147,7 @@ int main() {
             i++;
             n = read(sim_serial_in, &q[i], 1);
             if (n < 0)
-              fprintf(stderr, "Warning: an error occured when reading the pipe");
+              fprintf(stderr, "Warning: an error occured when reading the pipe");
           } while (q[i] != '\n');
           sscanf(q, "D,%d,%d", &left_speed, &right_speed);
           wb_motor_set_velocity(left_motor, left_speed);
@@ -174,7 +177,7 @@ int main() {
     if (a[0] != '\0') {
       n = write(sim_serial_out, a, strlen(a));
       if (n < 0)
-        fprintf(stderr, "Warning: an error occured when reading the pipe");
+        fprintf(stderr, "Warning: an error occured when reading the pipe");
     }
   }
 

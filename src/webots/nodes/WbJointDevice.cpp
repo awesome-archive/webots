@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,6 +14,7 @@
 
 #include "WbJointDevice.hpp"
 
+#include "WbBallJoint.hpp"
 #include "WbField.hpp"
 #include "WbHinge2Joint.hpp"
 #include "WbJoint.hpp"
@@ -48,30 +49,53 @@ void WbJointDevice::init() {
   mRobot = NULL;
 }
 
-void WbJointDevice::postFinalize() {
-  WbBaseNode::postFinalize();
+void WbJointDevice::preFinalize() {
+  WbBaseNode::preFinalize();
   // Cache position index
   const WbField *const f = parentField(true);
   assert(f);
-  mPositionIndex = f->name().endsWith("2") ? 2 : 1;
+  mPositionIndex = 1;
+  if (f->name().endsWith("2"))
+    mPositionIndex = 2;
+  else if (f->name().endsWith("3"))
+    mPositionIndex = 3;
 }
 
 WbJoint *WbJointDevice::joint() const {
-  return dynamic_cast<WbJoint *>(parent());
+  return dynamic_cast<WbJoint *>(parentNode());
 }
 
 WbPropeller *WbJointDevice::propeller() const {
-  return dynamic_cast<WbPropeller *>(parent());
+  return dynamic_cast<WbPropeller *>(parentNode());
 }
 
 WbTrack *WbJointDevice::track() const {
-  return dynamic_cast<WbTrack *>(parent());
+  return dynamic_cast<WbTrack *>(parentNode());
 }
 
 WbLogicalDevice *WbJointDevice::getSiblingDeviceByType(int nodeType) const {
   WbJoint *j = joint();
   if (j) {
-    WbHinge2Joint *hinge2 = dynamic_cast<WbHinge2Joint *>(j);
+    const WbBallJoint *ballJoint = dynamic_cast<WbBallJoint *>(j);
+    if (ballJoint) {
+      // special case for nodes in devices3 field
+      bool isDevice3 = false;
+      for (int i = 0; i < ballJoint->devices3Number(); ++i) {
+        if (this == ballJoint->device3(i)) {
+          isDevice3 = true;
+          break;
+        }
+      }
+      if (isDevice3) {
+        for (int i = 0; i < ballJoint->devices3Number(); ++i) {
+          WbLogicalDevice *device3 = ballJoint->device3(i);
+          if (device3 && device3->nodeType() == nodeType)
+            return device3;
+        }
+        return NULL;
+      }
+    }
+    const WbHinge2Joint *hinge2 = dynamic_cast<WbHinge2Joint *>(j);
     if (hinge2) {
       // special case for nodes in devices2 field
       bool isDevice2 = false;
@@ -99,7 +123,7 @@ WbLogicalDevice *WbJointDevice::getSiblingDeviceByType(int nodeType) const {
     return NULL;
   }
 
-  WbTrack *t = track();
+  const WbTrack *t = track();
   if (t) {
     foreach (WbLogicalDevice *device, t->devices()) {
       if (device && device->nodeType() == nodeType)

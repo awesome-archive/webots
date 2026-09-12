@@ -1,8 +1,14 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation -0.15446 -0.98633 -0.0573986 1.19999
+  orientation -0.15446004944406294 -0.9863303157332812 -0.05739861837381841 1.19999
   position -3.82074 1.09852 1.79224
 }
 Background {
@@ -15,12 +21,13 @@ DirectionalLight {
   castShadows TRUE
 }
 Floor {
+  rotation 1 0 0 -1.5708
   size 3 3
 }
 Solid {
   translation 0 -0.04 -0.07
   children [
-    DEF RAMP Transform {
+    DEF RAMP Pose {
       rotation 1 0 0 0.1309
       children [
         Shape {

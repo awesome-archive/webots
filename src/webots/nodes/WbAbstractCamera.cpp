@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
 #include "WbAbstractCamera.hpp"
 
 #include "WbBackground.hpp"
+#include "WbDataStream.hpp"
 #include "WbFieldChecker.hpp"
 #include "WbLens.hpp"
 #include "WbLight.hpp"
@@ -25,8 +26,8 @@
 #include "WbRgb.hpp"
 #include "WbRobot.hpp"
 #include "WbSFNode.hpp"
-#include "WbSensor.hpp"
 #include "WbSimulationState.hpp"
+#include "WbStandardPaths.hpp"
 #include "WbViewpoint.hpp"
 #include "WbWorld.hpp"
 #include "WbWrenCamera.hpp"
@@ -34,12 +35,18 @@
 #include "WbWrenShaders.hpp"
 #include "WbWrenTextureOverlay.hpp"
 
-#include "../../lib/Controller/api/messages.h"
+#include "../../controller/c/messages.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
+#include <QtCore/QDir>
 #include <QtCore/QFile>
+#ifndef _WIN32
+#include "WbPosixMemoryMappedFile.hpp"
+#else
 #include <QtCore/QSharedMemory>
+#endif
+#include <QtCore/QUrl>
 #include <QtCore/QVector>
 
 #include <wren/config.h>
@@ -49,24 +56,21 @@
 #include <wren/static_mesh.h>
 #include <wren/transform.h>
 
-#ifndef _WIN32
-// include ftok needed to get QSharedMemory unix name
-#include <sys/ipc.h>
-#include <sys/types.h>
-#endif
-
 int WbAbstractCamera::cCameraNumber = 0;
 int WbAbstractCamera::cCameraCounter = 0;
 
 void WbAbstractCamera::init() {
-  mImageShm = NULL;
+  mImageMemoryMappedFile = NULL;
+  mImageData = NULL;
   mWrenCamera = NULL;
   mSensor = NULL;
   mRefreshRate = 0;
   mNeedToConfigure = false;
-  mHasSharedMemoryChanged = false;
+  mSendMemoryMappedFile = false;
+  mHasExternControllerChanged = false;
+  mIsRemoteExternController = false;
   mNeedToCheckShaderErrors = false;
-  mSharedMemoryReset = false;
+  mMemoryMappedFileReset = false;
   mExternalWindowEnabled = false;
   mCharType = 0;
 
@@ -82,13 +86,12 @@ void WbAbstractCamera::init() {
 
   // Fields initialization
   mFieldOfView = findSFDouble("fieldOfView");
-  mSpherical = findSFBool("spherical");
+  mProjection = findSFString("projection");
   mNear = findSFDouble("near");
   mMotionBlur = findSFDouble("motionBlur");
   mNoise = findSFDouble("noise");
   mLens = findSFNode("lens");
   mImageChanged = false;
-  mImageReady = false;
 }
 
 WbAbstractCamera::WbAbstractCamera(const QString &modelName, WbTokenizer *tokenizer) : WbRenderingDevice(modelName, tokenizer) {
@@ -104,7 +107,7 @@ WbAbstractCamera::WbAbstractCamera(const WbNode &other) : WbRenderingDevice(othe
 }
 
 WbAbstractCamera::~WbAbstractCamera() {
-  delete mImageShm;
+  delete mImageMemoryMappedFile;
   delete mSensor;
 
   if (areWrenObjectsInitialized())
@@ -120,7 +123,7 @@ void WbAbstractCamera::preFinalize() {
   mSensor = new WbSensor();
 
   updateFieldOfView();
-  updateSpherical();
+  updateProjection();
   updateNoise();
 }
 
@@ -133,7 +136,7 @@ void WbAbstractCamera::postFinalize() {
   }
 
   connect(mFieldOfView, &WbSFDouble::changed, this, &WbAbstractCamera::updateFieldOfView);
-  connect(mSpherical, &WbSFBool::changed, this, &WbAbstractCamera::updateSpherical);
+  connect(mProjection, &WbSFString::changed, this, &WbAbstractCamera::updateProjection);
   connect(mNoise, &WbSFDouble::changed, this, &WbAbstractCamera::updateNoise);
   if (mLens)
     connect(mLens, &WbSFNode::changed, this, &WbAbstractCamera::updateLens);
@@ -181,41 +184,41 @@ void WbAbstractCamera::deleteWren() {
     resetStaticCounters();
 }
 
-void WbAbstractCamera::initializeSharedMemory() {
-  mHasSharedMemoryChanged = true;
-  delete mImageShm;
-  QString sharedMemoryName =
-    QString("Webots_Camera_Image_%1_%2").arg((long)QCoreApplication::applicationPid()).arg(cCameraNumber);
-  mImageShm = new QSharedMemory(sharedMemoryName);
+void WbAbstractCamera::initializeImageMemoryMappedFile() {
+  mSendMemoryMappedFile = true;
+  delete mImageMemoryMappedFile;
+  mImageMemoryMappedFile = initializeMemoryMappedFile();
+  if (mImageMemoryMappedFile)
+    mImageData = static_cast<unsigned char *>(mImageMemoryMappedFile->data());
+}
 
-  // qDebug() << "key: " << mImageShm->key();
-  // qDebug() << "nativekey: " << mImageShm->nativeKey();
-
-  // A controller of the previous simulation may have not released cleanly the shared memory (e.g. when the controller crashes).
-  // This can be detected by trying to attach, and the shared memory may be cleaned by detaching.
-  if (mImageShm->attach())
-    mImageShm->detach();
-
-  if (!mImageShm->create(size())) {
-    QString message = tr("Cannot allocate shared memory. The shared memory is required for the cameras. The shared memory of "
-                         "your OS is probably full. Please check your shared memory setup.");
-#ifdef __APPLE__
-    message += QString(" ") + tr("The shared memory can be extended by modifying the '/etc/sysctl.conf' file and rebooting.");
-#endif
+WbMemoryMappedFile *WbAbstractCamera::initializeMemoryMappedFile(const QString &id) {
+  // On Linux, we need to use memory mapped files named snap.webots.* to be compliant with the strict confinement policy of snap
+  // applications.
+  const QString folder = WbStandardPaths::webotsTmpPath() + "ipc/" + QUrl::toPercentEncoding(robot()->name());
+  const QString memoryMappedFileName = folder + "/snap.webots." + QUrl::toPercentEncoding(name()) + id;
+  QDir().mkdir(folder);
+  WbMemoryMappedFile *imageMemoryMappedFile = new WbMemoryMappedFile(memoryMappedFileName);
+  // A controller of the previous simulation may have not released cleanly the memory mapped file (e.g. when the controller
+  // crashes). This can be detected by trying to attach, and the memory mapped file may be cleaned by detaching.
+  if (imageMemoryMappedFile->attach())
+    imageMemoryMappedFile->detach();
+  if (!imageMemoryMappedFile->create(size())) {
+    const QString message =
+      tr("Cannot allocate memory mapped file for camera image.\nCaused by: %1.").arg(imageMemoryMappedFile->errorString());
     warn(message);
-
-    delete mImageShm;
-    mImageShm = NULL;
-    return;
+    delete imageMemoryMappedFile;
+    return NULL;
   }
+  return imageMemoryMappedFile;
 }
 
 void WbAbstractCamera::setup() {
   cCameraNumber++;
   cCameraCounter++;
 
-  initializeSharedMemory();
-  if (!mImageShm)
+  initializeImageMemoryMappedFile();
+  if (!mImageMemoryMappedFile)
     return;
 
   WbRenderingDevice::setup();
@@ -223,7 +226,7 @@ void WbAbstractCamera::setup() {
   createWrenCamera();
   createWrenOverlay();
 
-  if (!spherical()) {
+  if (isPlanarProjection()) {
     updateFrustumDisplay();
     connect(mWrenCamera, &WbWrenCamera::cameraInitialized, this, &WbAbstractCamera::updateFrustumDisplay);
     connect(WbWrenRenderingContext::instance(), &WbWrenRenderingContext::optionalRenderingChanged, this,
@@ -231,19 +234,25 @@ void WbAbstractCamera::setup() {
   }
 }
 
+bool WbAbstractCamera::needToRender() const {
+  return mSensor->isEnabled() && mSensor->needToRefresh();
+}
+
 void WbAbstractCamera::updateCameraTexture() {
-  if (isPowerOn() && mSensor->needToRefresh()) {
+  if (isPowerOn() && needToRender()) {
     // update camera overlay before main rendering
     computeValue();
-    mSensor->updateTimer();
-    mImageChanged = true;
-  } else if (mSensor->isRemoteModeEnabled() && mOverlay)
+    if (WbAbstractCamera::needToRender()) {
+      mSensor->updateTimer();
+      mImageChanged = true;
+    }
+  } else if (mOverlay && mSensor->isEnabled() && mSensor->isRemoteModeEnabled())
     // keep updating the overlay in remote mode
     mOverlay->requestUpdateTexture();
 }
 
 // Generally, computeValue() acquires the data from the RTT
-// handle and copies the resulting value in the shared memory
+// handle and copies the resulting value in the memory mapped file
 void WbAbstractCamera::computeValue() {
   if (!hasBeenSetup())
     return;
@@ -261,7 +270,9 @@ void WbAbstractCamera::computeValue() {
   for (int i = 0; i < invisibleNodesCount; ++i)
     wr_node_set_visible(WR_NODE(mInvisibleNodes.at(i)->wrenNode()), false);
 
-  mWrenCamera->render();
+  if (WbAbstractCamera::needToRender())
+    mWrenCamera->render();
+  render();
 
   for (int i = 0; i < invisibleNodesCount; ++i)
     wr_node_set_visible(WR_NODE(mInvisibleNodes.at(i)->wrenNode()), true);
@@ -270,22 +281,51 @@ void WbAbstractCamera::computeValue() {
     log->stopMeasure(WbPerformanceLog::DEVICE_RENDERING, deviceName());
 }
 
-void WbAbstractCamera::copyImageToSharedMemory() {
-  unsigned char *data = image();
-  if (mWrenCamera) {
-    mWrenCamera->enableCopying(true);
-    mWrenCamera->copyContentsToMemory(data);
+void WbAbstractCamera::copyImageToMemoryMappedFile(WbWrenCamera *camera, unsigned char *data) {
+  if (camera) {
+    camera->enableCopying(true);
+    camera->copyContentsToMemory(data);
   }
-  mImageChanged = false;
 }
 
-void WbAbstractCamera::reset() {
-  WbRenderingDevice::reset();
+void WbAbstractCamera::editChunkMetadata(WbDataStream &stream, int newImageSize) {
+  int chunkSize = stream.length() - stream.mSizePtr;
+  int chunkDataSize = chunkSize - sizeof(int) - sizeof(unsigned char);
+
+  if (chunkDataSize) {  // data chunk between images
+    // increase first char by 2 (data + new image)
+    stream.increaseNbChunks(2);
+
+    // edit size and type information for the data chunk
+    WbDataStream newDataMeta;
+    unsigned char newDataType = TCP_DATA_TYPE;
+    newDataMeta << chunkDataSize << newDataType;
+    stream.replace(stream.mSizePtr, sizeof(int) + sizeof(unsigned char), newDataMeta);
+    stream.mDataSize += chunkDataSize;
+
+    // add size and type information for the new image chunk
+    unsigned char newImageType = TCP_IMAGE_TYPE;
+    stream << newImageSize << newImageType;
+
+  } else {  // two consecutive images
+    // increase first char by 1 (new image)
+    stream.increaseNbChunks(1);
+
+    // add size and type information for the new image chunk
+    WbDataStream newImageMeta;
+    unsigned char newImageType = TCP_IMAGE_TYPE;
+    newImageMeta << newImageSize << newImageType;
+    stream.replace(stream.mSizePtr, sizeof(int) + sizeof(unsigned char), newImageMeta);
+  }
+}
+
+void WbAbstractCamera::reset(const QString &id) {
+  WbRenderingDevice::reset(id);
 
   if (mLens) {
     WbNode *const l = mLens->value();
     if (l)
-      l->reset();
+      l->reset(id);
   }
 
   for (int i = 0; i < mInvisibleNodes.size(); ++i)
@@ -293,45 +333,62 @@ void WbAbstractCamera::reset() {
   mInvisibleNodes.clear();
 }
 
-void WbAbstractCamera::resetSharedMemory() {
+void WbAbstractCamera::resetMemoryMappedFile() {
   if (hasBeenSetup()) {
-    // the previous shared memory will be released by the new controller start
+    // the previous memory mapped file will be released by the new controller start
     cCameraNumber++;
-    initializeSharedMemory();
-    mSharedMemoryReset = true;
+    initializeImageMemoryMappedFile();
+    mMemoryMappedFileReset = true;
   }
 }
 
-void WbAbstractCamera::writeConfigure(QDataStream &stream) {
+void WbAbstractCamera::writeConfigure(WbDataStream &stream) {
   mSensor->connectToRobotSignal(robot());
   addConfigureToStream(stream);
 }
 
-void WbAbstractCamera::writeAnswer(QDataStream &stream) {
+void WbAbstractCamera::writeAnswer(WbDataStream &stream) {
+  if (mImageChanged) {
+    if (mIsRemoteExternController) {
+      editChunkMetadata(stream, size());
+
+      // copy image to stream
+      stream << (short unsigned int)tag();
+      stream << (unsigned char)C_ABSTRACT_CAMERA_SERIAL_IMAGE;
+      int streamLength = stream.length();
+      stream.resize(size() + streamLength);
+      if (mWrenCamera) {
+        mWrenCamera->enableCopying(true);
+        mWrenCamera->copyContentsToMemory(stream.data() + streamLength);
+      }
+
+      // prepare next chunk
+      stream.mSizePtr = stream.length();
+      stream << (int)0;            // next chunk size
+      stream << (unsigned char)0;  // next chunk type
+    } else
+      copyImageToMemoryMappedFile(mWrenCamera, image());
+    mSensor->resetPendingValue();
+    mImageChanged = false;
+  }
+
   if (mNeedToConfigure)
     addConfigureToStream(stream, true);
 
-  if (mHasSharedMemoryChanged && mImageShm) {
+  if (mSendMemoryMappedFile && !mIsRemoteExternController) {
     stream << (short unsigned int)tag();
-    stream << (unsigned char)C_CAMERA_SHARED_MEMORY;
-#ifdef _WIN32
-    QByteArray n = QFile::encodeName(mImageShm ? mImageShm->nativeKey() : "");
-    stream.writeRawData(n.constData(), n.size() + 1);
-#else
-    stream << (int)ftok(QFile::encodeName(mImageShm->nativeKey()), 'Q');
-#endif
-    mHasSharedMemoryChanged = false;
-  }
-
-  if (mImageReady) {
-    stream << (short unsigned int)tag();
-    stream << (unsigned char)C_CAMERA_GET_IMAGE;
-    mImageReady = false;
-    mSensor->resetPendingValue();
+    stream << (unsigned char)C_CAMERA_MEMORY_MAPPED_FILE;
+    if (mImageMemoryMappedFile) {
+      stream << (int)(mImageMemoryMappedFile->size());
+      QByteArray n = QFile::encodeName(mImageMemoryMappedFile->nativeKey());
+      stream.writeRawData(n.constData(), n.size() + 1);
+    } else
+      stream << (int)(0);
+    mSendMemoryMappedFile = false;
   }
 }
 
-void WbAbstractCamera::addConfigureToStream(QDataStream &stream, bool reconfigure) {
+void WbAbstractCamera::addConfigureToStream(WbDataStream &stream, bool reconfigure) {
   stream << (short unsigned int)tag();
   if (reconfigure)
     stream << (unsigned char)C_CAMERA_RECONFIGURE;
@@ -343,41 +400,31 @@ void WbAbstractCamera::addConfigureToStream(QDataStream &stream, bool reconfigur
   }
   stream << (double)fieldOfView();
   stream << (double)minRange();
-  stream << (unsigned char)mSpherical->value();
+  stream << (unsigned char)isPlanarProjection();
 
   mNeedToConfigure = false;
-  if (!reconfigure && !mSharedMemoryReset)
-    mHasSharedMemoryChanged = false;
-  mSharedMemoryReset = false;
+  mMemoryMappedFileReset = false;
 }
 
 bool WbAbstractCamera::handleCommand(QDataStream &stream, unsigned char command) {
   bool commandHandled = true;
   switch (command) {
     case C_SET_SAMPLING_PERIOD:
-      stream >> (short &)mRefreshRate;
+      stream >> mRefreshRate;
       mSensor->setRefreshRate(mRefreshRate);
 
       // update motion blur factor
       applyMotionBlurToWren();
 
-      if (mSensor->isEnabled())
-        connect(WbSimulationState::instance(), &WbSimulationState::cameraRenderingStarted, this,
-                &WbAbstractCamera::updateCameraTexture, Qt::UniqueConnection);
-      else
-        disconnect(WbSimulationState::instance(), &WbSimulationState::cameraRenderingStarted, this,
-                   &WbAbstractCamera::updateCameraTexture);
+      emit enabled(this, isEnabled());
 
       if (!hasBeenSetup()) {
         setup();
-        mHasSharedMemoryChanged = true;
+        mSendMemoryMappedFile = true;
+      } else if (mHasExternControllerChanged) {
+        mSendMemoryMappedFile = true;
+        mHasExternControllerChanged = false;
       }
-
-      break;
-    case C_CAMERA_GET_IMAGE:
-      if (mImageChanged)
-        copyImageToSharedMemory();
-      mImageReady = true;
       break;
     default:
       commandHandled = false;
@@ -385,24 +432,22 @@ bool WbAbstractCamera::handleCommand(QDataStream &stream, unsigned char command)
   return commandHandled;
 }
 
-void WbAbstractCamera::setNodeVisibility(WbBaseNode *node, bool visible) {
-  if (visible)
-    mInvisibleNodes.removeAll(node);
-  else if (!mInvisibleNodes.contains(node)) {
-    mInvisibleNodes.append(node);
-    connect(node, &QObject::destroyed, this, &WbAbstractCamera::removeInvisibleNodeFromList, Qt::UniqueConnection);
+void WbAbstractCamera::setNodesVisibility(QList<const WbBaseNode *> nodes, bool visible) {
+  QListIterator<const WbBaseNode *> it(nodes);
+  while (it.hasNext()) {
+    const WbBaseNode *node = it.next();
+    if (visible)
+      mInvisibleNodes.removeAll(node);
+    else if (!mInvisibleNodes.contains(node)) {
+      mInvisibleNodes.append(node);
+      connect(node, &QObject::destroyed, this, &WbAbstractCamera::removeInvisibleNodeFromList, Qt::UniqueConnection);
+    }
   }
 }
 
 void WbAbstractCamera::removeInvisibleNodeFromList(QObject *node) {
-  WbBaseNode *const baseNode = static_cast<WbBaseNode *>(node);
+  const WbBaseNode *const baseNode = static_cast<WbBaseNode *>(node);
   mInvisibleNodes.removeAll(baseNode);
-}
-
-unsigned char *WbAbstractCamera::image() const {
-  if (mImageShm == NULL)
-    return NULL;
-  return (unsigned char *)mImageShm->data();
 }
 
 void WbAbstractCamera::createWrenObjects() {
@@ -461,8 +506,12 @@ void WbAbstractCamera::createWrenCamera() {
           &WbAbstractCamera::updatePostProcessingEffect, Qt::UniqueConnection);
 
   // create the camera
+  bool enableAntiAliasing = antiAliasing() && !WbPreferences::instance()->value("OpenGL/disableAntiAliasing", true).toBool();
   mWrenCamera = new WbWrenCamera(wrenNode(), width(), height(), nearValue(), minRange(), maxRange(), fieldOfView(), mCharType,
-                                 antiAliasing(), mSpherical->value());
+                                 enableAntiAliasing, mProjection->value());
+}
+
+void WbAbstractCamera::applyCameraSettings() {
   updateBackground();
 
   connect(mWrenCamera, &WbWrenCamera::cameraInitialized, this, &WbAbstractCamera::applyCameraSettingsToWren);
@@ -474,14 +523,14 @@ void WbAbstractCamera::createWrenCamera() {
   applyNoiseToWren();
 
   if (mExternalWindowEnabled)
-    updateTextureUpdateNotifications();
+    updateTextureUpdateNotifications(mExternalWindowEnabled);
 }
 
 void WbAbstractCamera::updateBackground() {
   if (!mWrenCamera)
     return;
 
-  WbBackground *background = WbBackground::firstInstance();
+  const WbBackground *background = WbBackground::firstInstance();
   if (background)
     mWrenCamera->setBackgroundColor(background->skyColor());
   else
@@ -531,14 +580,12 @@ void WbAbstractCamera::createWrenOverlay() {
   if (mCharType == 'r')
     mOverlay->setMaxRange(maxRange());
 
-  applyWorldSettings();
-
   if (!previousSettings.isEmpty())
     mOverlay->restorePerspective(previousSettings, areOverlaysEnabled());
   else
     mOverlay->setVisible(true, areOverlaysEnabled());
 
-  emit textureIdUpdated(textureGLId());
+  emit textureIdUpdated(textureGLId(), MAIN_TEXTURE);
 }
 
 /////////////////////
@@ -574,10 +621,11 @@ void WbAbstractCamera::updateLens() {
 }
 
 void WbAbstractCamera::updateFieldOfView() {
-  if (WbFieldChecker::checkDoubleIsPositive(this, mFieldOfView, 0.7854))
+  if (WbFieldChecker::resetDoubleIfNonPositive(this, mFieldOfView, 0.7854))
     return;
-  if (!mSpherical->value() && fieldOfView() > M_PI) {
-    warn(tr("Invalid 'fieldOfView' changed to 0.7854. The field of view is limited to pi if the 'spherical' field is FALSE."));
+  if (isPlanarProjection() && fieldOfView() > M_PI) {
+    parsingWarn(tr(
+      "Invalid 'fieldOfView' changed to 0.7854. The field of view is limited to pi if the 'projection' field is \"planar\"."));
     mFieldOfView->setValue(0.7854);
     return;
   }
@@ -589,12 +637,19 @@ void WbAbstractCamera::updateFieldOfView() {
 
   if (areWrenObjectsInitialized()) {
     applyFrustumToWren();
-    if (!spherical() && hasBeenSetup())
+    if (isPlanarProjection() && hasBeenSetup())
       updateFrustumDisplay();
   }
 }
 
-void WbAbstractCamera::updateSpherical() {
+void WbAbstractCamera::updateProjection() {
+  const QString &projection = mProjection->value();
+  if (projection != "planar" && projection != "spherical" && projection != "cylindrical") {
+    parsingWarn(tr("Unknown 'projection' value \"%1\": field value reset to \"planar\".").arg(projection));
+    mProjection->setValue("planar");
+    return;
+  }
+
   mNeedToConfigure = true;
 
   if (hasBeenSetup()) {
@@ -614,7 +669,7 @@ void WbAbstractCamera::updateAntiAliasing() {
 }
 
 void WbAbstractCamera::updateMotionBlur() {
-  if (!mMotionBlur || WbFieldChecker::checkDoubleIsNonNegative(this, mMotionBlur, 0.0))
+  if (!mMotionBlur || WbFieldChecker::resetDoubleIfNegative(this, mMotionBlur, 0.0))
     return;
 
   if (hasBeenSetup())
@@ -622,7 +677,7 @@ void WbAbstractCamera::updateMotionBlur() {
 }
 
 void WbAbstractCamera::updateNoise() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mNoise, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mNoise, 0.0))
     return;
 
   if (hasBeenSetup())
@@ -744,29 +799,28 @@ void WbAbstractCamera::applyFrustumToWren() {
   const float w = width();
   const float h = height();
   const float fovX = mFieldOfView->value();
-  const float fovY = WbWrenCamera::computeFieldOfViewY(fovX, w / h);  // fovX -> fovY
   const float t = tanf(fovX / 2.0f);
   const float dw1 = n * t;
   const float dh1 = dw1 * h / w;
-  const float n1 = -n;
+  const float n1 = n;
   const float dw2 = f * t;
   const float dh2 = dw2 * h / w;
-  const float n2 = -f;
+  const float n2 = f;
 
   QVector<float> vertices;
   QVector<float> colors;
   float vertex[3] = {0.0f, 0.0f, 0.0f};
   addVertex(vertices, colors, vertex, frustumColor);
-  vertex[2] = -n;
+  vertex[0] = n;
   addVertex(vertices, colors, vertex, frustumColor);
 
   // creation of the near plane
-  if (hasBeenSetup() && mWrenCamera->isSpherical()) {
+  if (hasBeenSetup() && !mWrenCamera->isPlanarProjection()) {
     const float cubeColor[3] = {0.0f, 0.0f, 0.0f};
     drawCube(vertices, colors, n, cubeColor);
 
     const float n95 = 0.95f * n;
-    if (mWrenCamera->isSubCameraActive(WbWrenCamera::CAMERA_ORIENTATION_FRONT)) {
+    if (mWrenCamera->isSubCameraActive(WbWrenCamera::CAMERA_ORIENTATION_BACK)) {
       const float pos[4][3] = {{n95, n95, -n}, {n95, -n95, -n}, {-n95, -n95, -n}, {-n95, n95, -n}};
       drawRectangle(vertices, colors, pos, frustumColor);
     }
@@ -782,45 +836,46 @@ void WbAbstractCamera::applyFrustumToWren() {
       drawRectangle(vertices, colors, pos0, frustumColor);
       drawRectangle(vertices, colors, pos1, frustumColor);
     }
-    if (mWrenCamera->isSubCameraActive(WbWrenCamera::CAMERA_ORIENTATION_BACK)) {
+    if (mWrenCamera->isSubCameraActive(WbWrenCamera::CAMERA_ORIENTATION_FRONT)) {
       const float pos[4][3] = {{n95, n95, n}, {n95, -n95, n}, {-n95, -n95, n}, {-n95, n95, n}};
       drawRectangle(vertices, colors, pos, frustumColor);
     }
   } else {
-    const float pos[4][3] = {{dw1, dh1, n1}, {dw1, -dh1, n1}, {-dw1, -dh1, n1}, {-dw1, dh1, n1}};
+    const float pos[4][3] = {{n1, dw1, dh1}, {n1, dw1, -dh1}, {n1, -dw1, -dh1}, {n1, -dw1, dh1}};
     drawRectangle(vertices, colors, pos, frustumColor);
   }
 
   // Creation of the far plane
   // if the camera is not of the range-finder type, the far is set to infinity
   // so, the far rectangle of the colored frustum shouldn't be set
-  if (drawFarPlane && !mSpherical->value()) {
-    const float pos[4][3] = {{dw2, dh2, n2}, {dw2, -dh2, n2}, {-dw2, -dh2, n2}, {-dw2, dh2, n2}};
+  if (drawFarPlane && isPlanarProjection()) {
+    const float pos[4][3] = {{n2, dw2, dh2}, {n2, dw2, -dh2}, {n2, -dw2, -dh2}, {n2, -dw2, dh2}};
     drawRectangle(vertices, colors, pos, frustumColor);
   }
 
   const float zero[3] = {0.0f, 0.0f, 0.0f};
   // Creation of the external outline of the frustum (4 lines)
-  if (mSpherical->value()) {
+  if (!isPlanarProjection()) {
+    const float fovY = WbWrenCamera::computeFieldOfViewY(fovX, w / h);  // fovX -> fovY
     const float angleY[4] = {-fovY / 2.0f, -fovY / 2.0f, fovY / 2.0f, fovY / 2.0f};
     const float angleX[4] = {fovX / 2.0f, -fovX / 2.0f, -fovX / 2.0f, fovX / 2.0f};
     for (int k = 0; k < 4; ++k) {
       const float helper = cosf(angleY[k]);
       // get x, y and z from the spherical coordinates
-      float x = 0.0f;
+      float y;
       if (angleY[k] > M_PI_4 || angleY[k] < -M_PI_4)
-        x = f * cosf(angleY[k] + M_PI_2) * sinf(angleX[k]);
+        y = f * cosf(angleY[k] + M_PI_2) * sinf(angleX[k]);
       else
-        x = f * helper * sinf(angleX[k]);
-      const float y = f * sinf(angleY[k]);
-      const float z = -f * helper * cosf(angleX[k]);
+        y = f * helper * sinf(angleX[k]);
+      const float z = f * sinf(angleY[k]);
+      const float x = f * helper * cosf(angleX[k]);
       addVertex(vertices, colors, zero, frustumColor);
-      const float vertex[3] = {x, y, z};
-      addVertex(vertices, colors, vertex, frustumColor);
+      const float outlineVertex[3] = {x, y, z};
+      addVertex(vertices, colors, outlineVertex, frustumColor);
     }
   } else {
-    const float frustumOutline[8][3] = {{dw1, dh1, n1},  {dw2, dh2, n2},  {-dw1, dh1, n1},  {-dw2, dh2, n2},
-                                        {dw1, -dh1, n1}, {dw2, -dh2, n2}, {-dw1, -dh1, n1}, {-dw2, -dh2, n2}};
+    const float frustumOutline[8][3] = {{n1, dw1, dh1},  {n2, dw2, dh2},  {n1, -dw1, dh1},  {n2, -dw2, dh2},
+                                        {n1, dw1, -dh1}, {n2, dw2, -dh2}, {n1, -dw1, -dh1}, {n2, -dw2, -dh2}};
     for (int i = 0; i < 8; ++i)
       addVertex(vertices, colors, frustumOutline[i], frustumColor);
   }
@@ -844,9 +899,10 @@ void WbAbstractCamera::updateFrustumDisplay() {
 
   const float n = minRange();
   const float quadWidth = 2.0f * n * tanf(mFieldOfView->value() / 2.0f);
-  const float translation[3] = {0.0f, 0.0f, -n};
-  const float orientation[4] = {M_PI / 2.0f, 1.0f, 0.0f, 0.0f};
-  const float scale[3] = {quadWidth, 1.0f, (quadWidth * height()) / width()};
+  const float translation[3] = {n, 0.0f, 0.0f};
+  // Axis-angle for roll(pi/2), pitch(-pi/2), and yaw(0)
+  const float orientation[4] = {M_PI * 2.0f / 3.0f, sqrt(3.0f) / 3.0f, -sqrt(3.0f) / 3.0f, -sqrt(3.0f) / 3.0f};
+  const float scale[3] = {quadWidth, (quadWidth * height()) / width(), 1.0f};
 
   wr_transform_set_position(mFrustumDisplayTransform, translation);
   wr_transform_set_orientation(mFrustumDisplayTransform, orientation);
@@ -855,18 +911,24 @@ void WbAbstractCamera::updateFrustumDisplay() {
   wr_node_set_visible(WR_NODE(mFrustumDisplayTransform), true);
 }
 
-void WbAbstractCamera::updateTextureUpdateNotifications() {
+void WbAbstractCamera::updateTextureUpdateNotifications(bool enabled) {
   assert(mWrenCamera);
-  if (mExternalWindowEnabled)
+  if (enabled)
     connect(mWrenCamera, &WbWrenCamera::textureUpdated, this, &WbRenderingDevice::textureUpdated, Qt::UniqueConnection);
   else
     disconnect(mWrenCamera, &WbWrenCamera::textureUpdated, this, &WbRenderingDevice::textureUpdated);
-  mWrenCamera->enableTextureUpdateNotifications(mExternalWindowEnabled);
+  mWrenCamera->enableTextureUpdateNotifications(enabled);
+}
+
+void WbAbstractCamera::enableExternalWindowForAttachedCamera(bool enabled) {
+  if (mExternalWindowEnabled)
+    return;
+  updateTextureUpdateNotifications(enabled);
 }
 
 void WbAbstractCamera::enableExternalWindow(bool enabled) {
   WbRenderingDevice::enableExternalWindow(enabled);
   mExternalWindowEnabled = enabled;
   if (mWrenCamera)
-    updateTextureUpdateNotifications();
+    updateTextureUpdateNotifications(mExternalWindowEnabled);
 }

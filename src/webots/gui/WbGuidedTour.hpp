@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,11 +35,10 @@ class WbGuidedTour : public QDialog {
 public:
   // get or create the singleton WbGuidedTour and center on parent
   static WbGuidedTour *instance(QWidget *parent);
-  static bool isAvailable();
   static bool set(const QString &name);
 
 signals:
-  void worldLoaded(const QString &fileName);
+  void loadWorldRequest(const QString &fileName);
 
 protected:
 private slots:
@@ -48,6 +47,8 @@ private slots:
   void shoot();
   void setSimulationDeadline(bool autoChecked);
   void selectWorld();
+  void worldLoaded();
+  void updateGUI();
 
 private:
   QVector<QString> mFilenames;
@@ -55,6 +56,7 @@ private:
   QVector<QTreeWidgetItem *> mWorlds;
   QVector<QTreeWidgetItem *> mSections;
   int mIndex;
+  bool mReady;
   QTimer *mTimer;
   double mDeadline;
   QTreeWidget *mTree;
@@ -68,7 +70,6 @@ private:
   void loadWorld();
   void nextWorld();
   void loadWorldList();
-  void updateGUI();
   void selectCurrent();
   void setTitleText(const QString &title);
 };

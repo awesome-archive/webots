@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -130,7 +130,7 @@ void EPuckFacade::initDevices() {
   }
 
   WbNodeType deviceType;
-  int groundSensorIndex, matchedItems = 0;
+  int groundSensorIndex, matchedItems;
   int numberOfDevices = wb_robot_get_number_of_devices();
   for (int index = 0; index < numberOfDevices; index++) {
     const WbDeviceTag tag = wb_robot_get_device_by_index(index);
@@ -143,9 +143,7 @@ void EPuckFacade::initDevices() {
         if (groundSensorIndex < NUMBER_OF_GROUND_SENSORS && mGroundSensors[groundSensorIndex] == 0) {
           mGroundSensors[groundSensorIndex] = tag;
           gGroundSensorsExist = true;
-        }
-
-        if (mGroundSensors[groundSensorIndex] == 0)
+        } else
           printDeviceError(deviceName);
       }
     }
@@ -155,7 +153,7 @@ void EPuckFacade::initDevices() {
 void EPuckFacade::printDeviceError(const QString &deviceName) {
   QTextStream err(stderr);
   err << QObject::tr("Warning: the device %1 is not found. Please make sure your e-puck model has this device").arg(deviceName)
-      << endl;
+      << '\n';
 }
 
 double EPuckFacade::timer() const {
@@ -178,7 +176,7 @@ void EPuckFacade::initializeRobot() {
 
   if (mCameraSize[HEIGHT] != 1) {
     QTextStream err(stderr);
-    err << QObject::tr("Warning: the camera device of the e-puck should have an height of one.") << endl;
+    err << QObject::tr("Warning: the camera device of the e-puck should have an height of one.") << '\n';
   }
 }
 
@@ -252,7 +250,8 @@ int EPuckFacade::cameraValue() const {
     return 0;
 
   const unsigned char *image = wb_camera_get_image(mCamera);
-
+  if (image == NULL)
+    return 0;
   int values[size];
   for (int i = 0; i < size; i++)
     values[i] = wb_camera_image_get_gray(image, size, i, heightToRead);

@@ -1,57 +1,60 @@
-/* global webots: false */
+let ipInput = null;
+let connectButton = null;
+let modeSelect = null;
+let broadcast = null;
 
-var view = null;
-var ipInput = null;
-var portInput = null;
-var connectButton = null;
-var mobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const mobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 if (mobileDevice) {
-  var head = document.getElementsByTagName('head')[0];
-  var jqueryTouch = document.createElement('script');
-  jqueryTouch.setAttribute('type', 'text/javascript');
-  jqueryTouch.setAttribute('src', 'https://www.cyberbotics.com/jquery-ui/1.11.4/jquery.ui.touch-punch.min.js');
-  head.appendChild(jqueryTouch);
+  let head = document.getElementsByTagName('head')[0];
 
-  var mobileCss = document.createElement('link');
+  let mobileCss = document.createElement('link');
   mobileCss.setAttribute('rel', 'stylesheet');
   mobileCss.setAttribute('type', 'text/css');
-  mobileCss.setAttribute('href', 'https://www.cyberbotics.com/wwi/R2019a/wwi_mobile.css');
+  mobileCss.setAttribute('href', 'https://www.cyberbotics.com/wwi/R2025a/css/wwi_mobile.css');
   head.appendChild(mobileCss);
 }
 
 function init() {
-  ipInput = document.getElementById('IPInput');
-  portInput = document.getElementById('PortInput');
-  connectButton = document.getElementById('ConnectButton');
-  $('body').layout({
-    center__maskContents: true,
-    south__size: 128,
-    north__resizable: false
-  });
+  ipInput = document.getElementById('IP-input');
+  connectButton = document.getElementById('connect-button');
+  modeSelect = document.getElementById('mode');
+  broadcast = document.getElementById('broadcast');
+
+  connectButton.onclick = connect;
 }
 
 function connect() {
-  var playerDiv = document.getElementById('playerDiv');
-  playerDiv.style.height = '100%';
-  view = new webots.View(playerDiv, mobileDevice);
-  view.broadcast = true;
-  view.open('ws://' + ipInput.value + ':' + portInput.value);
+  const defaultThumbnail = 'https://cyberbotics.com/wwi/R2025a/images/loading/default_thumbnail.png';
+  const streamingMode = modeSelect.options[modeSelect.selectedIndex].value;
+  const webotsView = document.getElementsByTagName('webots-view')[0];
+  webotsView.onready = onConnect;
+  webotsView.ondisconnect = onDisconnect;
+  webotsView.connect(ipInput.value, streamingMode, broadcast.checked, mobileDevice, -1, defaultThumbnail);
+
+  ipInput.disabled = true;
+  modeSelect.disabled = true;
+  broadcast.disabled = true;
+  connectButton.disabled = true;
+}
+
+function onConnect() {
   connectButton.value = 'Disconnect';
   connectButton.onclick = disconnect;
-  ipInput.disabled = true;
-  portInput.disabled = true;
+  connectButton.disabled = false;
+}
+
+function onDisconnect() {
+  connectButton.value = 'Connect';
+  connectButton.onclick = connect;
+
+  ipInput.disabled = false;
+  modeSelect.disabled = false;
+  broadcast.disabled = false;
+  connectButton.disabled = false;
 }
 
 function disconnect() {
-  view.close();
-  view = null;
-  var playerDiv = document.getElementById('playerDiv');
-  playerDiv.innerHTML = null;
-  playerDiv.style.height = '0px';
-  connectButton.value = 'Connect';
-  connectButton.onclick = connect;
-  ipInput.disabled = false;
-  portInput.disabled = false;
+  document.getElementsByTagName('webots-view')[0].close();
 }
 
-window.addEventListener('load', init, false);
+init();

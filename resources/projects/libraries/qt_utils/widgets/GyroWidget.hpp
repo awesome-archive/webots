@@ -12,15 +12,15 @@ namespace webotsQtUtils {
     Q_OBJECT
 
   public:
-    GyroWidget(Device *device, QWidget *parent = NULL);
-    virtual ~GyroWidget() {}
+    explicit GyroWidget(Device *device, QWidget *parent = NULL);
+    virtual ~GyroWidget() override {}
 
   protected slots:
-    virtual void enable(bool enable);
+    void enable(bool enable) override;
 
   protected:
-    virtual bool isEnabled() const;
-    virtual const double *values();
+    bool isEnabled() const override;
+    const double *values() override;
   };
 }  // namespace webotsQtUtils
 

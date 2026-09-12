@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,37 +21,34 @@
 
 // Alias class for instantiation WbBallJoint's anchor parameter
 
-#include "WbAnchorParameter.hpp"
+#include "WbJointParameters.hpp"
 #include "WbSFDouble.hpp"
 
-class WbBallJointParameters : public WbAnchorParameter {
+class WbBallJointParameters : public WbJointParameters {
   Q_OBJECT
 
 public:
-  virtual ~WbBallJointParameters();
+  virtual ~WbBallJointParameters() override;
   WbBallJointParameters(const QString &modelName, WbTokenizer *tokenizer);
   explicit WbBallJointParameters(WbTokenizer *tokenizer = NULL);
   WbBallJointParameters(const WbBallJointParameters &other);
   explicit WbBallJointParameters(const WbNode &other);
-  void preFinalize() override;
-  void postFinalize() override;
-  WbNode *clone() const override { return new WbBallJointParameters(*this); }
+
   int nodeType() const override { return WB_NODE_BALL_JOINT_PARAMETERS; }
-  double springConstant() const { return mSpringConstant->value(); }
-  double dampingConstant() const { return mDampingConstant->value(); }
+  void postFinalize() override;
+
+  virtual const WbVector3 &anchor() const { return mAnchor->value(); }
 
 signals:
-  void springAndDampingConstantsChanged();
+  void anchorChanged();
 
 private:
   WbBallJointParameters &operator=(const WbBallJointParameters &);  // non copyable
+  WbNode *clone() const override { return new WbBallJointParameters(*this); }
   void init();
-  WbSFDouble *mSpringConstant;
-  WbSFDouble *mDampingConstant;
 
-private slots:
-  void updateSpringConstant();
-  void updateDampingConstant();
+  // fields
+  WbSFVector3 *mAnchor;
 };
 
 #endif

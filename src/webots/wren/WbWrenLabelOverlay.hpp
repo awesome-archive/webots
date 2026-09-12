@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,21 +38,28 @@ public:
   static int movieCaptionOverlayId() { return 65535; }
   static int dragCaptionOverlayId() { return 65534; }
   static int cameraCaptionOverlayId() { return 65533; }
+  static void colorToArray(float *dest, int color);
 
   void setText(const QString &text);
-  void setPosition(float x, float y) {
+  void setPosition(double x, double y) {
     mX = x;
     mY = y;
   }
-  void setSize(float size) { mSize = size; }
-  void setColor(int color) { colorToArray(mColor, color); }
+  void setSize(double size) { mSize = size; }
+  void setColor(int color) {
+    colorToArray(mColor, color);
+    mTextNeedRedraw = true;
+  }
   void setBackgroundColor(int color) { colorToArray(mBackgroundColor, color); }
 
   int id() const { return mId; };
   const QString &text() const { return mText; }
   const QString &font() const { return mFontName; }
-  float size() const { return mSize; }
-  void position(float &x, float &y) const {
+  double size() const { return mSize; }
+  double x() const { return mX; }
+  double y() const { return mY; }
+  const float *color() const { return mColor; }
+  void position(double &x, double &y) const {
     x = mX;
     y = mY;
   }
@@ -79,23 +86,22 @@ private:
   static const float HORIZONTAL_MARGIN;
 
   WbWrenLabelOverlay(int id, const QString &font);
-  virtual ~WbWrenLabelOverlay();
+  ~WbWrenLabelOverlay();
 
   void createTexture();
   void updateTextureSize();
   void deleteOverlay();
 
   void drawText();
-  static void colorToArray(float *dest, int color);
 
   void updateOverlayDimensions();
 
   int mId;
   QString mText;
   QString mFontName;
-  float mX;
-  float mY;
-  float mSize;
+  double mX;
+  double mY;
+  double mSize;
   float mColor[4];
   float mBackgroundColor[4];
   int mLinesCount;

@@ -1,10 +1,11 @@
-# Copyright 1996-2018 Cyberbotics Ltd.
+#!/usr/bin/env python3
+# Copyright 1996-2024 Cyberbotics Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +16,7 @@
 """This module contains the Settings class."""
 
 import configparser
+import os
 import sys
 
 
@@ -34,13 +36,16 @@ class Settings(object):
             settingsSection = primarySection
             if settingsSection not in Settings.settings.sections():
                 return None
-        if Settings.settings.has_option(settingsSection, 'ignore') and Settings.settings.get(settingsSection, 'ignore') == 'TRUE':
+        if (Settings.settings.has_option(settingsSection, 'ignore') and
+                Settings.settings.get(settingsSection, 'ignore') == 'TRUE'):
             return None
         return settingsSection
 
     @staticmethod
     def init(file):
         """Initialize the settings."""
+        if not os.path.exists(file):
+            sys.exit("Error: configuration file '%s' does not exist.\n" % file)
         Settings.settings = configparser.ConfigParser()
         Settings.settings.read(file)
 

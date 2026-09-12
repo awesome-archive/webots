@@ -1,8 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.99246073 -0.10712697 -0.059544184 5.61768
+  orientation 0.9924607309221254 -0.10712697009953492 -0.05954418405532431 5.61768
   position 0.398132 1.64293 1.62447
 }
 Background {
@@ -12,9 +17,14 @@ Background {
 }
 DEF FLOOR Solid {
   children [
-    Shape {
-      geometry Plane {
-      }
+    Pose {
+      rotation 1 0 0 -1.57079632679
+      children [
+        Shape {
+          geometry Plane {
+          }
+        }
+      ]
     }
   ]
   locked TRUE
@@ -60,23 +70,40 @@ DEF ROBOT0 Robot {
     }
     Emitter {
       translation 0 0.11 0
+      rotation 0.57735 0.57735 0.57735 -2.0944
       children [
-        Transform {
-          translation 0 -0.035 0
+        Pose {
+          rotation 0.57735 0.57735 0.57735 2.0944
           children [
-            Shape {
-              geometry Cylinder {
-                height 0.05
-                radius 0.003
-              }
-            }
-            Transform {
-              translation 0 0.03 0
+            Pose {
+              rotation 1 0 0 -1.57079632679
               children [
                 Shape {
-                  geometry Sphere {
-                    radius 0.01
+                  geometry Cylinder {
+                    height 0.05
+                    radius 0.003
                   }
+                }
+              ]
+            }
+            Pose {
+              translation 0 -0.035 0
+              children [
+                Shape {
+                  geometry Cylinder {
+                    height 0.05
+                    radius 0.003
+                  }
+                }
+                Pose {
+                  translation 0 0.03 0
+                  children [
+                    Shape {
+                      geometry Sphere {
+                        radius 0.01
+                      }
+                    }
+                  ]
                 }
               ]
             }
@@ -89,6 +116,7 @@ DEF ROBOT0 Robot {
       bufferSize 100
     }
     Receiver {
+      rotation -0.57735 -0.57735 -0.57735 2.0944
       name "receiver0"
       type "infra-red"
       channel -1
@@ -98,7 +126,9 @@ DEF ROBOT0 Robot {
   ]
   name "robot0"
   controller "emitter_receiver_infra-red"
-  controllerArgs "emitter_receiver_infra-red_emitter_0_receiver_0"
+  controllerArgs [
+    "emitter_receiver_infra-red_emitter_0_receiver_0"
+  ]
 }
 DEF ROBOT1 Robot {
   translation 0.3 0.05 0.3
@@ -110,23 +140,40 @@ DEF ROBOT1 Robot {
     }
     Emitter {
       translation 0 0.11 0
+      rotation 0.57735 0.57735 0.57735 -2.0944
       children [
-        Transform {
-          translation 0 -0.035 0
+        Pose {
+          rotation 0.57735 0.57735 0.57735 2.0944
           children [
-            Shape {
-              geometry Cylinder {
-                height 0.05
-                radius 0.003
-              }
-            }
-            Transform {
-              translation 0 0.03 0
+            Pose {
+              rotation 1 0 0 -1.57079632679
               children [
                 Shape {
-                  geometry Sphere {
-                    radius 0.01
+                  geometry Cylinder {
+                    height 0.05
+                    radius 0.003
                   }
+                }
+              ]
+            }
+            Pose {
+              translation 0 -0.035 0
+              children [
+                Shape {
+                  geometry Cylinder {
+                    height 0.05
+                    radius 0.003
+                  }
+                }
+                Pose {
+                  translation 0 0.03 0
+                  children [
+                    Shape {
+                      geometry Sphere {
+                        radius 0.01
+                      }
+                    }
+                  ]
                 }
               ]
             }
@@ -144,37 +191,61 @@ DEF ROBOT1 Robot {
   ]
   name "robot1"
   controller "emitter_receiver_infra-red"
-  controllerArgs "emitter_receiver_infra-red_emitter_1"
+  controllerArgs [
+    "emitter_receiver_infra-red_emitter_1"
+  ]
 }
 DEF ROBOT2 Robot {
   translation 0.3 0.05 -0.3
   rotation 0 1 0 1.5708
   children [
-    Shape {
-      geometry Cylinder {
-        height 0.1
-        radius 0.07
-      }
+    Pose {
+      rotation 1 0 0 -1.57079632679
+      children [
+        Shape {
+          geometry Cylinder {
+            height 0.1
+            radius 0.07
+          }
+        }
+      ]
     }
     Receiver {
       translation 0 0.11 0
+      rotation 0.57735 0.57735 0.57735 -2.0944
       children [
-        Transform {
-          translation 0 -0.035 0
+        Pose {
+          rotation 0.57735 0.57735 0.57735 2.0944
           children [
-            Shape {
-              geometry Cylinder {
-                height 0.05
-                radius 0.003
-              }
-            }
-            Transform {
-              translation 0 0.03 0
+            Pose {
+              rotation 1 0 0 -1.57079632679
               children [
                 Shape {
-                  geometry Sphere {
-                    radius 0.01
+                  geometry Cylinder {
+                    height 0.05
+                    radius 0.003
                   }
+                }
+              ]
+            }
+            Pose {
+              translation 0 -0.035 0
+              children [
+                Shape {
+                  geometry Cylinder {
+                    height 0.05
+                    radius 0.003
+                  }
+                }
+                Pose {
+                  translation 0 0.03 0
+                  children [
+                    Shape {
+                      geometry Sphere {
+                        radius 0.01
+                      }
+                    }
+                  ]
                 }
               ]
             }
@@ -190,37 +261,60 @@ DEF ROBOT2 Robot {
   ]
   name "robot2"
   controller "emitter_receiver_infra-red"
-  controllerArgs "emitter_receiver_infra-red_receiver_2"
+  controllerArgs [
+    "emitter_receiver_infra-red_receiver_2"
+  ]
 }
 DEF ROBOT3 Robot {
   translation -0.3 0.05 -0.3
   children [
-    Shape {
-      geometry Cylinder {
-        height 0.1
-        radius 0.07
-      }
+    Pose {
+      rotation 1 0 0 -1.57079632679
+      children [
+        Shape {
+          geometry Cylinder {
+            height 0.1
+            radius 0.07
+          }
+        }
+      ]
     }
     Receiver {
       translation 0 0.11 0
-      rotation 0 1 0 1.5708
+      rotation 1 0 0 -1.5708
       children [
-        Transform {
-          translation 0 -0.035 0
+        Pose {
+          rotation 0.57735 0.57735 0.57735 2.0944
           children [
-            Shape {
-              geometry Cylinder {
-                height 0.05
-                radius 0.003
-              }
-            }
-            Transform {
-              translation 0 0.03 0
+            Pose {
+              rotation 1 0 0 -1.57079632679
               children [
                 Shape {
-                  geometry Sphere {
-                    radius 0.01
+                  geometry Cylinder {
+                    height 0.05
+                    radius 0.003
                   }
+                }
+              ]
+            }
+            Pose {
+              translation 0 -0.035 0
+              children [
+                Shape {
+                  geometry Cylinder {
+                    height 0.05
+                    radius 0.003
+                  }
+                }
+                Pose {
+                  translation 0 0.03 0
+                  children [
+                    Shape {
+                      geometry Sphere {
+                        radius 0.01
+                      }
+                    }
+                  ]
                 }
               ]
             }
@@ -237,7 +331,9 @@ DEF ROBOT3 Robot {
   ]
   name "robot3"
   controller "emitter_receiver_infra-red"
-  controllerArgs "emitter_receiver_infra-red_receiver_3"
+  controllerArgs [
+    "emitter_receiver_infra-red_receiver_3"
+  ]
 }
 TestSuiteSupervisor {
 }

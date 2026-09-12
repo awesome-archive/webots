@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,21 +21,19 @@
 
 #include "WbSingleValue.hpp"
 #include "WbVector3.hpp"
-#include "WbVrmlWriter.hpp"
-
-#include <QtCore/QTextStream>
+#include "WbWriter.hpp"
 
 class WbSFVector3 : public WbSingleValue {
   Q_OBJECT
 
 public:
   WbSFVector3() {}
-  WbSFVector3(WbTokenizer *tokenizer, const QString &worldPath) { read(tokenizer, worldPath); }
+  WbSFVector3(WbTokenizer *tokenizer, const QString &worldPath) { readSFVector3(tokenizer, worldPath); }
   WbSFVector3(const WbSFVector3 &other) : mValue(other.mValue) {}
   explicit WbSFVector3(const WbVector3 &v) : mValue(v) {}
-  virtual ~WbSFVector3() {}
-  void read(WbTokenizer *tokenizer, const QString &worldPath) override;
-  void write(WbVrmlWriter &writer) const override {
+  virtual ~WbSFVector3() override {}
+  void read(WbTokenizer *tokenizer, const QString &worldPath) override { readSFVector3(tokenizer, worldPath); };
+  void write(WbWriter &writer) const override {
     writer << toString(writer.isWebots() ? WbPrecision::DOUBLE_MAX : WbPrecision::FLOAT_MAX);
   }
   WbValue *clone() const override { return new WbSFVector3(*this); }
@@ -73,6 +71,7 @@ public:
 
 private:
   WbVector3 mValue;
+  void readSFVector3(WbTokenizer *tokenizer, const QString &worldPath);
 };
 
 #endif

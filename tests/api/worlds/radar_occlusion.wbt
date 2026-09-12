@@ -1,8 +1,13 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation -0.770023 0.604102 0.205245 0.921879
+  orientation -0.770022939569372 0.6041019525906847 0.2052449838925795 0.921879
   position 2.79333 5.3775 3.17801
 }
 Background {
@@ -16,7 +21,6 @@ DirectionalLight {
 }
 DEF FRONT_TARGET Solid {
   translation 0.00141908 2.42029e-14 -0.887852
-  scale 3.07454 3.07454 3.07454
   children [
     Shape {
       appearance Appearance {
@@ -25,12 +29,12 @@ DEF FRONT_TARGET Solid {
         }
       }
       geometry Sphere {
-        radius 0.1
+        radius 0.307454
       }
     }
   ]
   boundingObject Sphere {
-    radius 0.1
+    radius 0.307454
   }
   radarCrossSection 3
 }
@@ -77,18 +81,19 @@ DEF OCCLUDED_TARGET2 Solid {
 Robot {
   children [
     DEF RADAR_WITH_OCCLUSION Radar {
+      rotation -0.577349935856137 0.577349935856137 0.5773509358560258 2.09439
       name "radar_with_occlusion"
       maxRange 5
       occlusion TRUE
     }
     DEF RADAR_WITHOUT_OCCLUSION Radar {
+      rotation -0.577349935856137 0.577349935856137 0.5773509358560258 2.09439
       name "radar_without_occlusion"
       maxRange 5
     }
     TestSuiteEmitter {
     }
   ]
-  name "robot"
   controller "radar_occlusion"
   supervisor TRUE
 }

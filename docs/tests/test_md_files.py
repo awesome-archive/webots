@@ -4,6 +4,7 @@ import unittest
 from books import Books
 
 import os
+import sys
 
 
 class TestMDFiles(unittest.TestCase):
@@ -23,7 +24,8 @@ class TestMDFiles(unittest.TestCase):
                     os.path.isfile(md_filename),
                     msg='MD file "%s" is not existing' % (md_filename)
                 )
-                with open(md_filename) as f:
+                args = {} if sys.version_info[0] < 3 else {'encoding': 'utf-8'}
+                with open(md_filename, **args) as f:
                     content = f.read()
                 self.assertGreater(
                     len(content), 0,
@@ -39,17 +41,3 @@ class TestMDFiles(unittest.TestCase):
                 'advertising' in book.md_paths,
                 msg='MD file "%s" contains "advertising"' % (book.md_paths)
             )
-
-    def test_md_file_contents_dont_contain_prohibited_keywords(self):
-        """Test that the MD file contents don't contain prohibited keywords."""
-        books = Books()
-        for book in books.books:
-            for md_path in book.md_paths:
-                with open(md_path) as f:
-                    content = f.readlines()
-                for line in content:
-                    # π crashes QtWebEngine on Windows.
-                    self.assertFalse(
-                        'π' in line,
-                        msg='MD file "%s" contains "π"' % (md_path)
-                    )

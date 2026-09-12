@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,10 +28,10 @@ class WbJointDevice : public WbLogicalDevice {
   Q_OBJECT
 
 public:
-  virtual ~WbJointDevice();
+  virtual ~WbJointDevice() override;
 
   // inherited from WbBaseNode
-  void postFinalize() override;
+  void preFinalize() override;
 
   WbJoint *joint() const;          // joint attached to the device
   WbPropeller *propeller() const;  // propeller attached to the device
@@ -44,7 +44,7 @@ public:
   WbLogicalDevice *getSiblingDeviceByType(int nodeType) const;
 
 protected:
-  WbJointDevice(const QString &modelName, WbTokenizer *tokenizer = NULL);
+  explicit WbJointDevice(const QString &modelName, WbTokenizer *tokenizer = NULL);
   explicit WbJointDevice(WbTokenizer *tokenizer = NULL);
   WbJointDevice(const WbJointDevice &other);
   explicit WbJointDevice(const WbNode &other);

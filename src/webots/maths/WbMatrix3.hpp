@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,7 +26,6 @@
 #include <cstring>
 
 class WbQuaternion;
-class WbRotation;
 
 class WbMatrix3 {
 public:
@@ -52,7 +51,7 @@ public:
   // construct from axis/angle rotation
   WbMatrix3(double rx, double ry, double rz, double angle) { fromAxisAngle(rx, ry, rz, angle); }
   WbMatrix3(const WbVector3 &r, double angle) { fromAxisAngle(r.x(), r.y(), r.z(), angle); }
-  explicit WbMatrix3(const WbRotation &r) { fromAxisAngle(r); }
+  WbMatrix3(double rx, double ry, double rz) { fromEulerAngles(rx, ry, rz); };
   explicit WbMatrix3(const WbQuaternion &q) { fromQuaternion(q); }
 
   // construct from a set column vectors
@@ -115,12 +114,15 @@ public:
 
   // to other rotation types
   WbQuaternion toQuaternion() const;
+  WbVector3 toEulerAnglesZYX() const;
+
+  QString toString(WbPrecision::Level level) const;
 
   // assign from other types of rotation
   void fromOpenGlMatrix(const double m[16]);
   void fromAxisAngle(double rx, double ry, double rz, double angle);
+  void fromEulerAngles(double rx, double ry, double rz);
   void fromAxisAngle(const WbVector3 &axis, double angle) { fromAxisAngle(axis.x(), axis.y(), axis.z(), angle); }
-  void fromAxisAngle(const WbRotation &r);
   void fromQuaternion(const WbQuaternion &q);
 
 private:
@@ -151,13 +153,13 @@ inline WbVector3 operator*(const WbVector3 &v, const WbMatrix3 &m) {
 
 // rotate (assuming the rotation vector is normalized)
 inline void WbMatrix3::fromAxisAngle(double rx, double ry, double rz, double angle) {
-  double c = cos(angle);
-  double s = sin(angle);
+  const double c = cos(angle);
+  const double s = sin(angle);
 
-  double t1 = 1.0 - c;
-  double t2 = rx * rz * t1;
-  double t3 = rx * ry * t1;
-  double t4 = ry * rz * t1;
+  const double t1 = 1.0 - c;
+  const double t2 = rx * rz * t1;
+  const double t3 = rx * ry * t1;
+  const double t4 = ry * rz * t1;
 
   mM[0] = rx * rx * t1 + c;
   mM[1] = t3 - rz * s;
@@ -168,6 +170,27 @@ inline void WbMatrix3::fromAxisAngle(double rx, double ry, double rz, double ang
   mM[6] = t2 - ry * s;
   mM[7] = t4 + rx * s;
   mM[8] = rz * rz * t1 + c;
+}
+
+inline void WbMatrix3::fromEulerAngles(double rx, double ry, double rz) {
+  // Reference: https://www.geometrictools.com/Documentation/EulerAngles.pdf
+
+  const double cx = cos(rx);
+  const double sx = sin(rx);
+  const double cy = cos(ry);
+  const double sy = sin(ry);
+  const double cz = cos(rz);
+  const double sz = sin(rz);
+
+  mM[0] = cy * cz;
+  mM[1] = -cy * sz;
+  mM[2] = sy;
+  mM[3] = cz * sx * sy + cx * sz;
+  mM[4] = cx * cz - sx * sy * sz;
+  mM[5] = -cy * sx;
+  mM[6] = -cx * cz * sy + sx * sz;
+  mM[7] = cz * sx + cx * sy * sz;
+  mM[8] = cx * cy;
 }
 
 inline void WbMatrix3::transpose() {
@@ -234,6 +257,24 @@ inline void WbMatrix3::scale(double x, double y, double z) {
 
 inline WbMatrix3 WbMatrix3::operator*(double s) const {
   return WbMatrix3(mM[0] * s, mM[1] * s, mM[2] * s, mM[3] * s, mM[4] * s, mM[5] * s, mM[6] * s, mM[7] * s, mM[8] * s);
+}
+
+inline QString WbMatrix3::toString(WbPrecision::Level level = WbPrecision::Level::DOUBLE_MAX) const {
+  QString result = "[\n";
+  result += QString("  %1 %2 %3\n")
+              .arg(WbPrecision::doubleToString(mM[0], level))
+              .arg(WbPrecision::doubleToString(mM[1], level))
+              .arg(WbPrecision::doubleToString(mM[2], level));
+  result += QString("  %1 %2 %3\n")
+              .arg(WbPrecision::doubleToString(mM[3], level))
+              .arg(WbPrecision::doubleToString(mM[4], level))
+              .arg(WbPrecision::doubleToString(mM[5], level));
+  result += QString("  %1 %2 %3\n")
+              .arg(WbPrecision::doubleToString(mM[6], level))
+              .arg(WbPrecision::doubleToString(mM[7], level))
+              .arg(WbPrecision::doubleToString(mM[8], level));
+  result += "]\n";
+  return result;
 }
 
 #endif

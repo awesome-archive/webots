@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@
 #include <QtCore/QModelIndex>
 #include <QtWidgets/QWidget>
 
-class WbAbstractTransform;
+class WbAbstractPose;
 class WbBaseNode;
 class WbClipboard;
 class WbField;
@@ -38,9 +38,11 @@ class WbWorld;
 
 class QModelIndex;
 class QSplitter;
+class QPushButton;
 
 struct TreeItemState;
 
+// cppcheck-suppress noConstructor
 class WbSceneTree : public QWidget {
   Q_OBJECT
   Q_PROPERTY(int handleWidth MEMBER mHandleWidth READ handleWidth WRITE setHandleWidth)
@@ -63,10 +65,10 @@ public:
   void restoreFactoryLayout();
 
   int &handleWidth() { return mHandleWidth; }
-  void setHandleWidth(int &handleWidth) { mHandleWidth = handleWidth; }
+  void setHandleWidth(const int &handleWidth) { mHandleWidth = handleWidth; }
 
 public slots:
-  void selectTransform(WbAbstractTransform *t);
+  void selectPose(WbAbstractPose *p);
   void updateValue();
   void updateApplicationActions();
   void updateSelection();
@@ -74,14 +76,15 @@ public slots:
 signals:
   void valueChangedFromGui();
   void nodeSelected(WbBaseNode *n);
-  void editRequested(const QString &fileName);
+  void editRequested(const QString &filePath, bool modify = false, bool isRobot = false);
   void documentationRequest(const QString &book, const QString &page, bool visible);
 
 private slots:
-  void handleUserCommand(WbActionManager::WbActionKind actionKind);
+  void handleUserCommand(WbAction::WbActionKind actionKind);
   void reset();
   void transform(const QString &modelName);
-  void convertProtoToBaseNode();
+  void convertToBaseNode();
+  void convertRootToBaseNode();
   void moveViewpointToObject();
   void addNew();
   void startWatching(const QModelIndex &index);
@@ -89,6 +92,7 @@ private slots:
   void handleRowRemoval(const QModelIndex &parentIndex, int start, int end);
   void refreshItems();
   void handleDoubleClickOrEnterPress();
+  void editFileFromFieldEditor(const QString &fileName);
 
   void prepareNodeRegeneration(WbNode *node, bool nested);
   void abortNodeRegeneration();
@@ -96,9 +100,11 @@ private slots:
   void refreshTreeView();
 
   void help();
-  void exportObject();
+  void exportUrdf();
   void openProtoInTextEditor();
+  void editProtoInTextEditor();
   void openTemplateInstanceInTextEditor();
+  void showFieldEditor(bool force = false);
 
   void del(WbNode *nodeToDel = NULL);
 
@@ -107,6 +113,7 @@ private:
   QString mWorldFileName;
   WbSceneTreeModel *mModel;
   WbTreeItem *mSelectedItem;
+  QPushButton *mExternProtoButton;
   WbTreeView *mTreeView;
   WbFieldEditor *mFieldEditor;
   bool mRowsAreAboutToBeRemoved;
@@ -125,6 +132,8 @@ private:
   void cleanTreeItemState(TreeItemState *item);
   // void printTreeItemState(TreeItemState *item, int indentation = 0); // Debug function to print the stored tree state.
 
+  void showExternProtoPanel();
+
   void restoreState(WbTreeView *t1, WbTreeView *t2, const QModelIndex &i1, const QModelIndex &i2);
   void updateToolbar();
   bool isPasteAllowed();
@@ -132,11 +141,12 @@ private:
   void pasteInMFValue();
   void clearSelection();
   bool isIndexAncestorOfCurrentIndex(const QModelIndex &index, int start, int end);
-
+  void convertProtoToBaseNode(bool rootOnly);
   bool insertInertiaMatrix(const WbField *selectedField);
   void cut();
   void copy();
   void paste();
+  void enableObjectViewActions(bool enabled);
 };
 
 #endif

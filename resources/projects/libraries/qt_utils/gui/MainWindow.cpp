@@ -1,10 +1,12 @@
 #include "MainWindow.hpp"
 
+#include <QtCore/QRandomGenerator>
 #include <QtCore/QTime>
+
 #include <QtGui/QCloseEvent>
+#include <QtGui/QScreen>
 
 #include <QtWidgets/QApplication>
-#include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QMessageBox>
 
 #ifdef _WIN32
@@ -56,9 +58,6 @@ void MainWindow::showWindow() {
   show();
   raise();
 #else  // __linux__
-  // Warning:
-  // on Ubuntu 12.04 the isMinimized() function doesn't return
-  // the correct value if the window has been manually minimized
   if (isMinimized()) {
     Display *display = XOpenDisplay(NULL);
     XMapWindow(display, winId());
@@ -77,10 +76,10 @@ void MainWindow::showWindow() {
   // center the window
   if (firstShow) {
     const int MAX_OFFSET = 50;
-    const QRect &desktopRect = QApplication::desktop()->screenGeometry();
+    const QRect &desktopRect = QGuiApplication::primaryScreen()->geometry();
     const QSize &windowSize = size();
-    qsrand(QTime::currentTime().msec());
-    const QPoint offset((qrand() % MAX_OFFSET) - MAX_OFFSET / 2, (qrand() % MAX_OFFSET) - MAX_OFFSET / 2);
+    const QPoint offset(QRandomGenerator::global()->bounded(MAX_OFFSET) - MAX_OFFSET / 2,
+                        QRandomGenerator::global()->bounded(MAX_OFFSET) - MAX_OFFSET / 2);
 
     move(desktopRect.x() + desktopRect.width() / 2 - windowSize.width() / 2 + offset.x(),
          desktopRect.y() + desktopRect.height() / 2 - windowSize.height() / 2 + offset.y());

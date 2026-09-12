@@ -57,150 +57,39 @@ graph LR
 
 ### Robot Window
 
-A robot window allows the programmer to efficiently create custom user interfaces for his robots.
-Robot windows can be opened by double-clicking on the virtual robot, or using the [context menu](the-3d-window.md#context-menu).
-The *window* field of the [Robot](../reference/robot.md) node specifies a robot window.
+A robot window allows the programmer to efficiently create custom user interfaces for its robots.
+Robot windows can be opened by using the [context menu](the-3d-window.md#context-menu).
+The *window* field of the [Robot](../reference/robot.md) node specifies the robot window.
 
 Robot windows are implemented in HTML and provide the following features:
 
-1. They rely on HTML layout and Javascript programming.
-2. They communicate directly with the robot controller using two Javascript functions: `webots.window("<robot window name>").receive` and `webots.window("<robot window name>").send`.
-The equivalent controller functions are `wb_robot_wwi_receive_text` and `wb_robot_wwi_send_text`.
-3. They are web-ready and could be used to display robot windows on web pages.
+1. They rely on HTML layout and JavaScript programming.
+2. They communicate directly with the robot controller using two JavaScript functions: `window.robotWindow.receive` and `window.robotWindow.send`.
+The equivalent controller functions are `wb_robot_wwi_receive_text` and `wb_robot_wwi_send_text`. 
+3. They are web-ready, hence they use a web browser to display robot windows.
 
-A simple example of an HTML robot window is provided in the `robots/thymio/thymio2.wbt` sample simulation and demonstrates:
+A simple example of an HTML robot window is given in [`projects/samples/howto/custom_robot_window_simple`](samples-howto.md#custom_robot_window_simple-wbt).
+It demonstrates how to establish a two-way communication between a robot window and a Python controller.
 
-- How to display sensor information in the robot window.
-- How to send user interface events (like mouse clicks) from the robot window to the controller program.
-- How to change the title of the robot window from the controller program.
+To create a similar robot window for your project follow these steps:
+1. In your project's root create a file in the following path `plugins/robot_windows/<robot window name>/<robot window name>.html`.
+2. The file is a typical HTML document that can contain JavaScript and CSS.
+However, in addition to the standard JavaScript library, a `robotWindow` object has to be imported.
+It exposes an interface to allow communication with a robot controller.
+You can check usage examples of `window.robotWindow.receive` and `window.robotWindow.send` in [`projects/samples/howto/custom_robot_window_simple/plugins/robot_windows/custom_robot_window_simple/custom_robot_window_simple.html`]({{ url.github_tree }}/projects/samples/howto/custom_robot_window_simple/plugins/robot_windows/custom_robot_window_simple/custom_robot_window_simple.html).
+3. The robot window needs to be registered in the robot's node.
+Find your robot in the scene tree, select a `window` field, click select and choose `<robot window name>`.
+4. To send and receive data inside the controller you have to use `wb_robot_wwi_receive_text` and `wb_robot_wwi_send_text`.
+A very simple Python example is given in [`projects/samples/howto/custom_robot_window_simple/controllers/custom_robot_window_simple/custom_robot_window_simple.py`]({{ url.github_tree }}/projects/samples/howto/custom_robot_window_simple/controllers/custom_robot_window_simple/custom_robot_window_simple.py).
 
-The HTML robot windows can communicate with controller programs written using any of the supported programming languages, i.e. C, C++, Python, Java, MATLAB and ROS.
+An example of a reusable HTML robot window is given in [`projects/samples/howto/custom_robot_window`](samples-howto.md#custom_robot_window-wbt).
+While in the previous example the HTML robot window interacts directly with the controller, in this example the robot window exchanges data with a controller implemented in [`plugins/robot_windows/custom_robot_window/custom_robot_window.c`]({{ url.github_tree }}/projects/samples/howto/custom_robot_window/plugins/robot_windows/custom_robot_window/custom_robot_window.c).
+Therefore, the robot window in this case can be reused in different simulations.
+
+<br />
+
+The HTML robot windows can communicate with controller programs written using any of the supported programming languages, i.e. C, C++, Python, Java and MATLAB.
 If a [Robot](../reference/robot.md)'s controller is changed or restarted during the simulation run, the robot window associated to the same [Robot](../reference/robot.md) node will be restarted as well.
-
-The vehicle, Darwin-OP robot windows and BotStudio still use the native robot window (see below).
-However, they will soon be ported to the HTML robot window.
-After that, the native robot window system will be progressively phased out.
-
-### Native Robot Window (Deprecated)
-
-Native robot windows still exist in Webots.
-However, they are deprecated and it is not recommended to use them when developing new robot windows.
-They are more complicated to implement than HTML robot windows and are known to cause Qt DLL conflicts with third-party software, such as MATLAB or NAOqi.
-
-The entry points of a native robot window controller plugin are:
-
-- `bool wbw_init()`
-
-    This is the first function called by libController. Its goal is to initialize the
-    graphical user interface without showing it.
-
-- `void wbw_cleanup()`
-
-    This is the last function called by libController. Its goal is to cleanup the
-    library (destroy the GUI, release the memory, store the current library state,
-    etc.)
-
-- `void wbw_pre_update_gui()`
-
-    This function is called before the `wbw_update_gui` function to inform its imminent call.
-    Its purpose is to inform that from this moment, the pipe answering from Webots
-    to the controller can receive data. If data is coming from the Webots pipe,
-    then the `wbw_update_gui` function should return as soon as possible.
-
-- `void wbw_update_gui()`
-
-    The aim of this function is to process the GUI events until something is
-    available on the Webots pipe.
-
-- `void wbw_read_sensors()`
-
-    This function is called when it is time to read the sensors values from the
-    Webots API. For example in this callback function the `wb_distance_sensor_get_value`
-    function can be called.
-
-- `void wbw_write_actuators()`
-
-    This function is called when it is time to write the actuator commands from the
-    Webots API. For example in this callback function the `wb_motor_set_position` function
-    can be called.
-
-- `void wbw_show()`
-
-    This function is called when the GUI should be shown. This can occur either when
-    the user double-clicks on the virtual robot, or when he selects the `Robot |
-    Show Robot Window` menu item, or at controller startup if the
-    *showWindow* field of the [Robot](../reference/robot.md) node is enabled.
-
-- `void *wbw_robot_window_custom_function(void *)`
-
-    This function can optionally be defined to communicate and pass data from and to
-    the controller program. It is called directly by the user from the controller
-    when executing the `wb_robot_window_custom_function` C function or
-    `Robot::windowCustomFunction` C++ function. You can find more information
-    in the [Reference Manual](../reference/robot.md#wb_robot_window_custom_function).
-
-The internal behavior of the `wb_robot_step` function call is the key point to understanding how the different entry points of the robot window plugin are called (pseudo-code):
-
-```c
-wb_robot_step() {
-  wbw_write_actuators();
-  wbw_pre_update_gui();
-  write_request_to_webots_pipe();
-  wbw_update_gui(); // returns when something on the pipe
-  read_request_to_webots_pipe();
-  wbw_read_sensors();
-}
-```
-
-As the Qt libraries are included in Webots (used by the Webots GUI), and all our samples are based on it, we recommend to choose also this framework to create your GUI.
-The `Makefile.include` mentioned above allows you to efficiently link with the Qt framework embedded in Webots.
-
-The Webots pipe handle (integer id) is available in the WEBOTS\_PIPE\_IN environment variable.
-
-The Qt utility library helps you to initialize Qt correctly (pipe, window visibility, ...).
-Refer to the next section for more information related with this library.
-
-If the robot window cannot be loaded (bad path, bad initialization, etc.), a generic robot window is opened instead.
-This generic robot window displays several sensors and actuators.
-The source code of this robot window is a good demonstrator of the robot window plugin abilities.
-All the source code is located in the following directory:
-
-- `WEBOTS_HOME/resources/projects/plugins/robot_windows/generic_window`
-
-Other samples can be found in the following directories:
-
-- `WEBOTS_HOME/projects/robots/e-puck/plugins/robot_windows/botstudio`
-- `WEBOTS_HOME/projects/robots/e-puck/plugins/robot_windows/e-puck_window`
-
-#### Qt Utility Library
-
-In order to facilitate the creation of native robot window using the Qt framework, Webots has a utility library allowing to hide the complexity of the management of the robot windows.
-
-This library contains various classes including a subclass of QMainApplication managing the pipe events, a subclass of QMainWindow dealing with the close events, a class to handle Webots standard paths, and a collection of widgets to display the Webots devices.
-The source code of the generic robot window is a good example illustrating how to use this library.
-
-The location of the qt utility library is `WEBOTS_HOME/resources/projects/libraries/qt_utils`.
-
-#### Motion Editor
-
-A motion is a chronological sequence of robot poses.
-A pose is defined by a set of commands (in position) of the robot motors.
-
-The motion is stored in a motion file in a user-readable format.
-The controller API allows to play easily the motion files on your robot.
-You can get the complete motion API in the [Reference Manual](../reference/motion.md).
-
-The motion editor (cf. the [figure](#motion-editor-view)) is a GUI which helps to create motions which can be played by a robot.
-This editor is implemented as a Qt widget of the legacy generic window (deprecated).
-This means that the motion editor is accessible only if the robot is linked with the generic window i.e. by setting the `Robot.window` field to `generic_window`.
-
-In the motion editor different fonts and colors are used to identify the status of poses and motor states: modified items are displayed using bold font, disabled states are written in gray, and items with values outside the valid motor position range are written in red.
-
-%figure "Motion editor view"
-
-![motion_editor.png](images/motion_editor.png)
-
-%end
 
 ### Remote-Control Plugin
 
@@ -227,9 +116,9 @@ There are two entry points to the remote-control library:
 The `WbrInterface` structure has several functions (mandatory) which have to be mapped to let the remote-control library run smoothly.
 Here they are:
 
-- `bool wbr_start(void *arg)`
+- `bool wbr_start(const char *args)`
 
-    This function is called when the connection with the real robot should start.
+    This function is called when the connection with the real robot should start (i.e. when [`wb_robot_set_mode(WB_MODE_REMOTE_CONTROL, ...)`](../reference/robot.md#wb_robot_set_mode) is called from the controller).
     The return value of this function should inform if the connection has been a
     success or not. The argument matches with the argument given to
     the `wb_robot_set_mode` function when initializing the remote-control. As the robot window
@@ -282,4 +171,4 @@ For example, if you want to be able to use the distance sensor of the real robot
 
 A complete sample (communicating with the e-puck robot using bluetooth) can be found in this directory:
 
-`WEBOTS_HOME/projects/robots/e-puck/plugins/remote_controls/e-puck_bluetooth`
+`WEBOTS_HOME/projects/robots/gctronic/e-puck/plugins/remote_controls/e-puck_bluetooth`

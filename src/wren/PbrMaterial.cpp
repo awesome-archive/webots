@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,7 +25,12 @@
 
 #include <wren/material.h>
 
+#ifdef __EMSCRIPTEN__
+#include <GL/gl.h>
+#include <GLES3/gl3.h>
+#else
 #include <glad/glad.h>
+#endif
 
 namespace wren {
 
@@ -55,13 +60,25 @@ namespace wren {
   }
 
   size_t PbrMaterial::sortingId() const {
-    const size_t programId = static_cast<size_t>(mDefaultProgram->glName());
+    const unsigned long long programId = static_cast<unsigned long long>(mDefaultProgram->glName());
 
     size_t textureId = 0;
     if (mTextures[0].first)
       textureId = static_cast<size_t>(mTextures[0].first->glName());
 
-    return static_cast<size_t>(mCacheData->id() << 1) | (textureId << 16) | (programId << 32) | mHasPremultipliedAlpha;
+    return static_cast<size_t>(mCacheData->id() << 1) | (textureId << 16) | (programId << 32) |
+           (mHasPremultipliedAlpha ? 1 : 0);
+  }
+
+  PbrMaterial *PbrMaterial::createMaterial() {
+    PbrMaterial *material = new PbrMaterial();
+    material->init();
+    return material;
+  }
+
+  void PbrMaterial::deleteMaterial(PbrMaterial *material) {
+    material->releaseMaterial();
+    delete material;
   }
 
   void PbrMaterial::clearMaterial() {
@@ -190,7 +207,17 @@ namespace wren {
     Material::bindTextures();
   }
 
-  PbrMaterial::PbrMaterial() : Material() {
+  PbrMaterial::PbrMaterial() : Material(), mCacheData(NULL) {
+    mMaterialStructure = new WrMaterial;
+    mMaterialStructure->type = WR_MATERIAL_PBR;
+    mMaterialStructure->data = reinterpret_cast<void *>(this);
+  }
+
+  PbrMaterial::~PbrMaterial() {
+    delete mMaterialStructure;
+  }
+
+  void PbrMaterial::init() {
     GlslLayout::PbrMaterial material;
     material.mBaseColorAndTransparency = glm::vec4(gVec3Ones, 0.0f);
     material.mRoughnessMetalnessNormalMapFactorOcclusion = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
@@ -200,11 +227,6 @@ namespace wren {
     material.mNormalBrdfEmissiveBackgroundFlags = glm::vec4(0.0f);
     material.mPenFlags = glm::vec4(0.0f);
     material.mCubeTextureFlags = glm::vec4(0.0f);
-
-    mMaterialStructure = new WrMaterial;
-    mMaterialStructure->type = WR_MATERIAL_PBR;
-    mMaterialStructure->data = reinterpret_cast<void *>(this);
-
     updateMaterial(material);
   }
 

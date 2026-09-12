@@ -2,6 +2,93 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ja_JP" sourcelanguage="en">
 <context>
+    <name>ConsoleEdit</name>
+    <message>
+        <source>&amp;Filter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display all the logs.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display all the messages from Webots.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display parsing error when editing or loading a world.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display error messages from ODE.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display messages from the physics plugins.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display Javascript log from the robot-windows.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Output from the compilation.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display all the other logs.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display all the messages from the controller(s).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display output from the controller of the &apos;%1&apos; controller.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Level</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display all the Webots logs.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Displays Webots errors and controller(s) stderr.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Displays Webots warnings.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Displays Webots info.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display controller(s) stdout and stderr.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display controller(s) stdout.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display controller(s) stderr.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rename Console</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clear Console</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>QObject</name>
     <message>
         <source>Warning</source>
@@ -104,10 +191,6 @@
         <translation>ファイルが空です：&apos;%1&apos;。</translation>
     </message>
     <message>
-        <source>Invalid texture mapping: size of &apos;coordIndex&apos; and &apos;texCoordIndex&apos; mismatch. The default texture mapping is applied.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>No previous DEF nodes match; USE node turned into DEF node.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -144,14 +227,6 @@
         <translation type="unfinished">WebotsはElevationGridオブジェクトについての慣性を計算できません。</translation>
     </message>
     <message>
-        <source>Invalid &apos;boundingObject&apos; (a Transform has no &apos;geometry&apos;): the inertia matrix cannot be calculated.</source>
-        <translation type="unfinished">無効な &apos;boundingObject&apos;（Transformに &apos;geometry&apos; がありません）：慣性マトリクスを計算できません。</translation>
-    </message>
-    <message>
-        <source>Invalid &apos;boundingObject&apos; (a Transform, or a Shape within a Transform, has no &apos;geometry&apos;): the inertia matrix cannot be calculated.</source>
-        <translation type="unfinished">無効な &apos;boundingObject&apos;（TransformまたはTransform内のShapeに &apos;geometry&apos; がありません）：慣性マトリクスを計算できません。</translation>
-    </message>
-    <message>
         <source>Invalid &apos;boundingObject&apos; (a Shape&apos;s &apos;geometry&apos; field is not set): the inertia matrix cannot be calculated.</source>
         <translation type="unfinished">無効な &apos;boundingObject&apos;（Shapeの &apos;geometry&apos; フィールドが設定されていません）：慣性マトリクスを計算できません。</translation>
     </message>
@@ -184,10 +259,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Mass properties computation failed for this IndexedFaceSet</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Solid nodes cannot be USEd.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -200,19 +271,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Device nodes cannot be USEd nodes cannot be USEd.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Nodes with a Solid descendant cannot be USEd.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Nodes with a Joint descendant cannot be USEd.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The creation of the IndexedFaceSet physical boundaries failed because its geometry is not suitable for representing a bounded closed volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -225,10 +288,6 @@
     </message>
     <message>
         <source>Unexpected template statement opening. Expected=&apos;%1&apos;, Received=&apos;%2&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Geometry nodes are valid children of Group and Transform only if contained in a &apos;boundingObject&apos; field.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -392,14 +451,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Cannot create the Webots temporary directory &quot;%1&quot;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cannot create a directory in the Webots temporary directory &quot;%1&quot;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Deprecated &apos;%1&apos;, please use &apos;%2&apos; node instead</source>
         <translation type="unfinished"></translation>
     </message>
@@ -408,55 +459,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&apos;%1&apos; license file: Can&apos;t open &apos;%2&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; license file: UUID mismatch: %2 != %3.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; license file: File name mismatch: &apos;%2.key&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; license file: Unsupported start time in the future.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; license file: Local license expired.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; license file: Negative duration: %2.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; license file: Base64 error.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; license file: Wrong signature.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Internet floating license</source>
-        <translation type="unfinished">インターネット フローティングライセンス</translation>
-    </message>
-    <message>
-        <source>License owner:</source>
-        <translation type="unfinished">ライセンス所有者:</translation>
-    </message>
-    <message>
         <source>Cannot insert %1 node in &apos;%2&apos; field of %3 node that doesn&apos;t have a Solid ancestor.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>To run Matlab controllers, you need to install a 64-bit version of Matlab.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>To run Matlab controllers, you need to install Matlab 64-bit and ensure it is available from the DOS CMD.EXE console.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -469,14 +472,6 @@
     </message>
     <message>
         <source>Missing &apos;%1&apos; value.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; not found.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>A resource file can be defined relatively to the worlds directory of the current project, relatively to the worlds directory of the default project, relatively to its protos directory (if defined in a PROTO), or absolutely.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -512,18 +507,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>File doesn&apos;t exist</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Unsupported file format</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cannot open file</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Cannot read chunk</source>
         <translation type="unfinished"></translation>
     </message>
@@ -548,22 +531,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Texture export fails, because too much textures are sharing the same name: %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Machine UUID:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server failed to allocate shared memory segment.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server failed to attach shared memory segment.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Problem while saving file: &apos;%1&apos;</source>
         <translation type="unfinished">ファイルを保存中に問題発生：&apos;%1&apos;</translation>
     </message>
@@ -577,38 +544,6 @@
     </message>
     <message>
         <source>Cannot insert %1 node in &apos;%2&apos; field of %3 node:: %4 node doesn&apos;t support Muscle functionality.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>All &apos;scale&apos; coordinates must be positive: x is set to 1.0.</source>
-        <translation type="unfinished">全ての &apos;scale&apos; 座標が正数でなければなりません：xは1.0に設定されています。</translation>
-    </message>
-    <message>
-        <source>All &apos;scale&apos; coordinates must be positive: x is set to abs(x).</source>
-        <translation type="unfinished">全ての &apos;scale&apos; 座標が正数でなければなりません：xはabs(x) に設定されています。</translation>
-    </message>
-    <message>
-        <source>All &apos;scale&apos; coordinates must be positive: y is set to 1.0.</source>
-        <translation type="unfinished">全ての &apos;scale&apos; 座標が正数でなければなりません：yは1.0に設定されています。</translation>
-    </message>
-    <message>
-        <source>All &apos;scale&apos; coordinates must be positive: y is set to abs(y).</source>
-        <translation type="unfinished">全ての &apos;scale&apos; 座標が正数でなければなりません：yはabs(y) に設定されています。</translation>
-    </message>
-    <message>
-        <source>All &apos;scale&apos; coordinates must be positive: z is set to 1.0.</source>
-        <translation type="unfinished">全ての &apos;scale&apos; 座標が正数でなければなりません：zは1.0に設定されています。</translation>
-    </message>
-    <message>
-        <source>All &apos;scale&apos; coordinates must be positive: z is set to abs(z).</source>
-        <translation type="unfinished">全ての &apos;scale&apos; 座標が正数でなければなりません：zはabs(z) に設定されています。</translation>
-    </message>
-    <message>
-        <source>&apos;scale&apos; were changed so that x = z because of physics constraints inside a &apos;boundingObject&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;scale&apos; was made uniform because of physics constraints inside a &apos;boundingObject&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -628,11 +563,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Null normal for face %1 %2 %3.
- This can be caused by duplicate vertices in your mesh. Try opening your model in 3D modeling software and removing duplicate vertices, then re-importing.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>The language &apos;%1&apos; stored in preferences is not supported. Resetting to the language default (English).</source>
         <translation type="unfinished"></translation>
     </message>
@@ -642,33 +572,11 @@ Invalid USE nodes that refer to DEF nodes defined outside the %2 node are turned
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>First item of &apos;%1&apos; field expected to be a file but is a directory.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; expected to be a file but is a directory.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Expected VRML97 type but found &apos;%2&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&apos;field&apos;, &apos;unconnectedField&apos;, &apos;vrmlField&apos; or &apos;hiddenField&apos; keywords</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Please modify the first line of &apos;%1&apos; to &quot;#%2 %3 utf8&quot;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots requires Python version 3.x6 or 2.7 (64 bit) from python.org in your current PATH.
-To fix the problem, you should:
-1. Check the Python command set in the Webots preferences.
-2. Check the COMMAND set in the [python] section of the runtime.ini file of your controller program if any.
-3. Fix your PATH environment variable to use the required Python 64 bit version (if available).
-4. Install the required Python 64 bit version and ensure your PATH environment variable points to it.
-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -686,10 +594,6 @@ To fix the problem, you should:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>This free version of Webots allows you to run the included benchmark simulations available from the &apos;File&apos; menu under &apos;Open Sample World...&apos;. You will be able to modify, recompile and run the robot controllers, but not the supervisor controllers. Also, you will not be able to modify any world or PROTO files.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Duplicate vertices detected while triangulating mesh. Try opening your model in 3D modeling software and removing duplicate vertices, then re-importing.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -703,30 +607,6 @@ To fix the problem, you should:
     </message>
     <message>
         <source>The Dusk theme is a second modern dark theme, also featuring the same clean flat design, with a light green accent color. It&apos;s the developers&apos; favorite!</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; is not a valid file name for a license file, please revert to the original file name.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; this license file is for Webots R2018a revision 1 or older: You cannot use it with Webots %2.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;%1&apos; license file: Premier service for this license expired. You can still use it with an older version of Webots.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Local licenses in use:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Floating licences in use:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -753,6 +633,204 @@ To fix the problem, you should:
         <source>About</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>No previous DEF nodes match; USE node turned into DEF node. Please check that the fields are listed in the same order as in the base node definition.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The default value of field &apos;%1&apos; is not in the list of accepted values</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> Nightly Build %1 %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid texture mapping: the sizes of &apos;coordIndex&apos; and &apos;texCoordIndex&apos; mismatch. The default texture mapping is applied.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid normal definition: the sizes of &apos;coordIndex&apos; and &apos;normalIndex&apos; mismatch. The normals will be computed using the creaseAngle.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid normal definition: the size of &apos;normal&apos; should equal the number of triangles when &apos;normalPerVertex&apos; is FALSE. The normals will be computed using the creaseAngle.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Null normal for face %1 %2 %3.
+This can be caused by duplicate vertices in your mesh. Try to open your model in a 3D modeling software, remove any duplicate vertices, and re-import the model in Webots.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Follow Object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The &apos;%1&apos; node doesn&apos;t support &apos;PBRAppearance&apos; in the &apos;appearance&apos; field of its parent node, please use &apos;Appearance&apos; instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Can&apos;t insert a &apos;%1&apos; node in the &apos;geometry&apos; field of &apos;Shape&apos; node if the &apos;appearance&apos; field contains a &apos;PBRAppearance&apos; node, please use an &apos;Appearance&apos; node instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>angle:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Found deprecated gravity vector (%1 %2 %3) in WorldInfo, using gravity vector length: %4</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Billboard nodes cannot be USEd.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Device nodes cannot be USEd.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Python was not found.
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot read &apos;%1&apos;, sending &quot;404 Not Found&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot load translator for wb_%1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot load translator for qt_%1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Impossible to create a non-ambiguous path for asset &apos;%1&apos;in the local directory.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Trying to resolve the backwards compability by adjusting the rotation (strategy %1).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>TrackWheel nodes cannot be USEd.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The creation of the %1 physical boundaries failed because its geometry is not suitable for representing a bounded closed volume</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mass properties computation failed for this %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unable to find resource at &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failure exporting texture, too many textures share the same name: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failure exporting mesh, too many meshes share the same name: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>URL &apos;%1&apos; changed by fallback mechanism. Ensure you are opening the correct world.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Impossible to infer URL from &apos;%1&apos; and &apos;%2&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All &apos;scale&apos; coordinates must be non-zero: x is set to 1.0.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All &apos;scale&apos; coordinates must be non-zero: y is set to 1.0.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All &apos;scale&apos; coordinates must be non-zero: z is set to 1.0.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid URL &apos;%1&apos;. Sounds must be in &apos;.mp3&apos; or &apos;.wav&apos; format.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ali&amp;gn View to Object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy and edit the PROTO file in Text Editor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit the PROTO file in Text Editor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expected URL to end with &apos;.proto&apos; or &apos;.PROTO&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos;: This file was created with Webots %2 while you are using Webots %3. You may need to adjust urls for textures and meshes, see details in the change log of Webots R2021b.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots requires Python version 3.7 or newer in your current PATH.
+To fix the problem, you should:
+1. Check the Python command set in the Webots preferences.
+2. Check the COMMAND set in the [python] section of the runtime.ini file of your controller program if any.
+3. Install a recent Python 64 bit version and ensure your PATH environment variable points to it.
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>USER or USERNAME environment variable not set, falling back to &apos;default&apos; username.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Contact joints between materials &apos;%1&apos; and &apos;%2&apos; will only be created for the %3 deepest contact points instead of all the %4 contact points.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid &apos;boundingObject&apos; (a Pose has no &apos;geometry&apos;): the inertia matrix cannot be calculated.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid &apos;boundingObject&apos; (a Pose, or a Shape within a Pose, has no &apos;geometry&apos;): the inertia matrix cannot be calculated.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;field&apos;, &apos;unconnectedField&apos;, &apos;w3dField&apos; or &apos;hiddenField&apos; keywords</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Corrupted WAVE file: RIFF chunk not found</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Corrupted WAVE file: format chunk not found</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Corrupted WAVE file: data chunk not found</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>T</name>
+    <message>
+        <source>%1: Forced termination (because process didn&apos;t terminate itself after 1 second).</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbAboutBox</name>
@@ -764,24 +842,27 @@ To fix the problem, you should:
 <context>
     <name>WbAbstractCamera</name>
     <message>
-        <source>Cannot allocate shared memory. The shared memory is required for the cameras. The shared memory of your OS is probably full. Please check your shared memory setup.</source>
-        <translation type="unfinished">共有メモリの割り当てが不可能です。共有メモリはカメラに必要です。ご使用のOSの共有メモリは恐らくいっぱいです。共有メモリの設定を確認してください。</translation>
+        <source>Cannot allocate memory mapped file for camera image.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The shared memory can be extended by modifying the &apos;/etc/sysctl.conf&apos; file and rebooting.</source>
-        <translation type="unfinished">&apos;/etc/sysctl.conf&apos; ファイルを変更して再起動することで共有メモリを拡張できます。</translation>
+        <source>Invalid &apos;fieldOfView&apos; changed to 0.7854. The field of view is limited to pi if the &apos;projection&apos; field is &quot;planar&quot;.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Invalid &apos;fieldOfView&apos; changed to 0.7854. The field of view is limited to pi if the &apos;spherical&apos; field is FALSE.</source>
+        <source>Unknown &apos;projection&apos; value &quot;%1&quot;: field value reset to &quot;planar&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbAccelerometer</name>
+    <message>
+        <source>Parent of Accelerometer node has no physics: measurements may be wrong.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>WbActionManager</name>
-    <message>
-        <source>&amp;New World</source>
-        <translation type="unfinished">&amp;新規のワールドファイル</translation>
-    </message>
     <message>
         <source>&amp;Open World...</source>
         <translation type="unfinished">&amp;ワールドファイルを開く...</translation>
@@ -809,10 +890,6 @@ To fix the problem, you should:
     <message>
         <source>St&amp;ep</source>
         <translation type="unfinished">ステ&amp;ップ</translation>
-    </message>
-    <message>
-        <source>&amp;Run</source>
-        <translation type="unfinished">&amp;実行</translation>
     </message>
     <message>
         <source>&amp;Fast</source>
@@ -947,22 +1024,6 @@ To fix the problem, you should:
         <translation type="unfinished">選択した行のコメントを切り替えます。</translation>
     </message>
     <message>
-        <source>&amp;Duplicate Line or Selection</source>
-        <translation type="unfinished">&amp;行または選択を複製</translation>
-    </message>
-    <message>
-        <source>Duplicate current line or selected text.</source>
-        <translation type="unfinished">現在の行または選択したテキストを複製します。</translation>
-    </message>
-    <message>
-        <source>&amp;Transpose Current Line</source>
-        <translation type="unfinished">&amp;現在の行を入れ替える</translation>
-    </message>
-    <message>
-        <source>Invert the current line and its previous line.</source>
-        <translation type="unfinished">現在の行とその前の行を逆にします。</translation>
-    </message>
-    <message>
         <source>&amp;Print...</source>
         <translation type="unfinished">&amp;印刷...</translation>
     </message>
@@ -1007,18 +1068,6 @@ To fix the problem, you should:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Clear Console</source>
-        <translation type="unfinished">&amp;コンソールをクリア</translation>
-    </message>
-    <message>
-        <source>Clears the Console.</source>
-        <translation type="unfinished">Consoleを消去します。</translation>
-    </message>
-    <message>
-        <source>Create a new simulation world. (%1+Shift+N)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Open an existing world file. (%1+Shift+O)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1039,11 +1088,7 @@ To fix the problem, you should:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Run the simulation. (%1+3)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Run the simulation as fast as possible without graphics. (%1+4)</source>
+        <source>Run the simulation as fast as possible. (%1+3)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1161,11 +1206,6 @@ Reload the current world file and restart the simulation. (%1+Shift+R)</source>
     </message>
     <message>
         <source>Reset Simulation</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Reset Simulation.
-Restore initial state of the simulation. (%1+Shift+F)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1373,22 +1413,6 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Follow Object</source>
-        <translation type="unfinished">&amp;オブジェクトを追跡</translation>
-    </message>
-    <message>
-        <source>Set the viewpoint to follow this object (translation only).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Follow Object and Rotate</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Set the viewpoint to follow this object (translation and rotation).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Move viewpoint to selected object. (CTRL + ALT + 5)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1513,19 +1537,7 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Export</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Export this scene object.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;View PROTO Source</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open the PROTO file in Text Editor.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1544,6 +1556,195 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
         <source>Convert this PROTO node into the equivalent base node(s).</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>&amp;None</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Do not follow the object.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Tracking Shot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Translate the camera to follow the object.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Mounted Shot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Translate and rotate the camera to follow the object.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Pan and Tilt Shot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate the camera to always look at the object center.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset Simulation.
+Restore initial state of the simulation. (%1+Shift+T)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Rendering</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Normals</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show IndexedFaceSet and Mesh nodes normals.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable 3D View Context Menu</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable opening the context menu clicking on the 3D view.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable Object Move</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable moving objects from 3D view.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable Applying Force and Torque</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable applying force and torque to objects from 3D view.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable Rendering</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable activating the rendering.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Clear All Consoles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clears all the Consoles.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;New Console</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Opens a new Console.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Convert this PROTO node (and nested PROTO nodes) into the equivalent base node(s).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Convert &amp;Root to Base Node(s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Turn off rendering to gain better performance. (%1+4)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hide Rendering. (%1+4)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Turn on rendering to see the simulation. (%1+4)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Rendering. (%1+4)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;East View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Viewpoint to see the world from east.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;West View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Viewpoint to see the world from west.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;North View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Viewpoint to see the world from north.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;South View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Viewpoint to see the world from south.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Viewpoint to see the world from the top.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Viewpoint to see the world from the bottom.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Edit...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open field/node editor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Export URDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Export this robot model to URDF.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit PROTO &amp;Source</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit the PROTO file in Text Editor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the PROTO file in Text Editor in read-only mode.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbAddInertiaMatrixDialog</name>
@@ -1558,11 +1759,6 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
     <message>
         <source>Add</source>
         <translation type="unfinished">追加</translation>
-    </message>
-    <message>
-        <source>Insert the identity matrix 
- [ 1 1 1, 0 0 0]</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>If no center of mass is currently specified, a zero 3D vector will be inserted.</source>
@@ -1596,6 +1792,11 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
         <source>Bounding object based</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Insert the identity matrix 
+ [ 1 1 1, 0 0 0]</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbAddNodeDialog</name>
@@ -1624,22 +1825,6 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Import...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Import Webots Object</source>
-        <translation type="unfinished">Webotsオブジェクトをインポート</translation>
-    </message>
-    <message>
-        <source>Node not available because another project PROTO model with the same name already exists.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Files (*.wbo *.WBO)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>The &quot;%1&quot; icon should have a dimension of 128x128 pixels.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1649,10 +1834,6 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
     </message>
     <message>
         <source>This folder lists all suitable PROTO nodes provided by Webots.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The icon file &apos;%1&apos; does not exactly match the PROTO name. Expected &apos;%2.png&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1680,7 +1861,32 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>PROTO nodes (Project)</source>
+        <source>Documentation: &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;%1&apos;&gt;%1&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO nodes (Extra Projects)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The simulation has run!</source>
+        <translation type="unfinished">シミュレーションが実行されました!</translation>
+    </message>
+    <message>
+        <source>This folder lists all suitable PROTO nodes from the world file: &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; is not a known proto in category &apos;%2&apos;.
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO node not available because another with the same name and different URL already exists.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Retrieval of PROTO &apos;%1&apos; was unsuccessful, the asset should be cached but it is not.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1725,12 +1931,11 @@ Restore initial state of the simulation. (%1+Shift+F)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The animation has been created:
-%1
-
-Do you want to view it locally now?
-
-Note: Animations can not be viewed locally on Google Chrome.</source>
+        <source>The animation has been created:&lt;br&gt;%1&lt;br&gt;&lt;br&gt;Do you want to view it locally now?&lt;br&gt;&lt;br&gt;Note: please refer to the &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/doc/guide/web-scene#remarks-on-the-used-technologies-and-their-limitations&apos;&gt;User Guide&lt;/a&gt; if your browser prevents local files CORS requests.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Error: No animation content is available because no changes occurred in the simulation. If you just want a 3D environment file, consider exporting a scene instead.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1739,10 +1944,6 @@ Note: Animations can not be viewed locally on Google Chrome.</source>
     <message>
         <source>Could not open file: &apos;%1&apos;.</source>
         <translation>ファイルを開けませんでした：&apos;%1&apos;。</translation>
-    </message>
-    <message>
-        <source>Could not create a symbolic link of dynamic library: &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>&apos;%1&apos;: Failed to load due to invalid token(s).</source>
@@ -1772,27 +1973,55 @@ Note: Animations can not be viewed locally on Google Chrome.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Impossible to create the cubemap because not all the url fields are defined.</source>
+        <source>Cannot load texture &apos;%1&apos;: %2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Impossible to create the cubemap because the texture file defined in the &apos;%1&apos; field doesn&apos;t end with the &apos;%2&apos; suffix.</source>
+        <source>Incomplete irradiance cubemap</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Impossible to create the cubemap because the textures defined in the url fields are not in the same folder or they do not share the same base name.</source>
+        <source>Incomplete background cubemap</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The %1Url &apos;%2&apos; is not a square image (its width doesn&apos;t equal its height).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Texture dimension mismatch between %1Url and %2Url.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Alpha channel mismatch with %1Url.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot open HDR texture file: &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot read texture file: &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to load HDR texture &apos;%1&apos;: %2.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
-    <name>WbBallJointParameters</name>
+    <name>WbBallJoint</name>
     <message>
-        <source>&apos;springConstant&apos; must be greater than or equal to zero.</source>
-        <translation type="unfinished">&apos;springConstant&apos; はゼロ以上でなければなりません。</translation>
+        <source>The lower limit of the motor associated to the second axis shouldn&apos;t be smaller than -pi/2.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&apos;dampingConstant&apos; must be greater than or equal to zero.</source>
-        <translation type="unfinished">&apos;dampingConstant&apos; はゼロ以上でなければなりません。</translation>
+        <source>The upper limit of the motor associated to the second axis shouldn&apos;t be greater than pi/2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Axes are aligned: using x and z axes instead.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1893,17 +2122,60 @@ Note: Animations can not be viewed locally on Google Chrome.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Webots PRO is required to compile physics plugins.</source>
+        <source>Do you want to reset or reload the world?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reload</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>&apos;%1&apos;
 
-The path to this Webots project contains non 8-bit characters. Webots won&apos;t be able to compile any C/C++ controller in this path. Please move this Webots project into a folder with only 8-bit characters.</source>
+You don&apos;t have write access to this folder. Webots won&apos;t be able to clean or compile any controller in this path. Please move this Webots project into a folder where you have write access.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Do you want to reload the world?</source>
+        <source>&apos;%1&apos;
+
+You don&apos;t have write access to the &apos;Program Files&apos; folder. Webots won&apos;t be able to clean or compile any controller in this path. Please move this Webots project into a folder where you have write access.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos;
+
+The robot controller name contains non 8-bit characters. Webots won&apos;t be able to compile any C/C++ controller with such a name. Please rename this robot controller with only 8-bit characters.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbCadShape</name>
+    <message>
+        <source>File &apos;%1&apos; cannot be read.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid URL &apos;%1&apos;. CadShape node expects file in Collada (&apos;.dae&apos;) or Wavefront (&apos;.obj&apos;) format.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File could not be read: &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid data, please verify mesh file: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mesh &apos;%1&apos; has more than 100&apos;000 vertices, it is recommended to reduce the number of vertices.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mesh &apos;%1&apos; created but it is fully transparent.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1969,7 +2241,7 @@ Color %1: %2 %3 %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Lens flare cannot be applied to spherical cameras.</source>
+        <source>Lens flare can only be applied to planar cameras.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1985,6 +2257,10 @@ Color %1: %2 %3 %4</source>
     </message>
     <message>
         <source>A Capsule is used in a Bounding object using an asymmetric friction. Capsule does not support asymmetric friction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;subdivision&apos; value has no effect to physical &apos;boundingObject&apos; geometry. A minimum value of %2 is used for the representation.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2033,10 +2309,6 @@ Color %1: %2 %3 %4</source>
         <translation>&apos;shearStrength&apos; は正数か-1（無限）でなければなりません。</translation>
     </message>
     <message>
-        <source>Connectors could not be attached because their parent nodes do not have Physics nodes.</source>
-        <translation>コネクタは親ノードにPhysicsノードがないため割り当てできませんでした。</translation>
-    </message>
-    <message>
         <source>Passive connectors cannot lock.</source>
         <translation>パッシブコネクタがロックできません。</translation>
     </message>
@@ -2044,11 +2316,23 @@ Color %1: %2 %3 %4</source>
         <source>Unknown &apos;type&apos; &quot;%1&quot;: locking disabled.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Connectors could not be attached because neither of them (nor their parent nodes) has a Physics node.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbConsole</name>
     <message>
         <source>Console</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Console Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New name:</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2066,32 +2350,24 @@ Color %1: %2 %3 %4</source>
         <source>&apos;forceDependentSlip&apos; must have between one and four elements</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>&apos;rollingFriction&apos; values must be positive or -1.0. Field value reset to 0 0 0.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbControlledWorld</name>
     <message>
-        <source>Cannot listen the local server (server name = &quot;%1&quot;): %2</source>
+        <source>&quot;%1&quot; extern controller: stopped.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Cannot cleanup the local server (server name = &quot;%1&quot;).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1: Terminating.</source>
+        <source>Terminating extern controller for robot &quot;%2&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>WbController</name>
-    <message>
-        <source>Starts the void controller instead.</source>
-        <translation>代わりにボイドコントローラを起動します。</translation>
-    </message>
-    <message>
-        <source>Starting: &quot;%1&quot;</source>
-        <translation>起動：&quot;%1&quot;</translation>
-    </message>
     <message>
         <source>&apos;%1&apos; controller exited with status: %2.</source>
         <translation>&apos;%1&apos; コントローラが以下のステータスで終了：%2。</translation>
@@ -2149,10 +2425,6 @@ Color %1: %2 %3 %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Expected either: %1, %2, %3, %4, or %5</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Try to compile the C/C++ source code, to get a new executable file.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2177,20 +2449,6 @@ Color %1: %2 %3 %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&apos;%1&apos;
-The path to this Webots project contains non 8-bit characters. Webots won&apos;t be able to execute any Java controller in this path. Please move this Webots project into a folder with only 8-bit characters.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Could not find the controller directory.
-Starts the void controller instead.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1: Forced termination (because process didn&apos;t terminate itself after 1 second).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Unable to find the &apos;%1&apos; executable in the current PATH. Please check your %1 installation. It should be possible to launch %1 from a terminal by typing &apos;%1&apos;. It may be necessary to add the %1 bin directory to your PATH environment variable. More information about the %1 installation is available in Webots&apos; User guide.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2199,39 +2457,97 @@ Starts the void controller instead.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Could not create the runtime.ini file.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>A BotStudio controller was detected, but the &apos;window&apos; field of the Robot node is not set to &quot;botstudio&quot;. The controller probably won&apos;t work as expected.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>An error occured during the copy of controller &apos;%1&apos;. An older version will be executed.
+        <source>Starting controller: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Python shebang requests python%1, but current path points to Python%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MATLAB controllers should be launched as extern controllers with the snap package of Webots.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>disconnected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>refusing connection attempt from another extern controller.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not find the controller directory.
+Starting the &lt;generic&gt; controller instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot create empty extern file in &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot cleanup the local server (server name = &apos;%1&apos;).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot listen to the local server (server name = &apos;%1&apos;): %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>connected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; extern controller: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expected either: %1, %2, %3, %4, %5 or %6</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Starts the &lt;generic&gt; controller instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots could not find the MATLAB executable at the default MATLAB installation path. Please provide the correct absolute path to the MATLAB executable in the Webots preferences (%1).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The MATLAB executable could not be started. Please provide the correct absolute path to the MATLAB executable in the Webots preferences (%1) or leave it empty to use the default MATLAB installation path: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Docker controllers are supported only on Linux.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unable to run docker, is docker installed?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to build the docker image in &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>An error occurred during the copy of controller &apos;%1&apos;. An older version will be executed.
 Please close any running instances of the controller and reload the world.</source>
         <translation type="unfinished"></translation>
     </message>
-</context>
-<context>
-    <name>WbCubemap</name>
     <message>
-        <source>Impossible to assemble cube texture: not all six faces could be found with base name &apos;%1&apos; in &apos;%2&apos;.</source>
+        <source>disconnected, waiting for new connection.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The texture &apos;%1&apos; is not a square image (its width doesn&apos;t equal its height).</source>
+        <source>Waiting for local or remote connection on port %1 targeting robot named &apos;%2&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Texture dimension mismatch between &apos;%1&apos; and &apos;%2&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Alpha channel mismatch between &apos;%1&apos; and &apos;%2&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cannot load texture &apos;%1&apos;: %2.</source>
+        <source>Waiting for local or remote connection on port %1 targeting robot named &apos;%2&apos; (%3).</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2244,6 +2560,10 @@ Please close any running instances of the controller and reload the world.</sour
     <message>
         <source>&apos;height&apos; must be positive when used in a &apos;boundingObject&apos;.</source>
         <translation>&apos;height&apos; は、&apos;boundingObject&apos; で使う場合は正数でなければなりません。</translation>
+    </message>
+    <message>
+        <source>&apos;subdivision&apos; value has no effect to physical &apos;boundingObject&apos; geometry. A minimum value of %2 is used for the representation.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2262,37 +2582,6 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
     <message>
         <source>&apos;angular&apos; must be less than or equal to one.</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>WbDifferentialWheels</name>
-    <message>
-        <source>A Solid children named &quot;right wheel&quot; is missing.</source>
-        <translation>&quot;right wheel&quot;という名前のSolidの子ノードが欠けています。</translation>
-    </message>
-    <message>
-        <source>A Solid children named &quot;left wheel&quot; is missing.</source>
-        <translation>&quot;left wheel&quot;という名前のSolidの子ノードが欠けています。</translation>
-    </message>
-    <message>
-        <source>The Solid children named &quot;right wheel&quot; has no &apos;boundingObject&apos;.</source>
-        <translation>&quot;right wheel&quot;という名前のSolidの子ノードに&apos;boundingObject&apos;がありません。</translation>
-    </message>
-    <message>
-        <source>The Solid children named &quot;left wheel&quot; has no &apos;boundingObject&apos;.</source>
-        <translation>&quot;left wheel&quot;という名前のSolidの子ノードに&apos;boundingObject&apos;がありません。</translation>
-    </message>
-    <message>
-        <source>The Solid children named &quot;right wheel&quot; has no &apos;physics&apos;.</source>
-        <translation>&quot;right wheel&quot;という名前のSolidの子ノードに&apos;physics&apos;がありません。</translation>
-    </message>
-    <message>
-        <source>The Solid children named &quot;left wheel&quot; has no &apos;physics&apos;.</source>
-        <translation>&quot; left wheel&quot;という名前のSolidの子ノードに&apos;physics&apos;がありません。</translation>
-    </message>
-    <message>
-        <source>The DifferentialWheels node is deprecated. Please use the Robot node instead with two HingeJoint, RotationalMotor and PositionSensor nodes. You can open a support ticket from the Help menu to get assistance on converting your DifferentialWheels robot.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2341,6 +2630,20 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
 </context>
 <context>
+    <name>WbDownloader</name>
+    <message>
+        <source>Cannot download &apos;%1&apos;, error code: %2: %3</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbDragHorizontalEvent</name>
+    <message>
+        <source>To drag this element, first rotate the view so that the horizontal plane is clearly visible.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>WbElevationGrid</name>
     <message>
         <source>&apos;height&apos; contains %1 ignored extra value(s).</source>
@@ -2351,19 +2654,19 @@ Please close any running instances of the controller and reload the world.</sour
         <translation type="unfinished">&apos;height&apos; は、&apos;boundingObject&apos; で使う場合は正数でなければなりません。</translation>
     </message>
     <message>
-        <source>Invalid &apos;xDimension&apos; for use in boundingObject.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Invalid &apos;zDimension&apos; for use in boundingObject.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Cannot create the associated physics object.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>A ElevationGrid is used in a Bounding object using an asymmetric friction. ElevationGrid does not support asymmetric friction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid &apos;xDimension&apos; (should be greater than 1) for use in boundingObject.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid &apos;yDimension&apos; (should be greater than 1) for use in boundingObject.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2375,6 +2678,14 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
     <message>
         <source>&apos;range&apos; must be less than or equal to &apos;maxRange&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;allowedChannels&apos; does not contain current &apos;channel&apos;. Setting &apos;channel&apos; to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;channel&apos; is not included in &apos;allowedChannels&apos;. Setting &apos;channel&apos; to %1</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2416,11 +2727,6 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
     <message>
         <source>Robot window plugins choice</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Please select a robot window plugin from the list
-(takes effect only after you save and reload the world)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2475,12 +2781,37 @@ Please close any running instances of the controller and reload the world.</sour
         <source>%1 files (%2)</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Please select a robot window plugin from the list
+(takes effect only after you reset the simulation
+and show the new robot window)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbExternProtoEditor</name>
+    <message>
+        <source>Declare additional IMPORTABLE EXTERNPROTO.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbField</name>
     <message>
-        <source>Duplicate field value.</source>
-        <translation>フィールド値を複製します。</translation>
+        <source>Invalid &apos;%1&apos; changed to %2. The value should be in the list: {%3}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid &apos;%1&apos; removed from &apos;%2&apos; field. The values should be in the list: {%3}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Duplicate field value: &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2510,10 +2841,6 @@ Please close any running instances of the controller and reload the world.</sour
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Invalid &apos;%1&apos; changed to %2. The value should be non-positive.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Invalid &apos;%1&apos; changed to %2. The value should be either %3 or non-negative.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2526,15 +2853,7 @@ Please close any running instances of the controller and reload the world.</sour
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Invalid &apos;%1&apos; changed to %2. The value should be greater than %3.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Invalid &apos;%1&apos; changed to %2. The value should be %3 or less.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Invalid &apos;%1&apos; changed to %2. The value should be less than %3.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2642,11 +2961,26 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
 </context>
 <context>
-    <name>WbGuiApplication</name>
+    <name>WbGroup</name>
     <message>
-        <source>Could not open file: &apos;%1&apos;.</source>
-        <translation>ファイルを開けませんでした：&apos;%1&apos;。</translation>
+        <source>Pre-finalizing nodes</source>
+        <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Post-finalizing nodes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Creating ODE objects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Creating WREN objects</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbGuiApplication</name>
     <message>
         <source>Starting up...</source>
         <translation>起動中…</translation>
@@ -2656,27 +2990,65 @@ Please close any running instances of the controller and reload the world.</sour
         <translation>ワールドファイルを読み込み中…</translation>
     </message>
     <message>
-        <source>webots: invalid option: &apos;%1&apos;</source>
-        <translation>webots：無効なオプション：&apos;%1&apos;</translation>
-    </message>
-    <message>
         <source>Try &apos;webots --help&apos; for more information.</source>
         <translation>詳細については&apos;webots --help&apos;を参照してください。</translation>
     </message>
     <message>
-        <source>webots: too many arguments.</source>
-        <translation>webots：引数が多すぎます。</translation>
-    </message>
-    <message>
-        <source>The &apos;--mode=stop&apos; option is deprecated. Please use &apos;--mode=pause&apos; instead.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>webots: invalid option : &apos;--log-performance&apos;: log file path is missing.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Copyright © 1998 - %1 Cyberbotics Ltd.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;--mode=stop&apos; is deprecated.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>`--mode=run` is deprecated, falling back to `fast` mode.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>webots: missing &apos;=&apos; sign right after --port option</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>webots: port value %1 out of range [1;65535], reverting to 1234 default value</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid value &quot;%1&quot; to &apos;--stream&apos; option.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid value &quot;%1&quot; to &apos;--heartbeat&apos; option.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid &apos;--log-performance&apos; option: log file path is missing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid option: &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>too many arguments.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>you should also use --batch (in addition to --stream) for production.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>failed to open TCP server in the port range [%1-%2]
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>failed to create the Webots temporary path &quot;%1&quot;.
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>could not open file: &apos;%1&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2742,6 +3114,10 @@ Please close any running instances of the controller and reload the world.</sour
         <source>Press [Close] to terminate...</source>
         <translation>終了するには [Close] を押してください…</translation>
     </message>
+    <message>
+        <source>Loading...</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbGyro</name>
@@ -2766,6 +3142,10 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
     <message>
         <source>Hinge2Joint nodes can only connect Solid nodes that have a Physics node.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Exporting &apos;Hinge2Joint&apos; nodes to URDF is currently not supported</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2802,23 +3182,12 @@ Please close any running instances of the controller and reload the world.</sour
         <source>&apos;Hinge2JointParameters&apos; is deprecated, please use &apos;HingeJointParameters&apos; instead.</source>
         <translation type="unfinished"></translation>
     </message>
-</context>
-<context>
-    <name>WbHtmlExportDialog</name>
     <message>
-        <source>X3D Shadow Parameters</source>
+        <source>&apos;stopERP&apos; must be greater or equal to zero or -1. Reverting to -1 (use global ERP).</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>X3D Rendering Parameters</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>File name:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>HTML Files (*.html *.HTML)</source>
+        <source>&apos;stopCFM&apos; must be greater than zero or -1. Reverting to -1 (use global CFM).</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2830,6 +3199,10 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
     <message>
         <source>Texture image size of &apos;%1&apos; is not a power of two: rescaling it from %2x%3 to %4x%5.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Texture file could not be read: &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2875,7 +3248,7 @@ Please close any running instances of the controller and reload the world.</sour
         <translation>IndexedFaceSetを作成できません。原因：&quot;%1&quot;。</translation>
     </message>
     <message>
-        <source>A IndexedFaceSet is used in a Bounding object using an asymmetric friction. IndexedFaceSet does not support asymmetric friction</source>
+        <source>Normal values can&apos;t be null.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2899,65 +3272,25 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
 </context>
 <context>
-    <name>WbInternetLicense</name>
+    <name>WbInsertExternProtoDialog</name>
     <message>
-        <source>Connecting to Internet license server...</source>
-        <translation>インターネット ライセンスサーバーに接続中…</translation>
+        <source>Cancel</source>
+        <translation type="unfinished">キャンセル</translation>
     </message>
     <message>
-        <source>Missing error message.</source>
-        <translation>エラーメッセージが欠けています。</translation>
-    </message>
-    <message>
-        <source>Reconnected to Internet license server.</source>
-        <translation>インターネット ライセンスサーバーに再接続しました。</translation>
-    </message>
-    <message>
-        <source>Connected to Internet license server.</source>
-        <translation>インターネット ライセンスサーバーに接続しました。</translation>
-    </message>
-    <message>
-        <source>Wrong license information.</source>
-        <translation>ライセンス情報が間違っています。</translation>
-    </message>
-    <message>
-        <source>Wrong license protocol.</source>
-        <translation>ライセンスプロトコルが間違っています。</translation>
-    </message>
-    <message>
-        <source>Wrong license password for %1</source>
-        <translation>%1のライセンスパスワードが間違っています</translation>
-    </message>
-    <message>
-        <source>Reconnecting to Internet license server...</source>
-        <translation>インターネット ライセンスサーバーに再接続中…</translation>
-    </message>
-    <message>
-        <source>Error reading reply from server: %1</source>
+        <source>Insert</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Wrong protocol for module license</source>
+        <source>PROTO nodes (Extra Projects)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Logged out.</source>
+        <source>PROTO &apos;%1&apos; does not belong to category &apos;%2&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Can&apos;t connect to Internet floating license server.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Can&apos;t connect to Internet license server, retrying in 5 seconds...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Error: reconnecting to Internet license server...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Wrong signature: reconnecting to Internet license server...</source>
+        <source>Retrieval of PROTO &apos;%1&apos; was unsuccessful, the asset should be cached but it is not.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3006,7 +3339,7 @@ Please close any running instances of the controller and reload the world.</sour
         <translation>グラデーションLEDに定義されているカラーが多すぎます。</translation>
     </message>
     <message>
-        <source>No Material and no Light found. The first child of a LED should be either a Shape, a Light or a Group containing Shape and Light nodes.</source>
+        <source>No PBRAppearance, Material and no Light found. The first child of a LED should be either a Shape, a Light or a Group containing Shape and Light nodes.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3026,216 +3359,6 @@ Please close any running instances of the controller and reload the world.</sour
     </message>
     <message>
         <source>Invalid &apos;center.y&apos; changed to 1. The value should be in the range [0;1].</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>WbLicenseManager</name>
-    <message>
-        <source>Webots Benchmark cannot run modified PROTO &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots Benchmark cannot run this simulation.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots Benchmark cannot run modified supervisor &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots Benchmark</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>A Webots %1 license is needed for running this simulation. However, it&apos;s not available in your local license(s).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> or Webots </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>WEBOTS_LOCAL_LICENSE_DIRECTORY points to a directory that doesn&apos;t exist or is not readable.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 (expires in 1 minute)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 (expires in %2 minutes)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 (expires in 1 hour)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 (expires in %2 hours)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 (expires in %2 days)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>This trial license will expire today.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>This trial license will expire tomorrow.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>This trial license will expire in %1 days.</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>WbLicenseManagerDialog</name>
-    <message>
-        <source>Webots License Manager</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>license</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>id</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>lease</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>expiration</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Transfer license from license server to local computer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Transfer license from local computer to license server.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>floating</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>1 hour</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 hours</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>1 day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 days</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Set lease duration:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Set lease duration for &quot;%1&quot; module:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Lease duration</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>hour</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>hours</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>in less than one minute</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>in one minute</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>in %1 minutes</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>in one hour</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>in %1 hours</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source> and </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>one minute</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>%1 minutes</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>tomorrow</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cancelling license transfer</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Transfer licenses</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Impossible to transfer licenses.
-Please check the write permissions of the directories in path:
-&quot;%1&quot;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Proceed with transfer?&lt;br&gt;&lt;br&gt;Once transferred on your local computer these licenses won&apos;t be available any more from the license server. There is no possible &quot;undo&quot; for this action! The licenses will be released automatically at the expiration date.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;br&gt;&lt;br&gt;&lt;font color=&quot;red&quot;&gt;WARNING:&lt;br&gt;You are running Webots as &apos;root&apos; user. All the locally transferred licenses will only be valid when running again Webots as &apos;root&apos; user.&lt;/font&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;a style=&apos;color: #5DADE2;&apos; href=&apos;file://%1&apos;&gt;Local Computer Licenses&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Use local computer licenses at restart</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/administration&apos;&gt;Floating License Server&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cancel the transfer of licenses?
-
-The licenses marked in blue on your local computer will be restored back to the license server and the current world file will be reloaded.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3262,26 +3385,6 @@ The licenses marked in blue on your local computer will be restored back to the 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Impossible to have a so small &apos;horizontalResolution&apos; unsing this &apos;numberOfLayers&apos; and &apos;verticalFieldOfView&apos;. &apos;horizontalResolution&apos; should be bigger or equal to 2.0 * M_PI * numberOfLayers  / verticalFieldOfView. &apos;horizontalResolution&apos; set to %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Impossible to have a so small &apos;horizontalResolution&apos; unsing this &apos;fieldOfView&apos;, &apos;numberOfLayers&apos; and &apos;verticalFieldOfView&apos;. &apos;horizontalResolution&apos; should be bigger or equal to numberOfLayers * fieldOfView / verticalFieldOfView. &apos;horizontalResolution&apos; set to %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Impossible to have a so small &apos;verticalFieldOfView&apos; unsing this &apos;numberOfLayers&apos; and &apos;horizontalResolution&apos;. &apos;verticalFieldOfView&apos; should be bigger or equal to 2.0 * M_PI * numberOfLayers / horizontalResolution. &apos;verticalFieldOfView&apos; set to %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Impossible to have a so small &apos;verticalFieldOfView&apos; unsing this &apos;fieldOfView&apos;, &apos;numberOfLayers&apos; and &apos;horizontalResolution&apos;. &apos;verticalFieldOfView&apos; should be bigger or equal to numberOfLayers * fieldOfView / horizontalResolution. &apos;verticalFieldOfView&apos; set to %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Impossible to have a so big &apos;numberOfLayers&apos; unsing this &apos;fieldOfView&apos;, &apos;verticalFieldOfView&apos; and &apos;horizontalResolution&apos;. &apos;numberOfLayers&apos; should be smaller or equal to verticalFieldOfView * horizontalResolution / fieldOfView. &apos;numberOfLayers&apos; set to %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&apos;near&apos; is greater than to &apos;minRange&apos;. Setting &apos;near&apos; to %1.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3295,10 +3398,6 @@ The licenses marked in blue on your local computer will be restored back to the 
     </message>
     <message>
         <source>&apos;maxRange&apos; is less or equal to &apos;minRange&apos;. Setting &apos;maxRange&apos; to %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Impossible to have a so big &apos;numberOfLayers&apos; unsing this &apos;verticalFieldOfView&apos; and &apos;horizontalResolution&apos;. &apos;numberOfLayers&apos; should be smaller or equal to verticalFieldOfView * actualHorizontalResolution() / (2.0 * M_PI). &apos;numberOfLayers&apos; set to %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3317,6 +3416,34 @@ The licenses marked in blue on your local computer will be restored back to the 
         <source>&apos;numberOfLayers&apos; has been modified. This modification will be taken into account after saving and reloading the world.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>&apos;type&apos; has been modified. This modification will be taken into account after saving and reloading the world.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Impossible to have a so small &apos;horizontalResolution&apos; using this &apos;numberOfLayers&apos; and &apos;verticalFieldOfView&apos;. &apos;horizontalResolution&apos; should be bigger or equal to 2.0 * M_PI * numberOfLayers  / verticalFieldOfView. &apos;horizontalResolution&apos; set to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Impossible to have a so small &apos;horizontalResolution&apos; using this &apos;fieldOfView&apos;, &apos;numberOfLayers&apos; and &apos;verticalFieldOfView&apos;. &apos;horizontalResolution&apos; should be bigger or equal to numberOfLayers * fieldOfView / verticalFieldOfView. &apos;horizontalResolution&apos; set to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Impossible to have a so small &apos;verticalFieldOfView&apos; using this &apos;numberOfLayers&apos; and &apos;horizontalResolution&apos;. &apos;verticalFieldOfView&apos; should be bigger or equal to 2.0 * M_PI * numberOfLayers / horizontalResolution. &apos;verticalFieldOfView&apos; set to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Impossible to have a so small &apos;verticalFieldOfView&apos; using this &apos;fieldOfView&apos;, &apos;numberOfLayers&apos; and &apos;horizontalResolution&apos;. &apos;verticalFieldOfView&apos; should be bigger or equal to numberOfLayers * fieldOfView / horizontalResolution. &apos;verticalFieldOfView&apos; set to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Impossible to have a so big &apos;numberOfLayers&apos; using this &apos;verticalFieldOfView&apos; and &apos;horizontalResolution&apos;. &apos;numberOfLayers&apos; should be smaller or equal to verticalFieldOfView * actualHorizontalResolution() / (2.0 * M_PI). &apos;numberOfLayers&apos; set to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Impossible to have a so big &apos;numberOfLayers&apos; using this &apos;fieldOfView&apos;, &apos;verticalFieldOfView&apos; and &apos;horizontalResolution&apos;. &apos;numberOfLayers&apos; should be smaller or equal to verticalFieldOfView * horizontalResolution / fieldOfView. &apos;numberOfLayers&apos; set to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbLinearMotor</name>
@@ -3324,175 +3451,30 @@ The licenses marked in blue on your local computer will be restored back to the 
         <source>Force feedback is available for motorized joints only</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Force feedback is not available for a LinearMotor node inside a Track node.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
-    <name>WbLoginDialog</name>
+    <name>WbLinkWindow</name>
     <message>
-        <source>30 seconds</source>
-        <translation type="unfinished">30秒</translation>
-    </message>
-    <message>
-        <source>1 minute</source>
-        <translation type="unfinished">1分</translation>
-    </message>
-    <message>
-        <source>5 minutes</source>
-        <translation type="unfinished">5分</translation>
-    </message>
-    <message>
-        <source>E-mail:</source>
-        <translation type="unfinished">メールアドレス:</translation>
-    </message>
-    <message>
-        <source>Password:</source>
-        <translation type="unfinished">パスワード:</translation>
-    </message>
-    <message>
-        <source>Synchronization:</source>
-        <translation type="unfinished">同期化:</translation>
-    </message>
-    <message>
-        <source>Please enter your password.</source>
+        <source>Upload Successful</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Your e-mail address is missing.</source>
+        <source>Open in Browser</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&apos;%1&apos; is not a valid e-mail address.</source>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p style=&quot; text-align: center;&quot;&gt;Make sure to click Open in Browser to associate&lt;br&gt;the upload with your webots.cloud account.&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
+</context>
+<context>
+    <name>WbMFColor</name>
     <message>
-        <source>Connecting to Internet license server...</source>
-        <translation type="unfinished">インターネット ライセンスサーバーに接続中…</translation>
-    </message>
-    <message>
-        <source>Connected to Internet license server.</source>
-        <translation type="unfinished">インターネット ライセンスサーバーに接続しました。</translation>
-    </message>
-    <message>
-        <source>UUID: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Welcome to Webots %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>30 Day Trial</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Not Available in a Virtual Machine</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots Benchmark</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Failed to Connect to Cyberbotics Server</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Start Trial (will expire in 30 days)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Run Trial (last day)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Run Trial (%1 days remaining)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Trial expired %1 days ago</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Floating License</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>No account? &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/buy&apos;&gt;Purchase a License&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Network problems? Setup &lt;a style=&apos;color: #5DADE2;&apos; href=&quot;webots:setupNetworkProxy()&quot;&gt;Network Proxy&lt;/a&gt; or use a &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;webots:tab(1)&apos;&gt;Local License&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Local License</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>No regular license file available in your &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;file://%1&apos;&gt;License Folder&lt;/a&gt;. You should &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/buy&apos;&gt;Purchase a License&lt;/a&gt; and either:&lt;ol&gt;
-&lt;li&gt;Log-in from the &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;webots:tab(0)&apos;&gt;Floating License&lt;/a&gt; tab.&lt;/li&gt;
-&lt;li&gt;Go to the &apos;Tools / License Manager...&apos; menu of Webots and follow the instructions.&lt;/li&gt;
-&lt;/ol&gt;or download it from the web:&lt;ol&gt;
-&lt;li&gt;Visit your &lt;a style=&apos;color: #5DADE2;&apos; href=&quot;https://cyberbotics.com/administration?uuid=%2&amp;homepath=%3&amp;version=%4&quot;&gt;License Administration Web Page&lt;/a&gt;.&lt;/li&gt;
-&lt;li&gt;Click on a license module in the &apos;Module Packs&apos; table and follow the instructions.&lt;/li&gt;
-&lt;li&gt;Copy the downloaded license into your &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;file://%1&apos;&gt;License Folder&lt;/a&gt; and restart Webots.&lt;/li&gt;
-&lt;/ol&gt;
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The following local licenses are available in your &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;file://%1&apos;&gt;License Folder&lt;/a&gt;:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The following local license is available in your &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;file://%1&apos;&gt;License Folder&lt;/a&gt;:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Local licenses can be disabled from the &apos;Tools / License Manager...&apos; menu of Webots.&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots PRO</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots EDU</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select trial license: </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;&lt;b&gt;Must be used for evaluation purposes only.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;To continue to use Webots after the expiration of the 30 day trial license, you must &lt;a style=&apos;color: #5DADE2;&apos; href=&quot;https://cyberbotics.com/buy&quot;&gt;Purchase a License&lt;/a&gt; or use Webots Benchmark. Please report any abuse to &lt;a style=&apos;color: #5DADE2;&apos; href=&quot;mailto:license@cyberbotics.com&quot;&gt;license@cyberbotics.com&lt;/a&gt;.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Connecting to Cyberbotics License Server...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Network problems? &lt;a style=&apos;color: #5DADE2;&apos; href=&quot;webots:setupNetworkProxy()&quot;&gt;Setup Network Proxy&lt;/a&gt; or&lt;br&gt;&lt;a style=&apos;color: #5DADE2;&apos; href=&quot;https://cyberbotics.com/download_trial.php?uuid=%1&amp;homepath=%2&amp;version=%3&quot;&gt;Download your Trial License&lt;/a&gt; in your &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;file://%4&apos;&gt;License Folder&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;Webots Benchmark can be used free of charge to modify, recompile and run robot controllers in the following benchmark simulations only:&lt;/p&gt;&lt;p&gt;&amp;nbsp;- &lt;a style=&apos;color: #5DADE2;&apos; href=&quot;https://robotbenchmark.net&quot;&gt;robotbenchmark&lt;/a&gt;.&lt;br&gt;&amp;nbsp;- &lt;a style=&apos;color: #5DADE2;&apos; href=&quot;http://aiworldcup.org&quot;&gt;AI World Cup&lt;/a&gt;.&lt;/p&gt;Contact &lt;a style=&apos;color: #5DADE2;&apos; href=&quot;mailto:info@cyberbotics.com&quot;&gt;info@cyberbotics.com&lt;/a&gt; to suggest new benchmarks.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Trial expired yesterday</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Run Trial (will expire tomorrow)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Login</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Quitting...</source>
+        <source>Expected positive color values in range [0.0, 1.0], found [%1 %2 %3]. MFColor field item %4 reset to [%5 %6 %7]</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3501,14 +3483,6 @@ The licenses marked in blue on your local computer will be restored back to the 
     <message>
         <source>Welcome to Webots!</source>
         <translation>Webotsへようこそ!</translation>
-    </message>
-    <message>
-        <source>Add a VRML97 object to the Scene Tree.</source>
-        <translation>Scene Tree にVRML97オブジェクトを追加します。</translation>
-    </message>
-    <message>
-        <source>Export the whole Scene Tree as a VRML97 file.</source>
-        <translation>Scene Tree全体をVRML97ファイルとしてエクスポートします。</translation>
     </message>
     <message>
         <source>Terminate the Webots application.</source>
@@ -3579,10 +3553,6 @@ The licenses marked in blue on your local computer will be restored back to the 
         <translation>&amp;プリファレンス...</translation>
     </message>
     <message>
-        <source>&amp;Wizards</source>
-        <translation>&amp;ウィザード</translation>
-    </message>
-    <message>
         <source>New Project &amp;Directory...</source>
         <translation>新規プロジェクトの&amp;ディレクトリ…</translation>
     </message>
@@ -3623,10 +3593,6 @@ The licenses marked in blue on your local computer will be restored back to the 
         <translation>&amp;バグレポート…</translation>
     </message>
     <message>
-        <source>&amp;Support Ticket...</source>
-        <translation>&amp;サポートチケット…</translation>
-    </message>
-    <message>
         <source>Cyberbotics &amp;Website...</source>
         <translation>Cyberboticsの&amp;ウェブサイト…</translation>
     </message>
@@ -3641,10 +3607,6 @@ The licenses marked in blue on your local computer will be restored back to the 
     <message>
         <source>Would you like to create one?</source>
         <translation>作成しますか?</translation>
-    </message>
-    <message>
-        <source>Webots PRO is required to create plugins.</source>
-        <translation>プラグインの作成にはWebots PROが必要です。</translation>
     </message>
     <message>
         <source>Could not find the source file of the &apos;%1&apos; physics plugin.</source>
@@ -3703,10 +3665,6 @@ The licenses marked in blue on your local computer will be restored back to the 
         <translation>ドキュメントを開けません：&apos;%1&apos;。</translation>
     </message>
     <message>
-        <source>You need a Webots PRO license to create physics plugins.</source>
-        <translation>Physicsプラグインを作成するにはWebots PROライセンスが必要です。</translation>
-    </message>
-    <message>
         <source>Could not find the controller name of the &apos;%1&apos; robot.</source>
         <translation>&apos;%1&apos;ロボットのコントローラ名が見つかりませんでした。</translation>
     </message>
@@ -3728,10 +3686,6 @@ The licenses marked in blue on your local computer will be restored back to the 
     </message>
     <message>
         <source>Create a new physics plugin.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Display information about Webots and the current license.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3759,14 +3713,6 @@ The licenses marked in blue on your local computer will be restored back to the 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Report a bug to Cyberbotics.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open a Support Ticket with Cyberbotics.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Open the Cyberbotics website.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3775,40 +3721,11 @@ The licenses marked in blue on your local computer will be restored back to the 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&lt;strong&gt;Force:&lt;/strong&gt;&lt;br/&gt; Place the mouse pointer where the force will apply and hold down the Alt key, the Control key (Ctrl) and the left mouse button together while dragging the mouse.&lt;br/&gt;&lt;br/&gt; &lt;strong&gt;Torque:&lt;/strong&gt;&lt;br/&gt;Place the mouse pointer on the object and hold down the Alt key, the Control key (Ctrl) and the right mouse button together while dragging the mouse.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&lt;strong&gt;Force:&lt;/strong&gt;&lt;br/&gt; Place the mouse pointer where the force will apply and hold down the Alt key and the left mouse button together while dragging the mouse.&lt;br/&gt;&lt;br/&gt; &lt;strong&gt;Torque:&lt;/strong&gt;&lt;br/&gt;Place the mouse pointer on the object and hold down the Alt key and the right mouse button together while dragging the mouse.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>&lt;strong&gt;Force:&lt;/strong&gt;&lt;br/&gt; Place the mouse pointer where the force will apply and hold down the Alt key and the left mouse button together while dragging the mouse.&lt;br/&gt;&lt;br/&gt; &lt;strong&gt;Torque:&lt;/strong&gt;&lt;br/&gt;Place the mouse pointer on the object and hold down the Alt key and the right mouse button together while dragging the mouse.&lt;br/&gt;&lt;br/&gt;If you have a one-button mouse, hold down also the Control key (Ctrl) to emulate the right mouse button.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Logout %1 and terminate the Webots application.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>License Manager...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Transfer your licenses from the Internet license server to the local computer or vice versa.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Quitting...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Logout %1 and terminate Webots?
-You will have to re-enter your password at the next startup of Webots.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Confirm</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3840,47 +3757,7 @@ You will have to re-enter your password at the next startup of Webots.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Export HTML5 Model...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Export the whole Scene Tree as an HTML5 file.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Ca&amp;mera Devices</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Display Devices</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Export HTML5 Model</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show &apos;%1&apos; overlay</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show overlay of camera device &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show overlay of display device &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;RangeFinder Devices</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show overlay of range-finder device &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Export as HTML5 animation</source>
+        <source>Export HTML5 Scene</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3889,14 +3766,6 @@ You will have to re-enter your password at the next startup of Webots.</source>
     </message>
     <message>
         <source>Stop HTML5 animation recording.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Make HTML5 &amp;Animation...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Start HTML5 animation recording.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3928,26 +3797,6 @@ You will have to re-enter your password at the next startup of Webots.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Offline documentation</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open the Webots user guide in the documentation tool.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open the Webots reference manual in the documentation tool.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open the Webots for automobiles book in the documentation tool.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Loging out from Internet license server...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Virtual Reality Headset</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3957,44 +3806,6 @@ You will have to re-enter your password at the next startup of Webots.</source>
     </message>
     <message>
         <source>No virtual reality headset connected.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;strong&gt;Rotate:&lt;/strong&gt;&lt;br/&gt;To rotate the camera around the x and y axis, you have to set the mouse pointer in the 3D scene, press the left mouse button and drag the mouse:&lt;br/&gt;- if you clicked on an object, the rotation will be centered around the picked point on this object.&lt;br/&gt;- if you clicked outside of any object, the rotation will be centered around the position of the camera.&lt;br/&gt;&lt;br/&gt;&lt;strong&gt;Translate:&lt;/strong&gt;&lt;br/&gt;To translate the camera in the x and y directions, you have to set the mouse pointer in the 3D scene, press the right mouse button and drag the mouse.&lt;br/&gt;&lt;br/&gt;&lt;strong&gt;Zoom / Tilt:&lt;/strong&gt;&lt;br/&gt;Set the mouse pointer in the 3D scene, then:
-- if you press both left and right mouse buttons (or the middle button) and drag the mouse vertically, the camera will zoom in or out.&lt;br/&gt;- if you press both left and right mouse buttons (or the middle button) and drag the mouse horizontally, the camera will rotate around its z axis (tilt movement).&lt;br/&gt;- if you use the wheel of the mouse, the camera will zoom in or out.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The HTML5 model has been created:
-%1
-
-Do you want to view it locally now?
-
-Note: HTML5 models can not be viewed locally on Google Chrome.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Simulation streaming will be disabled.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Import VRML97...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Export VRML97...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Import VRML97</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>VRML97 Files (*.wrl *.WRL)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Export World as VRML97</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4026,10 +3837,6 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Press &lt;i&gt;Ctrl+4&lt;/i&gt; to run the simulation as fast as possible without rendering the 3D scene.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Press &lt;i&gt;Cmd+0&lt;/i&gt; to pause the simulation.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4043,10 +3850,6 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
     </message>
     <message>
         <source>Press &lt;i&gt;Cmd+3&lt;/i&gt; to run the simulation as fast as possible.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Press &lt;i&gt;Cmd+4&lt;/i&gt; to run the simulation as fast as possible without rendering the 3D scene.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4070,15 +3873,7 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Terminate the Webots application and display the welcome dialog at next start.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Change View</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show &apos;%2&apos; overlay of robot &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4090,19 +3885,294 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Leave Webots Benchmark mode and %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Logout and %1...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Overlays</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>In order to move an object: first &lt;strong&gt;select the object&lt;/strong&gt; with a left mouse button click.&lt;br/&gt;&lt;br/&gt;Then &lt;strong&gt;click and drag the arrow-shaped handles&lt;/strong&gt; to translate or rotate the object along the corresponding axis.&lt;br/&gt;&lt;br/&gt;Alternatively, you can hold the shift key and use the mouse:&lt;br/&gt;&lt;em&gt;Horizontal translation:&lt;/em&gt;&lt;br/&gt;Use the left mouse button while the shift key is down to drag an object parallel to the ground.&lt;br/&gt;&lt;em&gt;Vertical rotation:&lt;/em&gt;&lt;br/&gt;Use the right mouse button while the shift key is down to rotate an object around the world&apos;s vertical axis.&lt;br/&gt;&lt;em&gt;Lift:&lt;/em&gt;&lt;br/&gt;Press both left and right mouse buttons, press the middle mouse button, or roll the mouse wheel while the shift key is down to raise or lower the selected object.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display information about Webots.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Available GPU memory: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 bytes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>N/A</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;GitHub repository...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the Webots git repository on GitHub.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Report a bug to the GitHub repository.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Keep informed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Subscribe to the &amp;Newsletter...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keep informed about the latest Webots news with the Webots newsletter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Join the &amp;Discord channel...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Join our live community on Discord.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Follow Webots on &amp;Twitter...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keep informed about the latest Webots news on Twitter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Watch the latest Webots movies on YouTube.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Follow Cyberbotics on &amp;LinkedIn...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Follow Cyberbotics on LinkedIn.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Follow Object</source>
+        <translation type="unfinished">&amp;オブジェクトを追跡</translation>
+    </message>
+    <message>
+        <source>Subscribe to the Webots &amp;YouTube channel...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The HTML5 scene has been created:&lt;br&gt;%1&lt;br&gt;&lt;br&gt;Do you want to view it locally now?&lt;br&gt;&lt;br&gt;Note: please refer to the &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/doc/guide/web-scene#remarks-on-the-used-technologies-and-their-limitations&apos;&gt;User Guide&lt;/a&gt; if your browser prevents local files CORS requests.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Press &lt;i&gt;Ctrl+4&lt;/i&gt; to toggle the 3D scene rendering.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Press &lt;i&gt;Cmd+4&lt;/i&gt; to toggle the 3D scene rendering.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Scene Interactions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>HTML Files (*.html *.HTML)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;New World File...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create a new simulation world.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New P&amp;ROTO...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create a new PROTO.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Align View to Object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unable to save &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>HTML recording canceled, locally stored files will still be available.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Uploading on %1...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Upload failed. Error::%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots.cloud</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Upload failed: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>link: %1
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Upload failed: Upload status could not be modified.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Controller &lt;none&gt; cannot be modified.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot show &lt;none&gt; robot window.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Maximum number of pending robot windows reached.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File &apos;%1&apos; not currently cached, please reload the world so that it can be retrieved.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You are trying to modify a remote PROTO file.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The PROTO file will be copied in the current project folder.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The controller and window fields of the robot will be set to &quot;&lt;generic&gt;&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You should save and reload the world file, so that it refers to this local PROTO file.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Do you want to proceed?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Modify remote PROTO model</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Error creating folder &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Local PROTO file already exists:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Do you want to overwrite it?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Overwrite</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Error during copy of extern PROTO file &apos;%1&apos; to &apos;%2&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The &apos;%1&apos; field of the robot has been changed to &quot;&lt;generic&gt;&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO file &apos;%1&apos; copied in the local projects folder. Please save and reload the world to apply the changes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Share...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Share your simulation...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The selected directory for saving the world file is not named &quot;worlds&quot;.
+Thus it is not located in a valid Webots project.
+As a consequence, some project-related functionalities may not work.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save Anyway</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;strong&gt;Force:&lt;/strong&gt;&lt;br/&gt; Place the mouse pointer where the force will apply and hold down the Alt key and the left mouse button together while dragging the mouse. In some window managers it might be necessary to also hold the Control (ctrl) key together with the Alt key.&lt;br/&gt;&lt;br/&gt; &lt;strong&gt;Torque:&lt;/strong&gt;&lt;br/&gt;Place the mouse pointer on the object and hold down the Alt key and the right mouse button together while dragging the mouse. In some window managers it might be necessary to also hold the Control (ctrl) key together with the Alt key.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;strong&gt;Rotate:&lt;/strong&gt;&lt;br/&gt;To rotate the camera around the x and y axis, you have to set the mouse pointer in the 3D scene, press the left mouse button and drag the mouse:&lt;br/&gt;- if you clicked on an object, the rotation will be centered around the picked point on this object.&lt;br/&gt;- if you clicked outside of any object, the rotation will be centered around the position of the camera.&lt;br/&gt;Dragging the mouse horizontally will rotate the camera around the world up axis. Dragging the mouse vertically will rotate the camera around its horizontal axis.&lt;br/&gt;&lt;br/&gt;&lt;strong&gt;Translate:&lt;/strong&gt;&lt;br/&gt;To translate the camera in the x and y directions, you have to set the mouse pointer in the 3D scene, press the right mouse button and drag the mouse.&lt;br/&gt;&lt;br/&gt;&lt;strong&gt;Zoom / Tilt:&lt;/strong&gt;&lt;br/&gt;Set the mouse pointer in the 3D scene, then:&lt;br/&gt;- if you press both left and right mouse buttons (or the middle button) and drag the mouse vertically, the camera will zoom in or out.&lt;br/&gt;- if you press both left and right mouse buttons (or the middle button) and drag the mouse horizontally, the camera will rotate around the viewing axis (tilt movement).&lt;br/&gt;- if you use the wheel of the mouse, the camera will zoom in or out.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;%1&apos; Overlays</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show &apos;%1&apos; Overlay</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show overlay of camera device &apos;%1&apos; for robot &apos;%2&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show overlay of range-finder device &apos;%1&apos; for robot &apos;%2&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show overlay of display device &apos;%1&apos; for robot &apos;%2&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Camera Devices</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RangeFinder Devices</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Display Devices</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4113,23 +4183,50 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>A Transform node inside a &apos;boundingObject&apos; can only contain one child. Remaining children are ignored.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>A Transform node inside a &apos;boundingObject&apos; can only contain one Shape or one Geometry node. The child node is ignored.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>A child in the Group placed in &apos;boundingObject&apos; is missing.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The &apos;scale&apos; field components of a Solid must be the same: y and z are reset to x.</source>
-        <translation type="unfinished">Solidの&apos;scale&apos; フィールドコンポーネントは同一でなければなりません：yとzがxにリセットされます。</translation>
+        <source>&apos;name&apos; cannot be empty. Default node name &apos;%1&apos; is automatically set.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&apos;name&apos; cannot be empty. Default node name &apos;%1&apos; is automatically set.</source>
+        <source>A Pose node inside a &apos;boundingObject&apos; can only contain one child. Remaining children are ignored.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A Pose node inside a &apos;boundingObject&apos; can only contain one Shape or one Geometry node. The child node is ignored.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbMesh</name>
+    <message>
+        <source>Invalid data, please verify mesh file (bone weights, normals, ...): %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This file doesn&apos;t contain any mesh.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot create IndexedFaceSet because: &quot;%1&quot;.</source>
+        <translation type="unfinished">IndexedFaceSetを作成できません。原因：&quot;%1&quot;。</translation>
+    </message>
+    <message>
+        <source>Mesh file could not be read: &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Geometry with the name &quot;%1&quot; doesn&apos;t exist in the mesh.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Geometry with color index &quot;%1&quot; doesn&apos;t exist in the mesh.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mesh &apos;%1&apos; has more than 100&apos;000 vertices, it is recommended to reduce the number of vertices.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4202,50 +4299,62 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <source>The requested available motor force %1 exceeds &apos;maxForce&apos; = %2</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Motor &apos;%1&apos; uses the coupled motor name structure but does not have any siblings.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The value of &apos;multiplier&apos; cannot be 0. Value reverted to 1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>For coupled motors, if one has unlimited position, its siblings must have unlimited position as well. Adjusting &apos;minPosition&apos; and &apos;maxPosition&apos; to 0 for motor &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When using coupled motors, &apos;minPosition&apos; must be consistent across devices. Adjusting &apos;minPosition&apos; from %1 to %2 for motor &apos;%3&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When using coupled motors, &apos;maxPosition&apos; must be consistent across devices. Adjusting &apos;maxPosition&apos; from %1 to %2 for motor &apos;%3&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When using coupled motors, velocity limits must be consistent across devices. Adjusted &apos;maxVelocity&apos; from %1 to %2 for motor &apos;%3&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
-    <name>WbMultimediaStreamer</name>
+    <name>WbMultimediaStreamingServer</name>
     <message>
-        <source>No such file: &apos;%1&apos;.</source>
+        <source>Webots multimedia streamer started: resolution %1x%2 on port %3</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&apos;%1&apos; is not readable or executable.</source>
+        <source>Streaming server: Resolution changed to %1x%2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Wrong multimedia stream: &apos;%1&apos;</source>
+        <source>Streaming server: Ignored new client request of resolution: %1x%2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Setting port to %1</source>
+        <source>Streaming server: Client resize: new resolution %1x%2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Error when creating shared memory.</source>
+        <source>Streaming server: Invalid client resize: only the first connected client can resize the simulation.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Error when opening local server.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The streamer process was not started successfully.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Unknown ack &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Local socket connection timed out.</source>
+        <source>Streaming server received unsupported W3D message: &apos;%1&apos;. You should run Webots with the &apos;--stream=&quot;mode=w3d&quot;&apos; command line option.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>WbMuscle</name>
     <message>
-        <source>Muscle graphical animation can only be displayed if soft limits &apos;minPosition&apos; and &apos;maxPosition&apos; are activated.</source>
+        <source>&apos;maxRadius&apos; field is deprecated, please use the &apos;volume&apos; field instead.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4296,10 +4405,6 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation>以下のディレクトリおよびファイルが作成されます:</translation>
     </message>
     <message>
-        <source>Open &apos;%1.sln&apos; in Microsoft Visual Studio.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Please choose the language for your controller program.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4321,6 +4426,22 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
     </message>
     <message>
         <source>Please choose a name for your controller program.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please specify a controller name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid controller name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A controller with this name already exists, please choose a different name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open &apos;%1.sln&apos; in Microsoft Visual Studio (the controller need to be set to &lt;extern&gt; to be able to launch the controller from Microsoft Visual Studio.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4378,20 +4499,24 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <source>The following directory and files will be generated.</source>
         <translation>以下のディレクトリおよびファイルが生成されます。</translation>
     </message>
+    <message>
+        <source>Please specify a physics plugin name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid physics plugin name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A physics plugin with this name already exists, please choose a different name.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbNewProjectWizard</name>
     <message>
         <source>Create a Webots project directory</source>
         <translation>Webotsプロジェクト ディレクトリを作成</translation>
-    </message>
-    <message>
-        <source>File creation failed</source>
-        <translation>ファイルの作成に失敗</translation>
-    </message>
-    <message>
-        <source>Some directories or files could not be created.</source>
-        <translation>一部のディレクトリまたはファイルが作成されませんでした。</translation>
     </message>
     <message>
         <source>Invalid new project directory</source>
@@ -4410,10 +4535,6 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation>新規プロジェクトの作成</translation>
     </message>
     <message>
-        <source>This wizard will help you creating a new project.</source>
-        <translation>このウィザードで新規プロジェクトを作成することができます。</translation>
-    </message>
-    <message>
         <source>Directory selection</source>
         <translation>ディレクトリの選択</translation>
     </message>
@@ -4426,38 +4547,166 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation>選択</translation>
     </message>
     <message>
+        <source>Some directories could not be created.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Directories creation failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This wizard will help you creating a new project folder.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The following folders and files will be created:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbNewProtoWizard</name>
+    <message>
+        <source>Create a new PROTO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open &apos;%1.proto&apos; in Text Editor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please specify a PROTO name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid PROTO name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A PROTO file with this name already exists, please choose a different name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO &apos;%1&apos; added to your project&apos;s &apos;protos&apos; directory.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Some directories or files could not be created.</source>
+        <translation type="unfinished">一部のディレクトリまたはファイルが作成されませんでした。</translation>
+    </message>
+    <message>
+        <source>PROTO creation failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO template not found.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New PROTO creation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This wizard will help you creating a new PROTO.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Name selection</source>
+        <translation type="unfinished">名前の選択</translation>
+    </message>
+    <message>
+        <source>Please choose a name for your PROTO node.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO name:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Describe the functionality of your PROTO here.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tags selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please choose the tags of your PROTO.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Procedural PROTO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>By enabling this option, JavaScript template scripting can be used
+to generate PROTO in a procedural way.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Non-deterministic PROTO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A non-deterministic PROTO is a PROTO where the same fields can potentially
+yield a different result from run to run. This is often the case if random
+number generators with time-based seeds are employed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hidden PROTO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A hidden PROTO will not appear in the list when adding a new node.
+This tag is often used for sub-PROTO, when creating components of
+a larger node.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Base type selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please choose the base type from which the PROTO will inherit.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Base nodes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO nodes (Current World File)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO nodes (Current Project)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO nodes (Extra Projects)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO nodes (Webots Projects)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>select all</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Conclusion</source>
-        <translation>結果</translation>
+        <translation type="unfinished">結果</translation>
     </message>
     <message>
-        <source>The following directories and files will be created:</source>
-        <translation>以下のディレクトリおよびファイルが作成されます:</translation>
-    </message>
-    <message>
-        <source>Please sepecify a world name.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Invalid new world name</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>World settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Please choose a name for the new world and select the features you want:</source>
-        <translation type="unfinished"></translation>
+        <source>The following directory and files will be generated.</source>
+        <translation type="unfinished">以下のディレクトリおよびファイルが生成されます。</translation>
     </message>
 </context>
 <context>
     <name>WbNewVersionDialog</name>
     <message>
         <source>Welcome to Webots %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Thank you for upgrading to Webots %1.&lt;br&gt;We have introduced some brand new themes to customize your experience with Webots.&lt;br&gt;Please select which theme you wish to use (don&apos;t worry, you will be able to change it later from the preferences).&lt;br&gt;&lt;br&gt;Read more about the new changes in Webots %1 &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://www.cyberbotics.com/doc/blog/Webots-2018-b-release&apos;&gt;here&lt;/a&gt;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4470,6 +4719,93 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
     </message>
     <message>
         <source>Start Webots with the selected theme.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>More details about Webots %1 are listed &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/doc/blog/Webots-%2-%3-release&apos;&gt;here&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Telemetry:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Allow to send lightweight anonymous technical data to Webots developers.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots newsletter:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stay informed about the latest developments of Webots by subscribing to the &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/newsletter&apos;&gt;Webots newsletter&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>We need your help to continue to improve Webots: more information &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/doc/guide/telemetry&apos;&gt;here&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbNewWorldWizard</name>
+    <message>
+        <source>Please specify a world name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid new world name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A world file with this name already exists, please choose a different name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>World settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please choose a name for the new world and select the features you want:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a textured background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Center view point</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a directional light</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a rectangle arena</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Conclusion</source>
+        <translation type="unfinished">結果</translation>
+    </message>
+    <message>
+        <source>Create a Webots world file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New world creation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This wizard will help you creating a new world file.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The following file will be created:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please specify a world name and not a path.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4492,15 +4828,35 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Parameter %1 not supported in PROTO %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source> Using &apos;Slot&apos; nodes mechanism.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Duplicated definition of field %1 in the instance of PROTO %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Wrong order of fields in the instance of PROTO %1: USE nodes might refer to the wrong DEF nodes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Field IS reference &apos;%1&apos; has no matching PROTO parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File &apos;%1&apos; is not readable.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Malformed EXTERNPROTO URL. The URL should end with &apos;.proto&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Malformed EXTERNPROTO URL. Invalid URL provided: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Parameter &apos;%1&apos; not supported in PROTO &apos;%2&apos;</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4527,11 +4883,6 @@ Note: HTML5 models can not be viewed locally on Google Chrome.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>This DEF string is already used by subsequent USE and DEF nodes. Applying this change will modify all the USE nodes referring to previous node with same DEF name and USE nodes referring to the selected node. 
-Do you want to continue?</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>This DEF string is already used by subsequent DEF nodes. Applying this change will turn USE nodes of the selected node into copies of subsequent DEF node.
 Do you want to continue?</source>
         <translation type="unfinished"></translation>
@@ -4541,11 +4892,36 @@ Do you want to continue?</source>
 Do you want to continue?</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Triangle count: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Triangle count: %1 (no shadow)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>EXTERNPROTO &quot;%1&quot;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This DEF string is already used by subsequent USE and DEF nodes. Applying this change will modify all the USE nodes referring to previous node with same DEF name and USE nodes referring to the selected node. 
+Do you want to continue?</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbNodeOperations</name>
     <message>
         <source>Trying to import multiple nodes in the &apos;%1&apos; SFNode field. Only the first node will be inserted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>In order to import the PROTO &apos;%1&apos;, first it must be declared in the IMPORTABLE EXTERNPROTO list.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Conflicting declarations for &apos;%1&apos; are provided: &quot;%2&quot; and &quot;%3&quot;, the first one will be used after saving and reverting the world. To use the other instead you will need to change it manually in the world file.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4733,6 +5109,10 @@ Do you want to continue?</source>
         <source>Maximum number of active point lights (%1) has been reached, newly added lights won&apos;t be rendered.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>A quadratic &apos;attenuation&apos; should be preferred to have a realistic simulation of light. Only the third component of the &apos;attenuation&apos; field should be greater than 0.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbPointSet</name>
@@ -4746,6 +5126,21 @@ Do you want to continue?</source>
     </message>
     <message>
         <source>Only the %1 first points will be drawn.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbPose</name>
+    <message>
+        <source>A Transform placed in &apos;boundingObject&apos; needs a Geometry or Shape as its first child to be valid.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A Transform placed inside a &apos;boundingObject&apos; can only contain one child. Remaining children are ignored.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The first child of a Transform placed in &apos;boundingObject&apos; must be a Geometry or a Shape filled with a Geometry.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4773,6 +5168,10 @@ Do you want to continue?</source>
     </message>
     <message>
         <source>Relative to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Scale:</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4835,10 +5234,6 @@ Please check the write permissions on file:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Disable camera anti-aliasing</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Number of threads:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4868,19 +5263,11 @@ at every startup. If available, it will inform you about it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Main 3D view anti-aliasing:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Physics multi-threading is enabled. This can have a noticeable impact on the simulation speed (negative or positive depending on the simulated world). In case of multi-threading, simulation replicability is not guaranteed. </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Python command:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Network Proxy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4907,10 +5294,6 @@ still display a warning if the world was modified from the scene tree.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Enabled</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>SOCKS v5</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4919,23 +5302,186 @@ still display a warning if the world was modified from the scene tree.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Proxy type:</source>
+        <source>The new texture quality will be applied next time the world is loaded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Proxy hostname:</source>
+        <source>Send technical data to Webots developers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Proxy port:</source>
+        <source>Low</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Proxy username:</source>
+        <source>Medium</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Proxy password:</source>
+        <source>High</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ultra</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ambient Occlusion:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Texture Quality:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Extra projects may include PROTOs, controllers, plugins, etc. that you can use in your current project.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Extra project path:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disable anti-aliasing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>built-in python (snap), see &lt;a href=&quot;https://cyberbotics.com/doc/guide/running-extern-robot-controllers&quot;&gt;extern controllers&lt;/a&gt; for alternatives.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rendering</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>We need your help to continue to improve Webots: more information at:
+https://cyberbotics.com/doc/guide/telemetry</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Telemetry (&lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/doc/guide/telemetry&apos;&gt;info&lt;/a&gt;):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Max Texture Filtering:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The cache has been cleared.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Proxy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Type:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hostname:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Port:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Password:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Set the size of the cache (in MB):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Amount of cache used: %1 MB.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add IP address(es)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New allowed IP address(es) (&lt;X.X.X.X&gt; or &lt;X.X.X.X&gt;/&lt;netmask&gt;):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Default robot window web browser:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&quot;firefox&quot;, &quot;google-chrome&quot; (default if empty)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>firefox, chrome, or msedge (default if empty)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>firefox, chrome, or safari (default if empty)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Always open in a new window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MATLAB command:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Capture thumbnail on world save or share</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>If this option is enabled, Webots will take and store a 768px by 432px (16:9)
+screenshot of the world in .jpg format when the it is saved, shared or exported.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Thumbnail:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Low (anti-aliasing)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Medium (anti-aliasing)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Web Services</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk Cache</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remote Extern Controllers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Simulation upload service:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>At least 512 MB of cache are necessary.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Allowed IPv4 addresses:
+(Leave empty for all hosts)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5014,14 +5560,6 @@ still display a warning if the world was modified from the scene tree.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Include all PROTO files (EDU or PRO license required)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Include all plugins files (PRO license required)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Target directory is located in the Webots installation directory.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5050,23 +5588,15 @@ still display a warning if the world was modified from the scene tree.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>This operation is not permitted (EDU or PRO license required).</source>
+        <source>Impossible to copy file &apos;%1&apos; to &apos;%2&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>You are trying to modify a PROTO file:</source>
+        <source>Impossible to read file &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>You are trying to import VRML97 nodes to a world located in the Webots installation directory:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>You are trying to modify a plugin file:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>This operation is not permitted (PRO license required).</source>
+        <source>You are trying to modify a remote file.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5078,6 +5608,69 @@ still display a warning if the world was modified from the scene tree.</source>
     </message>
     <message>
         <source>Adds a Physics node to Solid ancestors to enable thrust and torque effect.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbProtoManager</name>
+    <message>
+        <source>&apos;%1&apos; must be converted because EXTERNPROTO declarations are missing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Missing declaration for &apos;%1&apos;, add: &apos;EXTERNPROTO &quot;%2&quot;&apos; to &apos;%3&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Missing declaration for &apos;%1&apos;, unknown node.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The cascaded URL inferring mechanism is supported only for official Webots assets.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not search for EXTERNPROTO declarations in &apos;%1&apos; because the file is not readable.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot read file &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expected &apos;proto&apos; element.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expected &apos;proto-list&apos; element.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The format of &apos;proto-list.xml&apos; is invalid.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot select proto list, unknown category &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot list protos, unknown category &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot retrieve proto info list, unknown category &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO &apos;%1&apos; does not belong to category &apos;%2&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot check if &apos;%1&apos; exists because category &apos;%2&apos; is unknown.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please adapt your project to R2025a following these instructions: https://cyberbotics.com/doc/guide/upgrading-webots</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5141,6 +5734,33 @@ still display a warning if the world was modified from the scene tree.</source>
     </message>
 </context>
 <context>
+    <name>WbProtoTreeItem</name>
+    <message>
+        <source>File &apos;%1&apos; is not readable.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Malformed EXTERNPROTO URL. The URL should end with &apos;.proto&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Malformed EXTERNPROTO URL. Invalid URL provided: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PROTO &apos;%1&apos; is ambiguous, multiple references are provided: &apos;%2&apos; and &apos;%3&apos;. The first was used.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Skipped PROTO &apos;%1&apos; as it is not available at: %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Error downloading EXTERNPROTO &apos;%1&apos;: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>WbRadar</name>
     <message>
         <source>&apos;minRange&apos; is greater or equal to &apos;maxRange&apos;. Setting &apos;maxRange&apos; to %1.</source>
@@ -5188,6 +5808,21 @@ still display a warning if the world was modified from the scene tree.</source>
         <source>Unknown &apos;type&apos;: &quot;%1&quot;.</source>
         <translation type="unfinished">不明の&apos;type&apos;：&quot;%1&quot;。</translation>
     </message>
+    <message>
+        <source>&apos;channel&apos; is not included in &apos;allowedChannels&apos;. Setting &apos;channel&apos; to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;allowedChannels&apos; does not contain current &apos;channel&apos;. Setting &apos;channel&apos; to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbRecognition</name>
+    <message>
+        <source>Invalid &apos;occlusion&apos; changed to 1. The value should be 0, 1 or 2.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbRenderingDevice</name>
@@ -5200,22 +5835,6 @@ still display a warning if the world was modified from the scene tree.</source>
         <translation>無効な &apos;height&apos;：1に変更。</translation>
     </message>
     <message>
-        <source>&apos;windowPosition&apos; is deprecated.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The position of the overlay will be automatically stored after moving it from the 3D view.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&apos;pixelSize&apos; is deprecated.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The size of the overlay will be automatically stored after resizing it from the 3D view.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&apos;width&apos; has been modified. This modification will be taken into account after saving and reloading the world.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5226,14 +5845,6 @@ still display a warning if the world was modified from the scene tree.</source>
 </context>
 <context>
     <name>WbRobot</name>
-    <message>
-        <source>The robot window library has not been found.</source>
-        <translation>ロボットウィンドウ ライブラリが見つかりませんでした。</translation>
-    </message>
-    <message>
-        <source>The generic robot window is not found. Please check your Webots installation.</source>
-        <translation>一般的なロボットウィンドウが見つかりません。Webotsのインストールを確認してください。</translation>
-    </message>
     <message>
         <source>The remote control library has not been found.</source>
         <translation>リモートコントロール ライブラリが見つかりませんでした。</translation>
@@ -5251,33 +5862,77 @@ still display a warning if the world was modified from the scene tree.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The robot &apos;window&apos; cannot be modified after the controller is initialized.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&apos;remoteControl&apos; cannot be modified after the controller is initialized.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>This Robot node is scaled: this is discouraged as it could compromise the correct physical behavior.</source>
+        <source>Unable to split arguments automatically, please update your world file manually.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Splitting arguments at space boundaries.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Robot.controllerArgs data type changed from SFString to MFString in Webots R2020b. %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;wb_robot_battery_sensor_enable&apos; called while the &apos;battery&apos; field is empty.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The &apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos; robot window library has not been found.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The robot window will not be connected until the controller is initialized or restarted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The &lt;generic&gt; robot window is not found. Please check your Webots installation.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Battery is empty.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The &apos;controller&apos; field of the robot has been changed to &quot;&lt;generic&gt;&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The &apos;window&apos; field of the robot has been changed to &quot;&lt;generic&gt;&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;battery&apos; field can only contain three values. Remaining values are ignored.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>WbRobotWindow</name>
     <message>
-        <source>No dockable HTML robot window is set in the &apos;window&apos; field.</source>
+        <source>No HTML robot window is set in the &apos;window&apos; field.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Unable to load %1.</source>
+        <source>Cannot start %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unable to open web browser program: %1. %2 Opening robot window in default browser.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>WbRotationEditor</name>
     <message>
-        <source>angle:</source>
+        <source>Normalize</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5303,6 +5958,10 @@ still display a warning if the world was modified from the scene tree.</source>
     <name>WbSFColor</name>
     <message>
         <source>Expected floating point value, found %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expected positive color values in range [0.0, 1.0], found [%1 %2 %3]. SFColor field reset to [%4 %5 %6]</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5398,16 +6057,8 @@ still display a warning if the world was modified from the scene tree.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Warning: Transforming a %1 into a %2 node will loose some information.</source>
-        <translation type="unfinished">警告：%1を%2ノードに変換すると一部の情報が失われます。</translation>
-    </message>
-    <message>
         <source>Do you still want to proceed?</source>
         <translation type="unfinished">それでも続行しますか?</translation>
-    </message>
-    <message>
-        <source>Invalid pasted node: </source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>This field contains a DEF node on which at least one external USE node depends. Deleting it will turn its first USE node into a DEF node.
@@ -5420,11 +6071,35 @@ Do you want to continue?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Export Webots Object</source>
-        <translation type="unfinished">Webotsオブジェクトをエクスポート</translation>
+        <source>Unsupported &apos;%1&apos; extension.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Files (*.wbo *.WBO)</source>
+        <source>Impossible to write file: &apos;%1&apos;.</source>
+        <translation type="unfinished">ファイルに書き込みできません：&apos;%1&apos;。</translation>
+    </message>
+    <message>
+        <source>Conflicting declarations for &apos;%1&apos; are provided: %2 and %3, the first one will be used. To use the other instead you will need to change it manually in the world file.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Export to URDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>URDF (*.urdf *.URDF)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>URDF export failed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Warning: Turning a %1 into a %2 will loose some information%3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>, including possibly children.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5432,6 +6107,22 @@ Do you want to continue?</source>
     <name>WbShape</name>
     <message>
         <source>Please specify &apos;geometry&apos; field (of Shape placed in &apos;boundingObject&apos;).</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbShareWindow</name>
+    <message>
+        <source>Share your simulation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Record and
+export animation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Export scene</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5444,10 +6135,6 @@ Do you want to continue?</source>
     <message>
         <source>Save as...</source>
         <translation>名前を付けて保存...</translation>
-    </message>
-    <message>
-        <source>Impossible to record a movie while running the simulation in &apos;Fast&apos; mode.</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Stop &amp;Movie...</source>
@@ -5486,14 +6173,6 @@ Do you want to continue?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>PNG (*.png)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>JPEG (*.jpg *.jpeg)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Hide the Scene Tree side bar.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5520,6 +6199,10 @@ Do you want to open it now?</source>
         <source>Take Screenshot</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Impossible to record a movie while rendering is turned off.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbSimulationWorld</name>
@@ -5528,11 +6211,15 @@ Do you want to open it now?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Finalizing nodes</source>
+        <source>Initializing plugins (if any)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Initializing plugins (if any)</source>
+        <source>Downloading assets</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You are using a world from an old version of Webots. The backwards compability algorithm will try to convert it. Refer to the wiki for more information: https://cyberbotics.com/doc/guide/upgrading-webots</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5567,18 +6254,6 @@ Do you want to open it now?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Invalid file: a PROTO file with suffix &apos;.proto&apos; is expected.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Folder &apos;%1&apos; doesn&apos;t contain any valid PROTO file.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>UUID: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>    Display this help message and exit.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5591,19 +6266,7 @@ Do you want to open it now?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>    Display the UUID of the computer and exit.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>    Choose the startup mode, overriding application preferences. The &lt;mode&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>    argument must be either pause, realtime, run or fast. Webots PRO is</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>    required to use: --mode=run or --mode=fast.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5627,26 +6290,6 @@ Do you want to open it now?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>    Start the Webots streaming server (Webots PRO required). Parameters may be</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>    given as an option:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>      port=1234          - Start the streaming server on port 1234.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>      monitorActivity    - Print a dot &apos;.&apos; on stdout every 5 seconds.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>      disableTextStreams - Disable the streaming of stdout and stderr.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>    Measure the performance of Webots and log it in the file specified in the</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5660,10 +6303,6 @@ Do you want to open it now?</source>
     </message>
     <message>
         <source>    system information is prepended into the log file.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Please report any bug to http://www.cyberbotics.com/bug</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5682,6 +6321,80 @@ Do you want to open it now?</source>
         <source>OpenGL renderer: %1 (0x%2)</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>    argument must be either pause, realtime or fast.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please report any bug to https://cyberbotics.com/bug</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Parsing the %1 PROTO...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>  field %1 [%2] = %3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot open the file!
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The %1 PROTO is written to the file.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>    Disable rendering in the main 3D view.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File &apos;%1&apos; is not locally available, the conversion cannot take place.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A parameter is not properly formatted!
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Warning: Exporting a Joint node with a SolidReference endpoint (%1) to URDF is not supported.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>    Change the TCP port used by Webots (default value is 1234).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>    Start the Webots streaming server. The &lt;mode&gt; argument should be either</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>    Print on stdout the URL of extern controllers that should be started.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>    Print a dot (.) on stdout every second or &lt;time&gt; milliseconds if specified.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>    Convert a PROTO file to a URDF file.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>OpenAL device: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>    Clear the cache of Webots on startup.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>    w3d (default) or mjpeg.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbSkin</name>
@@ -5691,14 +6404,6 @@ Do you want to open it now?</source>
     </message>
     <message>
         <source>Undefined Appearance with name &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Model directory not found.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Mesh file not found: &apos;%1&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5719,10 +6424,6 @@ Do you want to open it now?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>OGRE skeleton file not found.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Unable to read mesh file &apos;%1&apos;: %2</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5732,6 +6433,10 @@ Do you want to open it now?</source>
     </message>
     <message>
         <source>Number of valid bones defined in &apos;bones&apos; field does not match with skeleton file. Expected: %1, was: %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid modelUrl &apos;%1&apos;. Supported formats are: &apos;%2&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5773,10 +6478,6 @@ Do you want to open it now?</source>
     </message>
     <message>
         <source>Mass is invalid: %1. Using default mass properties: mass = 1, inertia matrix = identity</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>As &apos;physics&apos; is set to NULL, collisions will have no effect</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5833,6 +6534,10 @@ Please save the current world to get rid of this message.</source>
         <source>Solid node defined in PROTO field is used multiple times. Webots doesn&apos;t fully support this because the multiple node instances cannot be identical.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>As &apos;physics&apos; is set to NULL, collisions will have no effect.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbSolidMerger</name>
@@ -5855,12 +6560,12 @@ Please save the current world to get rid of this message.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Sound file &apos;%1&apos; not found. The sound file should be defined relatively to the controller, the PROTO or absolutely.
+        <source>Impossible to play &apos;%1&apos;. Make sure the file format is supported (8 or 16 bits, mono or stereo wave).
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Impossible to play &apos;%1&apos;. Make sure the file format is supported (8 or 16 bits, mono or stereo wave).
+        <source>Sound file &apos;%1&apos; not found. The sound file should be defined relatively to the controller, or absolutely.
 </source>
         <translation type="unfinished"></translation>
     </message>
@@ -5890,130 +6595,15 @@ Please save the current world to get rid of this message.</source>
         <source>Maximum number of active spotlights (%1) has been reached, newly added lights won&apos;t be rendered.</source>
         <translation type="unfinished"></translation>
     </message>
-</context>
-<context>
-    <name>WbStreamingServer</name>
     <message>
-        <source>Streaming server: invalid option: port &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: unknown option &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Error when initializing the animation recorder: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Error when creating the TCP streaming server: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cannot set the server in listen mode: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server closed</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: New client [%1] (%2 connected client(s))</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cannot sent the entire world</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server listening on port %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: edit of &apos;%1&apos; controller not allowed.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: received robot message for %1: %2.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: bad controller file name: %1/%2.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: non-existing controller folder: %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: non-existing controller file: %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: cannot write controller file: %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: Client set mode to: X3DOM.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: Client set mode to: VIDEO %1x%2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: Client resize: VIDEO %1x%2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: Unsupported message: %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: New client [%1] (%2 connected client(s)).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: Cannot send world date to client [%1] because: %2.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Streaming server: Client disconnected [%1] (remains %2 client(s)).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Error when reloading world: %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cannot open the texture file &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cannot sent the entire texture &apos;%1&apos;.</source>
+        <source>A quadratic &apos;attenuation&apos; should be preferred to have a realistic simulation of light. Only the third component of the &apos;attenuation&apos; field should be greater than 0.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
-    <name>WbSupervisor</name>
+    <name>WbSupervisorUtilities</name>
     <message>
-        <source>wb_supervisor_node_get_position() can exclusively be used with Transform (or derived).</source>
-        <translation>wb_supervisor_node_get_position() はTransform（または派生）と併用する場合のみ使用可能です。</translation>
-    </message>
-    <message>
-        <source>wb_supervisor_node_get_orientation() can exclusively be used with Transform (or derived).</source>
-        <translation>wb_supervisor_node_get_orientation() はTransform（または派生）と併用する場合のみ使用可能です。</translation>
-    </message>
-    <message>
-        <source>wb_supervisor_node_get_center_of_mass() can exclusively be used with Solid</source>
-        <translation>wb_supervisor_node_get_center_of_mass() はSolidと併用する場合のみ使用可能です</translation>
-    </message>
-    <message>
-        <source>wb_supervisor_node_get_static_balance() can exclusively be used with a top Solid</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>wb_supervisor_node_get_number_of_contact_points() and wb_supervisor_node_get_contact_point() can exclusively be used with a Solid</source>
+        <source>wb_supervisor_set_label() called with an invalid &apos;%1&apos; font, &apos;Arial&apos; used instead.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -6021,7 +6611,15 @@ Please save the current world to get rid of this message.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>wb_supervisor_node_reset_physics() can exclusively be used with a Solid</source>
+        <source>wb_supervisor_node_get_center_of_mass() can exclusively be used with Solid</source>
+        <translation type="unfinished">wb_supervisor_node_get_center_of_mass() はSolidと併用する場合のみ使用可能です</translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_get_number_of_contact_points() and wb_supervisor_node_get_contact_point() can exclusively be used with a Solid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_get_static_balance() can exclusively be used with a top Solid</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -6049,7 +6647,162 @@ Please save the current world to get rid of this message.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>wb_supervisor_set_label() called with an invalid &apos;%1&apos; font, &apos;Arial&apos; used instead.</source>
+        <source>wb_supervisor_node_add_force() can&apos;t be used with a kinematic Solid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_add_force() can exclusively be used with a Solid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_add_force_with_offset() can&apos;t be used with a kinematic Solid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_add_force_with_offset() can exclusively be used with a Solid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_add_torque() can&apos;t be used with a kinematic Solid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_add_torque() can exclusively be used with a Solid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1: node not found.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_set_joint_position() called with a &apos;position&apos; argument %1 outside hard limits of the joint. Applied position is %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Node &apos;%1&apos; is internal to a PROTO and therefore cannot be deleted from a Supervisor.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_get_position() can exclusively be used with Pose (or derived).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_get_orientation() can exclusively be used with Pose (or derived).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>wb_supervisor_node_get_pose() can exclusively be used with Pose (or derived).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;wb_supervisor_node_%1_contact_point_tracking&apos; called for an invalid node.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Node &apos;%1&apos; (%2) is not suitable for contact points tracking, aborting request.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No active contact points tracking could be found for the node &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;wb_supervisor_node_%1_pose_tracking&apos; called for an invalid node.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Node &apos;%1&apos; (%2) is not suitable for pose tracking, aborting request.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pose tracking can be exclusively used with Pose (or derived) &apos;from_node&apos; argument, but &apos;%1&apos; (%2) is given. The absolute pose in global coordinates will be returned.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No active pose tracking could be found matching nodes &apos;%1&apos; (to) and &apos;%2&apos; (from) arguments.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;wb_supervisor_field_%1_sf_tracking&apos; called for an invalid node.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;wb_supervisor_field_%1_sf_tracking&apos; called for an invalid field.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No active field tracking could be found matching the field &apos;%1&apos; of node &apos;%2&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot get the PROTO instance for node &apos;%1&apos; (derived from &apos;%2&apos;).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot get the PROTO instance for node &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbTcpServer</name>
+    <message>
+        <source>Streaming server closed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not listen to %1 on port %2. %3. Giving up.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not listen to %1 on port %2. %3. Using port %4 instead. This could be caused by another running instance of Webots. You should use the &apos;--port&apos; option to start several instances of Webots.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server listening on port %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot set the server in listen mode: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No host specified in HTTP header.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unsupported file type &apos;/%2&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server: New client [%1] (%2 connected client(s)).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server: received robot message for %1: &quot;%2&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server: world %1 doesn&apos;t exist.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server: you are not allowed to open a world in another project directory.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server: Unsupported message: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server: Client disconnected [%1] (remains %2 client(s)).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Error when reloading world: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Port %1 is already in use</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6060,11 +6813,19 @@ Please save the current world to get rid of this message.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Installation error: Lua resources are not found</source>
+        <source>Expected JavaScript closing token &apos;%1&apos; is missing.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>luaL_dostring error : %1</source>
+        <source>failed to import JavaScript template: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>failed to execute JavaScript template: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t write jsTemplateFilled in %1</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6101,6 +6862,10 @@ Please save the current world to get rid of this message.</source>
         <source>The file &quot;%1&quot; open in the Webots text editor was deleted by an external action.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Unable to save &apos;%1&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbTextEditor</name>
@@ -6132,6 +6897,18 @@ Do you want to save it before closing?</source>
     </message>
     <message>
         <source>Text Editor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read-only remote file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> (read-only)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unable to save &apos;%1&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6168,23 +6945,61 @@ Do you want to save it before closing?</source>
         <source>Texture animation is enabled only if the TextureTransform node is explicitly defined.</source>
         <translation type="unfinished"></translation>
     </message>
+</context>
+<context>
+    <name>WbTriangleMeshGeometry</name>
     <message>
-        <source>Track field &apos;animatedGeometry&apos; must have a DEF name for exportation. One have been generated.</source>
+        <source>Cannot create %1 because: &quot;%2&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A %1 is used in a Bounding object using an asymmetric friction. %1 does not support asymmetric friction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Too many triangles (%1) in mesh: unable to cast shadows, please reduce the number of triangles below %2 or set Shape.castShadows to FALSE to disable this warning.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
-    <name>WbTransform</name>
+    <name>WbUpdatedDialog</name>
     <message>
-        <source>A Transform placed in &apos;boundingObject&apos; needs a Geometry or Shape as its first child to be valid.</source>
+        <source>Close</source>
+        <translation type="unfinished">閉じる</translation>
+    </message>
+    <message>
+        <source>Welcome to Webots R2025a</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>A Transform placed inside a &apos;boundingObject&apos; can only contain one child. Remaining children are ignored.</source>
+        <source>&lt;b&gt;Thank you for using Webots R2025a.&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The first child of a Transform placed in &apos;boundingObject&apos; must be a Geometry or a Shape filled with a Geometry.</source>
+        <source>Find out the new features, enhancements and bug fixes of Webots R2025a in the &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/doc/reference/changelog-r2023&apos;&gt;changelog&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Important Note for Users of Previous Versions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p style=&quot;line-height:1.2&quot;&gt;Some features introduced in this version may break backward compatibility with your worlds and PROTO models. &lt;br /&gt; &lt;br /&gt; Please refer to the &lt;a style=&apos;color: #5DADE2;&apos; href=&apos;https://cyberbotics.com/doc/guide/upgrading-webots&apos;&gt;upgrade guide&lt;/a&gt;.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbVacuumGripper</name>
+    <message>
+        <source>&apos;tensileStrength&apos; must be positive or -1 (infinite).</source>
+        <translation type="unfinished">&apos;tensileStrength&apos; は正数か-1（無限）でなければなりません。</translation>
+    </message>
+    <message>
+        <source>&apos;shearStrength&apos; must be positive or -1 (infinite).</source>
+        <translation type="unfinished">&apos;shearStrength&apos; は正数か-1（無限）でなければなりません。</translation>
+    </message>
+    <message>
+        <source>VacuumGripper could not be attached because neither the VacuumGripper node nor the solid object have Physics nodes.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6212,6 +7027,14 @@ Do you want to save it before closing?</source>
     </message>
     <message>
         <source>Relative to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Linear velocity magnitude:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Angular velocity magnitude:</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6333,18 +7156,6 @@ Do you want to play it back?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The dimensions of the rescaled object exceeds world numeric bounds, mouse drag aborted</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots has detected that your GPU vendor is &apos;%1&apos;. A recent nVIDIA or ATI graphics adapter is highly recommended to run Webots smoothly. </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Webots has detected that you GPU is an Intel Graphics card. A recent nVIDIA or ATI graphics adapter is highly recommended to run Webots smoothly. </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>You can try to re-activate some OpenGL features from the Webots preferences.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6361,30 +7172,62 @@ Do you want to play it back?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The anti-aliasing on the Camera devices has been deactivated.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Main 3D view anti-aliasing has been de-activated.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Anisotropic texture filtering is not supported by the GPU.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Loading world</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots has detected that your GPU vendor is &apos;%1&apos;. A recent NVIDIA or AMD graphics adapter is highly recommended to run Webots smoothly. </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Main 3D view global ambient occlusion has been de-activated.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Texture quality has been reduced.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Anti-aliasing has been deactivated.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Texture maximum filtering has been reduced due to GPU limitations.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots has detected that your system features an old unsupported Intel GPU. A recent NVIDIA or AMD graphics adapter is highly recommended to run Webots smoothly. </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots has detected that you are using an old unsupported AMD GPU. A recent NVIDIA or AMD graphics adapter is highly recommended to run Webots smoothly. </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots has detected that your system features an old unsupported GPU. A recent NVIDIA or AMD graphics adapter is highly recommended to run Webots smoothly. </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots has detected that your GPU has less than 2 GB of memory. A minimum of 2 GB of memory is recommended to use high-resolution textures. </source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>WbViewpoint</name>
     <message>
-        <source>Viewpoint&apos;s follow field is filled with an invalid Solid name.</source>
-        <translation>ビューポイントの次のフィールドに無効のSolid名が入っています。</translation>
-    </message>
-    <message>
         <source>&apos;near&apos; is greater than &apos;far&apos;. Setting &apos;near&apos; to %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>&apos;far&apos; is less than &apos;near&apos;. Setting &apos;far&apos; to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&apos;follow&apos; field is filled with an invalid Solid name.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6400,6 +7243,37 @@ Do you want to play it back?
     </message>
     <message>
         <source>Error while initializing the virtual reality headset compositor system.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Error while initializing the virtual reality headset overlay system.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbW3dStreamingServer</name>
+    <message>
+        <source>Error when initializing the animation recorder: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server: Client set mode to W3D.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server received unsupported MJPEG message: &apos;%1&apos;. You should run Webots with the &apos;--stream=&quot;mode=mjpeg&quot;&apos; command line option.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Streaming server: Cannot send world date to client [%1] because: %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Error when reloading world: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot send the entire world</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6418,11 +7292,11 @@ Do you want to play it back?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&lt;b&gt;A new version of Webots is available.&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;Webots %1 is available for download (you are currently using Webots %2).&lt;br/&gt;Download the new version: &lt;a href=&quot;https://www.cyberbotics.com/download&quot;&gt;https://www.cyberbotics.com/download&lt;/a&gt;&lt;br/&gt;Check the change log: &lt;a href=&quot;https://www.cyberbotics.com/change_log&quot;&gt;https://www.cyberbotics.com/change_log&lt;/a&gt;</source>
+        <source>Don&apos;t display this dialog again (you can re-enable it from the preferences)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Don&apos;t display this dialog again (you can re-enable it from the preferences)</source>
+        <source>&lt;b&gt;A new version of Webots is available.&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;Webots %1 is available for download (you are currently using Webots %2).&lt;br/&gt;Download the new version: &lt;a href=&quot;https://cyberbotics.com/download&quot;&gt;https://cyberbotics.com/download&lt;/a&gt;&lt;br/&gt;Check the changelog: &lt;a href=&quot;https://cyberbotics.com/doc/reference/changelog&quot;&gt;https://cyberbotics.com/doc/reference/changelog&lt;/a&gt;</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6433,7 +7307,7 @@ Do you want to play it back?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Invalid format of the current Webots version: &quot;%1&quot;</source>
+        <source>Invalid answer from the GitHub REST API.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6460,15 +7334,19 @@ Do you want to play it back?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Cannot export the x3d file to &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Cannot export html: &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Cannot copy &apos;x3d_playback.html&apos; to &apos;%1&apos;</source>
+        <source>Cannot export the w3d file to &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot copy &apos;w3d_playback.html&apos; to &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot copy the &apos;w3d_playback.css&apos; file to &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6483,10 +7361,6 @@ Do you want to play it back?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&apos;northDirection&apos; must be a unit vector. Reset to default value (1, 0, 0).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&apos;gpsCoordinateSystem&apos; must either be &apos;local&apos; or &apos;WGS84&apos;. Reset to default value &apos;local&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6494,15 +7368,50 @@ Do you want to play it back?
         <source>Physics multi-threading is enabled. This can have a noticeable impact on the simulation speed (negative or positive depending on the simulated world). In case of multi-threading, simulation replicability is not guaranteed. </source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>The &apos;northDirection&apos; field is deprecated, according to the &apos;coordinateSystem&apos; field, the north is aligned along the x-axis.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The &apos;northDirection&apos; field is deprecated, please use the &apos;coordinateSystem&apos; field instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please save and revert the world so that the change of coordinate system is taken into account when reloading procedural PROTO nodes.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WbWrenCamera</name>
     <message>
-        <source>Noise mask can only be applied to RGB non-spherical cameras</source>
+        <source>Invalid URL &apos;%1&apos;. The noise mask must be in &apos;.jpeg&apos;, &apos;.jpg&apos; or &apos;.png&apos; format.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Cannot load %1: %2</source>
+        <source>Cannot open noise mask file: &apos;%1&apos;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot load &apos;%1&apos;: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Noise mask can only be applied to RGB planar cameras</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WbWrenWindow</name>
+    <message>
+        <source>Webots could not initialize the rendering system.
+Please check your GPU abilities and install the latest graphics drivers.
+Please do also check that your graphics hardware meets the requirements specified in the User Guide.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Webots requires OpenGL %1 while only OpenGL %2 can be initialized.
+Please check your GPU abilities and install the latest graphics drivers.
+Please do also check that your graphics hardware meets the requirements specified in the User Guide.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

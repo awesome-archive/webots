@@ -1,26 +1,28 @@
-$('#infotabs').tabs();
+import RobotWindow from 'https://cyberbotics.com/wwi/R2025a/RobotWindow.js';
+/* global sendBenchmarkRecord, showBenchmarkRecord, showBenchmarkError */
 
-var benchmarkName = "Wall Following";
-var performance = 0;
+window.robotWindow = new RobotWindow();
+const benchmarkName = 'Wall Following';
+let benchmarkPerformance = 0;
 
-webots.window('wall_following').receive = function(message, robot) {
+window.robotWindow.receive = function(message, robot) {
   // updates the metric
   if (message.startsWith('update:')) {
-    performance = message.substr(7);
-    $('#performance-display').html(performance);
-  } else if (message == 'stop') {
-    if (typeof sendBenchmarkRecord === "undefined" || !sendBenchmarkRecord(robot, this, benchmarkName, performance / 100, metricToString))
-      $('#performance-display').css('color','red');
+    benchmarkPerformance = message.substr(7);
+    document.getElementById('performance-display').innerHTML = benchmarkPerformance;
+  } else if (message === 'stop') {
+    if (typeof sendBenchmarkRecord === 'undefined' || !sendBenchmarkRecord(robot, this, benchmarkName, benchmarkPerformance / 100, metricToString))
+      document.getElementById('performance-display').style.color = 'red';
   } else if (message.startsWith('record:OK:')) {
-    $('#performance-display').css('font-weight','bold');
+    document.getElementById('performance-display').style.fontWeight = 'bold';
     showBenchmarkRecord(message, benchmarkName, metricToString);
   } else if (message.startsWith('record:Error:')) {
-    $('#performance-display').css('color','red');
+    document.getElementById('performance-display').style.color = 'red';
     showBenchmarkError(message, benchmarkName);
   } else
     console.log("Received unknown message for robot '" + robot + "': '" + message + "'");
 
   function metricToString(value) {
-    return (100 * value).toFixed(2) + "%";
+    return (100 * value).toFixed(2) + '%';
   }
-}
+};

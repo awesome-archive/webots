@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,14 +31,13 @@ WbContactSound::WbContactSound(const dGeomID &geom1, const dGeomID &geom2, const
   mType(NONE),
   mGeom1(geom1),
   mGeom2(geom2),
+  mBody1(dGeomGetBody(geom1)),
+  mBody2(dGeomGetBody(geom2)),
   mEnergy(0.0),
   mDerivativeEnergy(0.0),
   mDoubleDerivativeEnergy(0.0),
   mMass1(0.0),
   mMass2(0.0) {
-  mBody1 = dGeomGetBody(geom1);
-  mBody2 = dGeomGetBody(geom2);
-
   dMass mass;
   if (mBody1) {
     dBodyGetMass(mBody1, &mass);
@@ -56,9 +55,9 @@ WbContactSound::WbContactSound(const dGeomID &geom1, const dGeomID &geom2, const
     mRollSoundClip = contactProperties->rollSoundClip();
     mSlideSoundClip = contactProperties->slideSoundClip();
   } else {
-    mBumpSoundClip = WbSoundEngine::sound(WbUrl::computePath(NULL, "bump sound", "sounds/bump.wav"));
-    mRollSoundClip = WbSoundEngine::sound(WbUrl::computePath(NULL, "roll sound", "sounds/roll.wav"));
-    mSlideSoundClip = WbSoundEngine::sound(WbUrl::computePath(NULL, "slide sound", "sounds/slide.wav"));
+    mBumpSoundClip = NULL;
+    mRollSoundClip = NULL;
+    mSlideSoundClip = NULL;
   }
 
   mContactTime = 0.001 * WbSimulationState::instance()->time();
@@ -69,6 +68,7 @@ WbContactSound::~WbContactSound() {
   WbSoundEngine::deleteSource(mSource);
 }
 
+// cppcheck-suppress constParameter
 bool WbContactSound::doesGeomsMatch(const dGeomID &geom1, const dGeomID &geom2) const {
   return ((geom1 == mGeom1 && geom2 == mGeom2) || (geom1 == mGeom2 && geom2 == mGeom1));
 }

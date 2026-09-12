@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "WbLookupTable.hpp"
+
 #include "WbLog.hpp"
 #include "WbMFVector3.hpp"
 #include "WbRandom.hpp"
@@ -31,7 +32,8 @@ WbLookupTable::WbLookupTable(const WbMFVector3 &lookupTable) {
       const WbVector3 &v = it.next();
       mInputs[j] = v.x();
       if (j > 0 && mInputs[j - 1] >= mInputs[j])
-        WbLog::warning(QObject::tr("The input values of a lookup table must be sorted in increasing order."));
+        WbLog::warning(QObject::tr("The input values of a lookup table must be sorted in increasing order."), false,
+                       WbLog::PARSING);
       mOutputs[j] = v.y();
       mNoises[j] = v.z();
       j++;

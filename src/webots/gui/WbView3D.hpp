@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,8 @@
 // Description: 3D window for displaying the scene and for switching the display mode
 //
 
+#include "WbAction.hpp"
+#include "WbBaseNode.hpp"
 #include "WbWrenWindow.hpp"
 
 #include <wren/camera.h>
@@ -27,11 +29,10 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QPoint>
 
-class WbAbstractTransform;
+class WbAbstractPose;
 class WbCamera;
 class WbDragKinematicsEvent;
 class WbDragForceEvent;
-class WbDragScaleHandleEvent;
 class WbDragTorqueEvent;
 class WbDragOverlayEvent;
 class WbDragResizeHandleEvent;
@@ -54,16 +55,17 @@ class WbView3D : public WbWrenWindow {
 
 public:
   explicit WbView3D();
-  virtual ~WbView3D();
+  virtual ~WbView3D() override;
 
   void setParentWidget(QWidget *widget) { mParentWidget = widget; }
 
   // accessor
   WbWrenRenderingContext *wrenRenderingContext() const { return mWrenRenderingContext; }
   // rendering
-  void showFastModeOverlay();
-  void hideFastModeOverlay();
-  void remoteMouseEvent(QMouseEvent *event);
+  void showBlackRenderingOverlay();
+  void hideBlackRenderingOverlay();
+  // in case the context menu show is triggered, return the selected WbMatter node
+  const WbMatter *remoteMouseEvent(QMouseEvent *event);
   void remoteWheelEvent(QWheelEvent *event);
 
   void prepareWorldLoading();
@@ -77,6 +79,7 @@ public:
   void restoreOptionalRendering(const QStringList &enabledCenterOfMassNodeNames,
                                 const QStringList &enabledCenterOfBuoyancyNodeNames,
                                 const QStringList &enabledSupportPolygonNodeNames) const;
+  void setUserInteractionDisabled(WbAction::WbActionKind action, bool disabled);
 
   void enableResizeManipulator(bool enabled);
   void resizeWren(int width, int height) override;
@@ -84,13 +87,17 @@ public:
   void logWrenStatistics() const;
   void handleModifierKey(QKeyEvent *event, bool pressed);
 
+  void disableOptionalRenderingAndOverLays();
+  void restoreOptionalRenderingAndOverLays();
+
 public slots:
   void refresh();
   void setShowRenderingDevice(bool checked);
   void unleashAndClean();
 
 protected slots:
-  void renderNow() override;
+  // cppcheck-suppress virtualCallInConstructor
+  void renderNow(bool culling = true, bool offScreen = false) override;
 
 protected:
   void initialize() override;
@@ -111,10 +118,9 @@ signals:
   void mainRenderingStarted(bool fromPhysics);
   void mainRenderingEnded(bool fromPhysics);
   void mouseDoubleClicked(QMouseEvent *event);
-  void screenshotReady(QImage image);
-  void showRobotWindowRequest();
+  void screenshotReady();
   void applicationActionsUpdateRequested();
-  void contextMenuRequested(const QPoint &pos);
+  void contextMenuRequested(const QPoint &pos, QWidget *parentWidget);
 
 private:
   QWidget *mParentWidget;
@@ -122,18 +128,19 @@ private:
   static int cView3DNumber;
   WrCameraProjectionMode mProjectionMode;
   WrViewportPolygonMode mRenderingMode;
-  int mRefreshCounter;
-  QTime *mMousePressTime;
+  QElapsedTimer *mMousePressTimer;
   QPoint mMousePressPosition;
-  bool mSelectionDisabled;
-  bool mViewpointLocked;
+  QMap<WbAction::WbActionKind, bool> mDisabledUserInteractionsMap;
   double mAspectRatio;
-  WbWrenFullScreenOverlay *mFastModeOverlay;
+  WbWrenFullScreenOverlay *mDisabledRenderingOverlay;
   WbWrenFullScreenOverlay *mLoadingWorldOverlay;
   WbWrenFullScreenOverlay *mVirtualRealityHeadsetOverlay;
 
   WbContactPointsRepresentation *mContactPointsRepresentation;
   WbWrenRenderingContext *mWrenRenderingContext;
+
+  // Store options before creating thumbnail
+  int mOptionalRenderingsMask;
 
   // Cleanup
   void cleanupDrags();
@@ -143,7 +150,7 @@ private:
   void cleanupPickers();
 
   // setters
-  void setProjectionMode(WrCameraProjectionMode mode, bool updatePerspective);
+  void setProjectionMode(WrCameraProjectionMode mode, bool updatePerspective, bool updateAction);
   void setRenderingMode(WrViewportPolygonMode mode, bool updatePerspective);
 
   // Others
@@ -169,7 +176,6 @@ private:
   WbDragKinematicsEvent *mDragKinematics;
   WbDragOverlayEvent *mDragOverlay;
   WbDragResizeHandleEvent *mDragResize;
-  WbDragScaleHandleEvent *mDragScale;
   WbDragTranslateAlongAxisEvent *mDragTranslate;
   WbDragRotateAroundWorldVerticalAxisEvent *mDragVerticalAxisRotate;
   WbDragRotateAroundAxisEvent *mDragRotate;
@@ -184,6 +190,8 @@ private:
   bool mMouseEventInitialized;
   QCursor mLastMouseCursor;
   Qt::MouseButtons mLastButtonState;
+  bool mIsRemoteMouseEvent;
+  WbMatter *mRemoteContextMenuMatter;
 
   // On selection changed
   void setCheckedShowCenterOfMassAction(WbSolid *selectedSolid);
@@ -194,15 +202,15 @@ private:
 private slots:
   void abortPhysicsDrag();
   void abortResizeDrag();
-  void abortScaleDrag();
   void abortOverlayDrag();
-  void followSolid(bool checked);
-  void followSolidAndRotate(bool checked);
+  void followNone(bool checked);
+  void followTracking(bool checked);
+  void followMounted(bool checked);
+  void followPanAndTilt(bool checked);
   void showCenterOfMass(bool checked);
   void showCenterOfBuoyancy(bool checked);
   void showSupportPolygon(bool checked);
-  void notifyFollowObjectAction(bool validField);
-  void notifyFollowObjectAndRotationAction(bool rotate);
+  void notifyFollowObjectAction(int type);
   void restoreViewpoint();
   void setPerspectiveProjection();
   void setOrthographicProjection();
@@ -233,18 +241,22 @@ private slots:
   void setShowLightsPositions(bool show);
   void setShowPenPaintingRays(bool show);
   void setShowSkeletonAction(bool show);
+  void setShowNormals(bool show);
   void setShowPhysicsClustersAction(bool show);
   void setShowBoundingSphereAction(bool show);
-  void setSelectionDisabled(bool disabled);
-  void setViewPointLocked(bool locked);
+  void setViewPointLocked(bool locked) { setUserInteractionDisabled(WbAction::LOCK_VIEWPOINT, locked); }
+  void setSelectionDisabled(bool disabled) { setUserInteractionDisabled(WbAction::DISABLE_SELECTION, disabled); }
+  void setContextMenuDisabled(bool disabled) { setUserInteractionDisabled(WbAction::DISABLE_3D_VIEW_CONTEXT_MENU, disabled); }
+  void disableObjectMove(bool disabled);
+  void disableApplyForceAndTorque(bool disabled) { setUserInteractionDisabled(WbAction::DISABLE_FORCE_AND_TORQUE, disabled); }
   void updateMousesPosition(bool fromMouseClick = false, bool fromMouseMove = false);
 
   void cleanWorld() { mWorld = NULL; }
   void updateViewport();
   void updateShadowState();
   void unleashPhysicsDrags();
-  void onSelectionChanged(WbAbstractTransform *selectedAbstractTransform);
-  void handleWorldModificationFromSupervior();
+  void onSelectionChanged(WbAbstractPose *selectedPose);
+  void handleWorldModificationFromSupervisor();
 };
 
 #endif

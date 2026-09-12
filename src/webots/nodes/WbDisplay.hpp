@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,28 +27,28 @@ class QDataStream;
 class WbDisplay : public WbRenderingDevice {
   Q_OBJECT
 public:
-  enum ImageFormat {  // should match with the macros of display.h
-    WB_IMAGE_RGB = 3,
-    WB_IMAGE_RGBA,
-    WB_IMAGE_ARGB,
-    WB_IMAGE_BGRA
-  };
   // constructors and destructor
   explicit WbDisplay(WbTokenizer *tokenizer = NULL);
   WbDisplay(const WbDisplay &other);
   explicit WbDisplay(const WbNode &other);
-  virtual ~WbDisplay();
+  virtual ~WbDisplay() override;
 
   // reimplemented public functions
   int nodeType() const override { return WB_NODE_DISPLAY; }
   void preFinalize() override;
   void handleMessage(QDataStream &) override;
-  void writeAnswer(QDataStream &) override;
-  void writeConfigure(QDataStream &) override;
+  void writeAnswer(WbDataStream &) override;
+  void writeConfigure(WbDataStream &) override;
   QString pixelInfo(int x, int y) const override;
   void createWrenObjects() override;
   void postPhysicsStep() override;
-  void reset() override;
+  void reset(const QString &id) override;
+  void enableExternalWindow(bool enabled) override;
+
+  WbCamera *const attachedCamera() const { return mAttachedCamera; }
+
+signals:
+  void attachedCameraChanged(const WbRenderingDevice *previousAttachedDevice, const WbRenderingDevice *newAttachedDevice);
 
 protected:
   void setup() override;
@@ -85,10 +85,10 @@ private:
   unsigned int *imageCopy(short int x, short int y, short int &w,
                           short int &h);  // return copied data and clipped width and height
   void imagePaste(int id, int x, int y, bool blend);
-  void imageLoad(int id, int w, int h, void *data, ImageFormat format);
+  void imageLoad(int id, int w, int h, void *data, int format);
   void imageDelete(int id);
   WbDisplayImage *imageFind(int id);
-  static int channelNumberFromPixelFormat(ImageFormat pixelFormat);
+  static int channelNumberFromPixelFormat(int pixelFormat);
 
   unsigned int *mImage;  // BGRA 8+8+8+8
   unsigned int mColor;   // 0RGB 8+8+8
@@ -111,6 +111,7 @@ private:
   QList<WbImageTexture *> mImageTextures;
 
 private slots:
+  void removeImageTexture(QObject *object);
   void removeExternalTextures();
   void detachCamera();
 };

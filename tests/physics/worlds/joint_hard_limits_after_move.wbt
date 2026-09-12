@@ -1,8 +1,14 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation -0.44725703 -0.86140286 -0.24072032 1.1169281
+  orientation -0.44725702763814684 -0.8614028554511456 -0.24072031872881583 1.1169281
   position -4.0630652 3.6856586 3.1244738
 }
 Background {
@@ -14,6 +20,7 @@ DirectionalLight {
   direction 0 -1 0
 }
 Floor {
+  rotation 1 0 0 -1.5708
 }
 Robot {
   translation 0 1.05 0
@@ -119,8 +126,7 @@ Robot {
     TestSuiteEmitter {
     }
   ]
-  name "robot"
-  boundingObject Transform {
+  boundingObject Pose {
     translation 0 -1 0
     children [
       Box {

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,12 +19,12 @@
 // Description: abstract base class for all geometry primitives
 // Inherited by:
 //   WbBox, WbSphere, WbPlane, WbCapsule, WbCylinder, WbCone,
-//   WbElevationGrid, WbIndexedFaceSet and WbIndexedLineSet
+//   WbElevationGrid, WbIndexedFaceSet, WbIndexedLineSet and WbMesh
 //
 
 #include "WbBaseNode.hpp"
+#include "WbMatrix3.hpp"
 #include "WbOdeTypes.hpp"
-#include "WbRotation.hpp"
 #include "WbVector2.hpp"
 
 class WbBoundingSphere;
@@ -32,6 +32,7 @@ class WbMatrix4;
 class WbMatter;
 class WbWrenMeshBuffers;
 class WbRay;
+class WbRgb;
 class WbWrenAbstractResizeManipulator;
 struct dMass;
 
@@ -45,12 +46,11 @@ class WbGeometry : public WbBaseNode {
 
 public:
   // Destructor
-  virtual ~WbGeometry();
+  virtual ~WbGeometry() override;
 
   // Reimplemented public functions
   void postFinalize() override;
   void createOdeObjects() override;
-  void updateContextDependentObjects() override;
   bool isAValidBoundingObject(bool checkOde = false, bool warning = true) const override;
   void propagateSelection(bool selected) override;
 
@@ -68,6 +68,11 @@ public:
   virtual void deleteWrenRenderable();
   virtual void setWrenMaterial(WrMaterial *material, bool castShadows);
   void destroyWrenObjects();
+  void setSegmentationColor(const WbRgb &color);
+
+  QList<const WbBaseNode *> findClosestDescendantNodesWithDedicatedWrenNode() const override {
+    return QList<const WbBaseNode *>() << this;
+  }
 
   // Create ODE dGeom (for a WbGeometry lying into a boundingObject)
   virtual dGeomID createOdeGeom(dSpaceID space);
@@ -76,7 +81,7 @@ public:
   void setOdeMass(const dMass *mass);
   const dMass *odeMass() const { return mOdeMass; }
   virtual void setOdePosition(const WbVector3 &translation);
-  virtual void setOdeRotation(const WbRotation &rotation);
+  virtual void setOdeRotation(const WbMatrix3 &rotation);
 
   void setOdeData(dGeomID geom, WbMatter *matterAncestor);  // stores an ODE dGeom if the WbGeometry lies into a boundingObject
   virtual void applyToOdeData(bool correctSolidMass = true) {}  // Resize the ODE dGeom stored in a bounding WbGeometry
@@ -109,6 +114,7 @@ public:
   // resize manipulator
   bool hasResizeManipulator() const override { return areSizeFieldsVisibleAndNotRegenerator(); }
   WbWrenAbstractResizeManipulator *resizeManipulator();
+  bool isResizeManipulatorAttached() const;
   void attachResizeManipulator() override;
   void detachResizeManipulator() const override;
   void updateResizeHandlesSize() override;
@@ -117,9 +123,14 @@ public:
   void setUniformConstraintForResizeHandles(bool enabled) override;
 
   // export
-  void exportBoundingObjectToX3D(WbVrmlWriter &writer) const override;
+  void exportBoundingObjectToW3d(WbWriter &writer) const override;
 
   static int maxIndexNumberToCastShadows();
+  int triangleCount() const;
+
+  // visibility
+  void setTransparent(bool isTransparent);
+  bool isTransparent() const { return mIsTransparent; }
 
 signals:
   void changed();
@@ -130,6 +141,8 @@ public slots:
   void showResizeManipulator(bool enabled) override;
 
 protected:
+  bool exportNodeHeader(WbWriter &writer) const override;
+
   static const float LINE_SCALE_FACTOR;
 
   // All constructors are reserved for derived classes only
@@ -137,9 +150,14 @@ protected:
   WbGeometry(const WbNode &other);
   WbGeometry(const QString &modelName, WbTokenizer *tokenizer);
 
+  // for bounding object representation use a subdivision >= MIN_BOUNDING_OBJECT_CIRCLE_SUBDIVISION
+  // so that it is clear for the user that the ODE object is a real rounded shape and not an approximation as the graphical mesh
+  const int MIN_BOUNDING_OBJECT_CIRCLE_SUBDIVISION = 16;
+
   // Wren
   WrMaterial *mWrenMaterial;
   WrMaterial *mWrenEncodeDepthMaterial;
+  WrMaterial *mWrenSegmentationMaterial;
   WrStaticMesh *mWrenMesh;
   WrRenderable *mWrenRenderable;
   WrTransform *mWrenScaleTransform;
@@ -156,8 +174,8 @@ protected:
 
   // ODE objects for a WbGeometry lying into a boundingObject
   // Scaling
+  bool mIs90DegreesRotated;  // rotate ElevationGrid by 90 degrees: ODE to FLU rotation
   dGeomID mOdeGeom;          // stores a pointer on the ODE dGeom object when the WbGeometry lies into a boundingObject
-  bool mIs90DegreesRotated;  // rotate Capsule and Cylinder by 90 degrees: ODE to VRML rotation
   WbVector3 mLocalOdeGeomOffsetPosition;
   dMass *mOdeMass;        // needed to correct the WbSolid parent mass after the destruction of a bounding WbGeometry
   void applyToOdeMass();  // modifies the ODE dMass when the dimensions change
@@ -172,7 +190,6 @@ protected:
   WbWrenAbstractResizeManipulator *mResizeManipulator;  // Set of handles allowing resize by dragging the mouse
   bool mResizeManipulatorInitialized;
   int mResizeConstraint;
-  void checkForResizeManipulator();  // if needed create the resize manipulator according to the node location in the scene tree
 
 private:
   WbGeometry &operator=(const WbGeometry &);  // non copyable
@@ -190,9 +207,10 @@ private:
 
   WbVector3 mOdeOffsetTranslation;
   WbVector3 mOdePositionSet;
-  WbRotation mOdeOffsetRotation;
+  WbMatrix3 mOdeOffsetRotation;
 
   bool mPickable;
+  bool mIsTransparent;
 
 private slots:
   virtual void updateBoundingObjectVisibility(int optionalRendering);

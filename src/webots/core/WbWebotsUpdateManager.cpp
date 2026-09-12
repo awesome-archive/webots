@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,14 +17,15 @@
 #include "WbNetwork.hpp"
 
 #include <QtCore/QCoreApplication>
-#include <QtNetwork/QNetworkAccessManager>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 #include <QtNetwork/QNetworkReply>
 
 #include <cassert>
 
 WbWebotsUpdateManager *WbWebotsUpdateManager::cInstance = NULL;
 
-WbWebotsUpdateManager::WbWebotsUpdateManager() : mVersion(), mTargetVersionAvailable(false), mError() {
+WbWebotsUpdateManager::WbWebotsUpdateManager() : mTargetVersionAvailable(false) {
   sendRequest();
 }
 
@@ -48,7 +49,7 @@ void WbWebotsUpdateManager::cleanup() {
 
 void WbWebotsUpdateManager::sendRequest() {
   QNetworkRequest request;
-  request.setUrl(QUrl("https://www.cyberbotics.com/webots_current_version.txt"));
+  request.setUrl(QUrl("https://api.github.com/repos/cyberbotics/webots/releases/latest"));
   QNetworkReply *reply = WbNetwork::instance()->networkAccessManager()->get(request);
   connect(reply, &QNetworkReply::finished, this, &WbWebotsUpdateManager::downloadReplyFinished, Qt::UniqueConnection);
 }
@@ -59,17 +60,28 @@ void WbWebotsUpdateManager::downloadReplyFinished() {
   if (!reply)
     return;
 
+  disconnect(reply, &QNetworkReply::finished, this, &WbWebotsUpdateManager::downloadReplyFinished);
+
   if (reply->error()) {
     mError = tr("Cannot get the Webots current version due to: \"%1\"").arg(reply->errorString());
+    reply->deleteLater();
     return;
   }
 
-  disconnect(reply, &QNetworkReply::finished, this, &WbWebotsUpdateManager::downloadReplyFinished);
+  bool success = false;
+  QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+  if (!doc.isNull()) {
+    if (doc.isObject()) {
+      QJsonObject obj = doc.object();
+      if (obj.contains("tag_name"))
+        success = mVersion.fromString(obj.value("tag_name").toString());
+    }
+  }
 
-  QString answer = QString::fromUtf8(reply->readAll()).trimmed();
-  bool success = mVersion.fromString(answer);
+  reply->deleteLater();
+
   if (!success) {
-    mError = tr("Invalid format of the current Webots version: \"%1\"").arg(answer);
+    mError = tr("Invalid answer from the GitHub REST API.");
     return;
   }
 

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,10 +21,10 @@
 
 #include "WbPrecision.hpp"
 
-#include <QtCore/QString>
-#include <QtCore/QTextStream>
+#include <QtCore/QStringList>
 
 #include <cassert>
+#include <cfloat>
 #include <cmath>
 
 class WbVector2 {
@@ -127,8 +127,27 @@ public:
   double distance2(const WbVector2 &v) const { return (*this - v).length2(); }
 
   // returns a unit vector with the same direction: / length
-  void normalize() { *this /= length(); }
-  WbVector2 normalized() const { return *this / length(); }
+  void normalize() {
+    const double l = length();
+    if (l)
+      *this /= l;
+  }
+  WbVector2 normalized() const {
+    const double l = length();
+    return l ? *this / l : *this;
+  }
+
+  void clamp(double min = -FLT_MAX, double max = FLT_MAX) {
+    if (mX > max)
+      mX = max;
+    else if (mX < min)
+      mX = min;
+    if (mY > max)
+      mY = max;
+    else if (mY < min)
+      mY = min;
+  }
+
   // vector comparison
   bool operator==(const WbVector2 &v) const { return mX == v.mX && mY == v.mY; }
   bool operator!=(const WbVector2 &v) const { return mX != v.mX || mY != v.mY; }
@@ -140,18 +159,12 @@ public:
   bool isNull() const { return mX == 0.0 && mY == 0.0; }
 
   // text conversion
-  QString toString(WbPrecision::Level level) const {
+  QString toString(WbPrecision::Level level = WbPrecision::DOUBLE_MAX) const {
     return QString("%1 %2").arg(WbPrecision::doubleToString(mX, level)).arg(WbPrecision::doubleToString(mY, level));
   }
-  friend QTextStream &operator<<(QTextStream &stream, const WbVector2 &v);
 
 private:
   double mX, mY;
 };
-
-inline QTextStream &operator<<(QTextStream &stream, const WbVector2 &v) {
-  stream << v.toString(WbPrecision::DOUBLE_MAX);
-  return stream;
-}
 
 #endif

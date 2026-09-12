@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@
 
 class WbTreeItemDelegate;
 
+// cppcheck-suppress noConstructor
 class WbTreeView : public QTreeView {
   Q_OBJECT
   Q_PROPERTY(QColor defaultColor MEMBER mDefaultColor READ defaultColor WRITE setDefaultColor)
@@ -40,8 +41,8 @@ public:
   const QColor &defaultColor() const { return mDefaultColor; }
   const QColor &modifiedColor() const { return mModifiedColor; }
 
-  void setDefaultColor(QColor &color) { mDefaultColor = color; }
-  void setModifiedColor(QColor &color) { mModifiedColor = color; }
+  void setDefaultColor(const QColor &color) { mDefaultColor = color; }
+  void setModifiedColor(const QColor &color) { mModifiedColor = color; }
 
 public slots:
   void itemInserted(const QModelIndex &index);
@@ -52,6 +53,7 @@ signals:
   void selectionHasChanged();
   void focusIn();
   void refreshRequested();
+  void beforeContextMenuShowed();
 
 protected:
   void currentChanged(const QModelIndex &current, const QModelIndex &previous) override;

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,6 +37,7 @@ void WbPropeller::init() {
   mCenterOfThrust = findSFVector3("centerOfThrust");
   mThrustConstants = findSFVector2("thrustConstants");
   mTorqueConstants = findSFVector2("torqueConstants");
+  mFastHelixThreshold = findSFDouble("fastHelixThreshold");
   mDevice = findSFNode("device");
   mFastHelix = findSFNode("fastHelix");
   mSlowHelix = findSFNode("slowHelix");
@@ -44,6 +45,9 @@ void WbPropeller::init() {
   mPosition = 0.0;
   mHelixType = SLOW_HELIX;
   mHelix = NULL;
+
+  mCurrentThrust = 0.0;
+  mCurrentTorque = 0.0;
 
   // WREN
   mTransform = NULL;
@@ -75,6 +79,16 @@ WbPropeller::~WbPropeller() {
   }
 }
 
+void WbPropeller::downloadAssets() {
+  WbBaseNode::downloadAssets();
+  WbSolid *const fastHelix = helix(FAST_HELIX);
+  WbSolid *const slowHelix = helix(SLOW_HELIX);
+  if (fastHelix)
+    fastHelix->downloadAssets();
+  if (slowHelix)
+    slowHelix->downloadAssets();
+}
+
 void WbPropeller::preFinalize() {
   WbBaseNode::preFinalize();
 
@@ -82,13 +96,13 @@ void WbPropeller::preFinalize() {
   if (d && !d->isPreFinalizedCalled())
     d->preFinalize();
 
-  WbBaseNode *helix = static_cast<WbBaseNode *>(mFastHelix->value());
-  if (helix && !helix->isPreFinalizedCalled())
-    helix->preFinalize();
+  WbBaseNode *h = static_cast<WbBaseNode *>(mFastHelix->value());
+  if (h && !h->isPreFinalizedCalled())
+    h->preFinalize();
 
-  helix = static_cast<WbBaseNode *>(mSlowHelix->value());
-  if (helix && !helix->isPreFinalizedCalled())
-    helix->preFinalize();
+  h = static_cast<WbBaseNode *>(mSlowHelix->value());
+  if (h && !h->isPreFinalizedCalled())
+    h->preFinalize();
 
   updateShaftAxis();
   updateDevice();
@@ -101,13 +115,13 @@ void WbPropeller::postFinalize() {
   if (d && !d->isPostFinalizedCalled())
     d->postFinalize();
 
-  WbBaseNode *helix = static_cast<WbBaseNode *>(mFastHelix->value());
-  if (helix && !helix->isPostFinalizedCalled())
-    helix->postFinalize();
+  WbBaseNode *h = static_cast<WbBaseNode *>(mFastHelix->value());
+  if (h && !h->isPostFinalizedCalled())
+    h->postFinalize();
 
-  helix = static_cast<WbBaseNode *>(mSlowHelix->value());
-  if (helix && !helix->isPostFinalizedCalled())
-    helix->postFinalize();
+  h = static_cast<WbBaseNode *>(mSlowHelix->value());
+  if (h && !h->isPostFinalizedCalled())
+    h->postFinalize();
 
   updateHelix(0.0);
 
@@ -137,8 +151,7 @@ WbLogicalDevice *WbPropeller::device() const {
 
 // Update methods: they check validity and correct if necessary
 void WbPropeller::updateHelix(double angularSpeed, bool ode) {
-  const double ANGULAR_SPEED_THRESHOLD = 24.0 * M_PI;
-  const bool fast = fabs(angularSpeed) > ANGULAR_SPEED_THRESHOLD;
+  const bool fast = fabs(angularSpeed) > mFastHelixThreshold->value();
   mHelixType = fast ? FAST_HELIX : SLOW_HELIX;
   WbSolid *const fastHelix = helix(FAST_HELIX);
   WbSolid *const slowHelix = helix(SLOW_HELIX);
@@ -173,7 +186,7 @@ void WbPropeller::updateDevice() {
 void WbPropeller::updateShaftAxis() {
   static const WbVector3 DEFAULT_AXIS(0.0, 1.0, 0.0);
   if (mShaftAxis->value().isNull()) {
-    warn(
+    parsingWarn(
       tr("'shaftAxis'cannot be zero. Defaults to %1 %2 %3").arg(DEFAULT_AXIS.x()).arg(DEFAULT_AXIS.y()).arg(DEFAULT_AXIS.z()));
     mShaftAxis->setValue(DEFAULT_AXIS);
   }
@@ -185,6 +198,9 @@ void WbPropeller::updateShaftAxis() {
 }
 
 void WbPropeller::prePhysicsStep(double ms) {
+  mCurrentThrust = 0.0;
+  mCurrentTorque = 0.0;
+
   WbRotationalMotor *const m = motor();
   if (m == NULL)
     return;
@@ -200,31 +216,31 @@ void WbPropeller::prePhysicsStep(double ms) {
     const WbSolidMerger *const sm = us->solidMerger();
     dBodyID b = sm ? sm->body() : NULL;
     if (b == NULL) {
-      warn(tr("Adds a Physics node to Solid ancestors to enable thrust and torque effect."));
+      parsingWarn(tr("Adds a Physics node to Solid ancestors to enable thrust and torque effect."));
       return;
     }
 
     // Computes thrust and torque
-    const WbTransform *const ut = upperTransform();
-    const WbVector3 &cot = ut->matrix() * mCenterOfThrust->value();
-    double vp[3];
+    const WbPose *const up = upperPose();
+    const WbVector3 &cot = up->matrix() * mCenterOfThrust->value();
+    double vp[4];
     dBodyGetPointVel(b, cot.x(), cot.y(), cot.z(), vp);
     const double V = dCalcVectorDot3(vp, mNormalizedAxis.ptr());
 
     const WbVector2 &tcs = mTorqueConstants->value();
-    double torque = tcs.x() * velocity * absoluteVelocity - tcs.y() * absoluteVelocity * V;
+    mCurrentTorque = tcs.x() * velocity * absoluteVelocity - tcs.y() * absoluteVelocity * V;
     const double mt = m->maxForceOrTorque();
-    if (fabs(torque) > mt)
-      torque = torque > 0.0 ? mt : -mt;
+    if (fabs(mCurrentTorque) > mt)
+      mCurrentTorque = mCurrentTorque > 0.0 ? mt : -mt;
 
     const WbVector2 &fcs = mThrustConstants->value();
-    const double thrust = fcs.x() * velocity * absoluteVelocity - fcs.y() * absoluteVelocity * V;
+    mCurrentThrust = fcs.x() * velocity * absoluteVelocity - fcs.y() * absoluteVelocity * V;
 
     // Applies thrust and torque
-    const WbMatrix3 &m3 = ut->rotationMatrix();
-    const WbVector3 &axis = m3 * mNormalizedAxis;
-    const WbVector3 &thrustVector = thrust * axis;
-    const WbVector3 &torqueVector = -torque * axis;
+    const WbMatrix3 &m3 = up->rotationMatrix();
+    const WbVector3 &axisVector = m3 * mNormalizedAxis;
+    const WbVector3 &thrustVector = mCurrentThrust * axisVector;
+    const WbVector3 &torqueVector = -mCurrentTorque * axisVector;
     if (sm && !sm->isBodyArtificiallyDisabled())
       dBodyEnable(b);
     dBodyAddForceAtPos(b, thrustVector.x(), thrustVector.y(), thrustVector.z(), cot.x(), cot.y(), cot.z());
@@ -236,7 +252,7 @@ void WbPropeller::prePhysicsStep(double ms) {
 
     // Moves the slow helix
     const WbQuaternion q(mNormalizedAxis, mPosition);
-    const WbQuaternion iq(mHelix->rotationFromFile().toQuaternion());
+    const WbQuaternion iq(mHelix->rotationFromFile(stateId()).toQuaternion());
     WbQuaternion qp(q * iq);
     if (qp.w() != 1.0)
       qp.normalize();
@@ -244,7 +260,7 @@ void WbPropeller::prePhysicsStep(double ms) {
     if (r.angle() == 0.0)
       r = WbRotation(mNormalizedAxis.x(), mNormalizedAxis.y(), mNormalizedAxis.z(), 0.0);
     const WbVector3 &c = mCenterOfThrust->value();
-    mHelix->setTranslationAndRotation(q * (mHelix->translationFromFile() - c) + c, r);
+    mHelix->setTranslationAndRotation(q * (mHelix->translationFromFile(stateId()) - c) + c, r);
   }
 }
 
@@ -304,14 +320,14 @@ void WbPropeller::updateShaftAxisRepresentation() {
   wr_static_mesh_delete(mMesh);
 
   const float scaling = 0.5f * wr_config_get_line_scale();
-  const WbVector3 &centerOfThrust = mCenterOfThrust->value();
-  const WbVector3 axis(scaling * mNormalizedAxis);
-  const WbVector3 vMinus(centerOfThrust - axis);
-  const WbVector3 vPlus(centerOfThrust + axis);
+  const WbVector3 &centerOfThrustVector = mCenterOfThrust->value();
+  const WbVector3 axisVector(scaling * mNormalizedAxis);
+  const WbVector3 vMinusVector(centerOfThrustVector - axisVector);
+  const WbVector3 vPlusVector(centerOfThrustVector + axisVector);
 
   float vertices[6];
-  vMinus.toFloatArray(vertices);
-  vPlus.toFloatArray(vertices + 3);
+  vMinusVector.toFloatArray(vertices);
+  vPlusVector.toFloatArray(vertices + 3);
 
   mMesh = wr_static_mesh_line_set_new(2, vertices, NULL);
   wr_renderable_set_mesh(mRenderable, WR_MESH(mMesh));
@@ -345,35 +361,64 @@ void WbPropeller::propagateSelection(bool selected) {
     slowHelix->propagateSelection(selected);
 }
 
-void WbPropeller::write(WbVrmlWriter &writer) const {
+void WbPropeller::write(WbWriter &writer) const {
   if (writer.isWebots())
     WbBaseNode::write(writer);
   else {
-    WbGroup *const gp = new WbGroup();
-    WbSolid *const fastHelix = helix(FAST_HELIX);
-    WbSolid *const slowHelix = helix(SLOW_HELIX);
-    if (fastHelix)
-      gp->addChild(new WbSolid(*fastHelix));
-    if (slowHelix)
-      gp->addChild(new WbSolid(*slowHelix));
-
-    gp->write(writer);
-    delete gp;
+    const WbSolid *const fastHelix = helix(FAST_HELIX);
+    const WbSolid *const slowHelix = helix(SLOW_HELIX);
+    if (writer.isW3d())
+      writer << "<Propeller>";
+    else {
+      writer << "Group {\n";
+      writer.increaseIndent();
+      writer.indent();
+      writer << "children ";
+    }
+    writer.writeMFStart();
+    if (fastHelix) {
+      writer.writeMFSeparator(true, false);
+      fastHelix->write(writer);
+    }
+    if (slowHelix) {
+      writer.writeMFSeparator(!fastHelix, false);
+      slowHelix->write(writer);
+    }
+    writer.writeMFEnd(!fastHelix && !slowHelix);
+    if (writer.isW3d())
+      writer << "</Propeller>";
+    else {
+      writer << "\n";
+      writer.decreaseIndent();
+      writer.indent();
+      writer << "}";
+    }
   }
 }
 
-void WbPropeller::reset() {
-  WbBaseNode::reset();
+void WbPropeller::reset(const QString &id) {
+  WbBaseNode::reset(id);
 
-  WbNode *const device = mDevice->value();
-  if (device)
-    device->reset();
+  WbNode *const d = mDevice->value();
+  if (d)
+    d->reset(id);
   WbNode *const fastHelix = mFastHelix->value();
   if (fastHelix)
-    fastHelix->reset();
+    fastHelix->reset(id);
   WbNode *const slowHelix = mSlowHelix->value();
   if (slowHelix)
-    slowHelix->reset();
+    slowHelix->reset(id);
 
   updateHelix(0.0);
+}
+
+QList<const WbBaseNode *> WbPropeller::findClosestDescendantNodesWithDedicatedWrenNode() const {
+  QList<const WbBaseNode *> list;
+  const WbBaseNode *const fastHelix = helix(FAST_HELIX);
+  if (fastHelix)
+    list << fastHelix->findClosestDescendantNodesWithDedicatedWrenNode();
+  const WbBaseNode *const slowHelix = helix(SLOW_HELIX);
+  if (slowHelix)
+    list << slowHelix->findClosestDescendantNodesWithDedicatedWrenNode();
+  return list;
 }

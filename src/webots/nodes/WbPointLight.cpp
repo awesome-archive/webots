@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,11 +19,11 @@
 #include "WbLightRepresentation.hpp"
 #include "WbMFColor.hpp"
 #include "WbNodeUtilities.hpp"
+#include "WbPose.hpp"
 #include "WbSFBool.hpp"
 #include "WbSFColor.hpp"
 #include "WbSFDouble.hpp"
 #include "WbSFVector3.hpp"
-#include "WbTransform.hpp"
 #include "WbWrenRenderingContext.hpp"
 
 #include <wren/config.h>
@@ -39,14 +39,16 @@ void WbPointLight::init() {
   mAttenuation = findSFVector3("attenuation");
   mLocation = findSFVector3("location");
   mRadius = findSFDouble("radius");
+
+  mSavedLocation[stateId()] = mLocation->value();
 }
 
 WbPointLight::WbPointLight(WbTokenizer *tokenizer) : WbLight("PointLight", tokenizer) {
   init();
-  if (tokenizer == NULL)
+  if (tokenizer == NULL) {
     mLocation->setYnoSignal(0.3);
-  if (tokenizer == NULL)
     mAttenuation->setValueNoSignal(0.0, 0.0, 1.0);
+  }
 }
 
 WbPointLight::WbPointLight(const WbPointLight &other) : WbLight(other) {
@@ -59,12 +61,20 @@ WbPointLight::WbPointLight(const WbNode &other) : WbLight(other) {
 
 WbPointLight::~WbPointLight() {
   if (areWrenObjectsInitialized()) {
-    detachFromUpperTransform();
+    detachFromUpperPose();
     wr_node_delete(WR_NODE(mWrenLight));
-  }
-
-  if (areWrenObjectsInitialized())
     delete mLightRepresentation;
+  }
+}
+
+void WbPointLight::reset(const QString &id) {
+  WbLight::reset(id);
+  mLocation->setValue(mSavedLocation[id]);
+}
+
+void WbPointLight::save(const QString &id) {
+  WbLight::save(id);
+  mSavedLocation[id] = mLocation->value();
 }
 
 void WbPointLight::preFinalize() {
@@ -85,9 +95,9 @@ void WbPointLight::postFinalize() {
 
 WbVector3 WbPointLight::computeAbsoluteLocation() const {
   WbVector3 location = mLocation->value();
-  WbTransform *ut = upperTransform();
-  if (ut)
-    location = ut->matrix() * location;
+  const WbPose *const up = upperPose();
+  if (up)
+    location = up->matrix() * location;
   return location;
 }
 
@@ -96,7 +106,7 @@ void WbPointLight::createWrenObjects() {
           &WbPointLight::updateOptionalRendering);
 
   mWrenLight = wr_point_light_new();
-  attachToUpperTransform();
+  attachToUpperPose();
   WbLight::createWrenObjects();
 
   // Has to be done after WbLight::createWrenTransform (otherwise wrenNode() == NULL)
@@ -114,8 +124,12 @@ void WbPointLight::updateOptionalRendering(int option) {
 }
 
 void WbPointLight::updateAttenuation() {
-  if (WbFieldChecker::checkVector3IsNonNegative(this, mAttenuation, WbVector3()))
+  if (WbFieldChecker::resetVector3IfNegative(this, mAttenuation, WbVector3()))
     return;
+
+  if (mAttenuation->value().x() > 0.0 || mAttenuation->value().y() > 0.0)
+    parsingWarn(tr("A quadratic 'attenuation' should be preferred to have a realistic simulation of light. "
+                   "Only the third component of the 'attenuation' field should be greater than 0."));
 
   checkAmbientAndAttenuationExclusivity();
 
@@ -130,7 +144,7 @@ void WbPointLight::updateLocation() {
 }
 
 void WbPointLight::updateRadius() {
-  if (WbFieldChecker::checkDoubleIsNonNegative(this, mRadius, 0.0))
+  if (WbFieldChecker::resetDoubleIfNegative(this, mRadius, 0.0))
     return;
 
   if (areWrenObjectsInitialized())
@@ -153,25 +167,22 @@ void WbPointLight::updateOn() {
     applyBillboardVisibilityToWren();
 }
 
-void WbPointLight::updateColor() {
-  WbLight::updateColor();
-}
-
 void WbPointLight::checkAmbientAndAttenuationExclusivity() {
   if (mAttenuation->value() != WbVector3(1.0, 0.0, 0.0) && ambientIntensity() != 0.0) {
-    warn(tr("'ambientIntensity' and 'attenuation' cannot differ from their default values at the same time. 'ambientIntensity' "
-            "was changed to 0."));
+    parsingWarn(
+      tr("'ambientIntensity' and 'attenuation' cannot differ from their default values at the same time. 'ambientIntensity' "
+         "was changed to 0."));
     setAmbientIntensity(0.0);
   }
 }
 
-void WbPointLight::attachToUpperTransform() {
-  WbTransform *upperTransform = WbNodeUtilities::findUpperTransform(this);
-  if (upperTransform)
-    wr_transform_attach_child(upperTransform->wrenNode(), WR_NODE(mWrenLight));
+void WbPointLight::attachToUpperPose() {
+  const WbPose *const upperPose = WbNodeUtilities::findUpperPose(this);
+  if (upperPose)
+    wr_transform_attach_child(upperPose->wrenNode(), WR_NODE(mWrenLight));
 }
 
-void WbPointLight::detachFromUpperTransform() {
+void WbPointLight::detachFromUpperPose() {
   WrNode *node = WR_NODE(mWrenLight);
   WrTransform *parent = wr_node_get_parent(node);
   if (parent)
@@ -194,7 +205,7 @@ void WbPointLight::applyLightVisibilityToWren() {
   const int maxCount = wr_config_get_max_active_point_light_count();
   const int activeCount = wr_scene_get_active_point_light_count(wr_scene_get_instance());
   if (activeCount == maxCount)
-    warn(
+    parsingWarn(
       tr("Maximum number of active point lights (%1) has been reached, newly added lights won't be rendered.").arg(maxCount));
 }
 
@@ -224,9 +235,10 @@ double WbPointLight::computeAttenuation(double distance) const {
   return 1.0 / (mAttenuation->x() + mAttenuation->y() * distance + mAttenuation->z() * distance * distance);
 }
 
-void WbPointLight::exportNodeFields(WbVrmlWriter &writer) const {
-  findField("attenuation", true)->write(writer);
-  findField("location", true)->write(writer);
-  findField("radius", true)->write(writer);
-  WbLight::exportNodeFields(writer);
+QStringList WbPointLight::fieldsToSynchronizeWithW3d() const {
+  QStringList fields;
+  fields << "attenuation"
+         << "location"
+         << "radius" << WbLight::fieldsToSynchronizeWithW3d();
+  return fields;
 }

@@ -52,16 +52,16 @@ void Graph2D::clear() {
   update();
 }
 
-void Graph2D::addNewColor(const QColor &c) {
+void Graph2D::addNewColor(const QColor &color) {
   bool found = false;
-  foreach (QColor *color, mColors) {
-    if (c == *color) {
+  foreach (const QColor *currentColor, mColors) {
+    if (color == *currentColor) {
       found = true;
       break;
     }
   }
   if (!found)
-    mColors.insert(new QColor(c));
+    mColors.insert(new QColor(color));
 }
 
 void Graph2D::addPoint2D(const Point2D &point) {
@@ -191,7 +191,7 @@ void Graph2D::extendRange() {
 }
 
 void Graph2D::extendXRange() {
-  foreach (Point2D *point, mPoints) {
+  foreach (const Point2D *point, mPoints) {
     if (point->x() < mRanges[CX][MIN])
       mRanges[CX][MIN] = point->x();
     if (point->x() > mRanges[CX][MAX])
@@ -200,7 +200,7 @@ void Graph2D::extendXRange() {
 }
 
 void Graph2D::extendYRange() {
-  foreach (Point2D *point, mPoints) {
+  foreach (const Point2D *point, mPoints) {
     if (point->y() < mRanges[CY][MIN])
       mRanges[CY][MIN] = point->y();
     if (point->y() > mRanges[CY][MAX])
@@ -237,9 +237,9 @@ int Graph2D::yToV(double y) {
 }
 
 void Graph2D::drawPoints(QPainter &painter) {
-  foreach (QColor *color, mColors) {
+  foreach (const QColor *color, mColors) {
     painter.setPen(*color);
-    foreach (Point2D *point, mPoints) {
+    foreach (const Point2D *point, mPoints) {
       if (point->color() == *color && point->x() <= mRanges[CX][MAX] && point->x() >= mRanges[CX][MIN] &&
           point->y() <= mRanges[CY][MAX] && point->y() >= mRanges[CY][MIN])
         drawUVPoint(painter, xToU(point->x()), yToV(point->y()));
@@ -248,9 +248,9 @@ void Graph2D::drawPoints(QPainter &painter) {
 }
 
 void Graph2D::drawLines(QPainter &painter) {
-  foreach (QColor *color, mColors) {
+  foreach (const QColor *color, mColors) {
     painter.setPen(*color);
-    foreach (Line2D *line, mLines) {
+    foreach (const Line2D *line, mLines) {
       if (line->color() == *color)
         painter.drawLine(xToU(line->x1()), yToV(line->y1()), xToU(line->x2()), yToV(line->y2()));
     }

@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -94,6 +94,8 @@ public:
   WbVector3 yAxis() const { return WbVector3(mM[1], mM[5], mM[9]); }
   WbVector3 zAxis() const { return WbVector3(mM[2], mM[6], mM[10]); }
 
+  QString toString(WbPrecision::Level level) const;
+
   // make identity
   void setIdentity();
 
@@ -112,8 +114,6 @@ public:
   void scale(double sx, double sy, double sz);
 
   // extracts the rotation submatrix
-  void extract3x3Matrix(WbMatrix3 &m) const;
-  void extract3x3Matrix(WbMatrix3 &m, double scale) const;
   WbMatrix3 extracted3x3Matrix() const;
   WbVector3 sub3x3MatrixDot(const WbVector3 &v) const;
 
@@ -219,7 +219,7 @@ inline void WbMatrix4::fromVrml(double tx, double ty, double tz, double rx, doub
   mM[12] = mM[13] = mM[14] = 0.0;
   mM[15] = 1.0;
 
-  // rotate ans scale (assuming the rotation vector is normalized)
+  // rotate and scale (assuming the rotation vector is normalized)
   mM[0] = (rx * rx * t1 + c) * sx;
   mM[1] = (t3 - rz * s) * sy;
   mM[2] = (t2 + ry * s) * sz;
@@ -229,6 +229,32 @@ inline void WbMatrix4::fromVrml(double tx, double ty, double tz, double rx, doub
   mM[8] = (t2 - ry * s) * sx;
   mM[9] = (t4 + rx * s) * sy;
   mM[10] = (rz * rz * t1 + c) * sz;
+}
+
+inline QString WbMatrix4::toString(WbPrecision::Level level = WbPrecision::Level::DOUBLE_MAX) const {
+  QString result = "[\n";
+  result += QString("  %1 %2 %3 %4\n")
+              .arg(WbPrecision::doubleToString(mM[0], level))
+              .arg(WbPrecision::doubleToString(mM[1], level))
+              .arg(WbPrecision::doubleToString(mM[2], level))
+              .arg(WbPrecision::doubleToString(mM[3], level));
+  result += QString("  %1 %2 %3 %4\n")
+              .arg(WbPrecision::doubleToString(mM[4], level))
+              .arg(WbPrecision::doubleToString(mM[5], level))
+              .arg(WbPrecision::doubleToString(mM[6], level))
+              .arg(WbPrecision::doubleToString(mM[7], level));
+  result += QString("  %1 %2 %3 %4\n")
+              .arg(WbPrecision::doubleToString(mM[8], level))
+              .arg(WbPrecision::doubleToString(mM[9], level))
+              .arg(WbPrecision::doubleToString(mM[10], level))
+              .arg(WbPrecision::doubleToString(mM[11], level));
+  result += QString("  %1 %2 %3 %4\n")
+              .arg(WbPrecision::doubleToString(mM[12], level))
+              .arg(WbPrecision::doubleToString(mM[13], level))
+              .arg(WbPrecision::doubleToString(mM[14], level))
+              .arg(WbPrecision::doubleToString(mM[15], level));
+  result += "]\n";
+  return result;
 }
 
 #endif

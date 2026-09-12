@@ -6,9 +6,24 @@
 #include "ode/collision_space.h"
 #include "ode/collision_trimesh.h"
 
+#ifdef dNODEBUG
 #define ODE_PRINT(...) do {} while(0)
 #define ODE_INFO(...) do {} while(0)
 #define ODE_IMPORTANT(...) do {} while(0)
+#else
+// We've disabled ODE's debug logging, but the arguments are still referenced in dead code that
+// the optimizer removes. This keeps variables used only for debug logging from being
+// reported as unused, without evaluating the arguments at runtime or producing output.
+inline void ode_debug_noop(...) {}
+#define ODE_PRINT(...) do { (void)(1 ? 0 : (ode_debug_noop(__VA_ARGS__), 0)); } while(0)
+#define ODE_INFO(...) do { (void)(1 ? 0 : (ode_debug_noop(__VA_ARGS__), 0)); } while(0)
+#define ODE_IMPORTANT(...) do { (void)(1 ? 0 : (ode_debug_noop(__VA_ARGS__), 0)); } while(0)
+// Display the debug messages through ODE's messaging facility (the same channel used by
+// dDEBUGMSG). Disabled in release builds (dNODEBUG), where these expand to no-ops.
+//#define ODE_PRINT(...) do { dMessage(d_ERR_UASSERT, __VA_ARGS__); } while(0)
+//#define ODE_INFO(...) do { dMessage(d_ERR_UASSERT, __VA_ARGS__); } while(0)
+//#define ODE_IMPORTANT(...) do { dMessage(d_ERR_UASSERT, __VA_ARGS__); } while(0)
+#endif
 
 typedef dWorldID dWorldCreateFunction();
 typedef dSpaceID dSpaceCreateFunction(dSpaceID);
@@ -48,8 +63,10 @@ public:
     static dReal odeMax(dReal val1, dReal val2, dReal val3);
     static dReal odeMin(dReal val1, dReal val2, dReal val3);
 
+#ifndef dNODEBUG
     static void checkClusterNodes(int clusterCount, struct dxClusterNode** clusterAABBs);
     static void checkBodyAndGeomConsistency(int clusterCount, struct ClusterNode** clusterArray);
+#endif
     static void printWorldJoints(dxWorld *_world);
     static void printJoints(dxBody *body);
     static void printBodyInfo(dxBody *_body);

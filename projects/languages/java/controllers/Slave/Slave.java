@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ import com.cyberbotics.webots.controller.Camera;
 import com.cyberbotics.webots.controller.DistanceSensor;
 import com.cyberbotics.webots.controller.Motor;
 import com.cyberbotics.webots.controller.Receiver;
+import com.cyberbotics.webots.controller.AnsiCodes;
 
 public class Slave extends Robot {
 
@@ -45,6 +46,9 @@ public class Slave extends Robot {
   }
 
   public Slave() {
+  }
+
+  public void initialize() {
     camera = getCamera("camera");
     camera.enable(4*timeStep);
     receiver = getReceiver("receiver");
@@ -64,12 +68,11 @@ public class Slave extends Robot {
 
     // perform a simulation steps and leave the loop when the simulation is ended
     while (step(timeStep) != -1) {
-
       // Read sensors, particularly the order of the supervisor
       if (receiver.getQueueLength()>0){
         String message = new String(receiver.getData());
         receiver.nextPacket();
-        System.out.println("I should "+message+"!");
+        System.out.println("I should "+AnsiCodes.RED_FOREGROUND+message+AnsiCodes.RESET+"!");
         if (message.equals("avoid obstacles"))
           mode = Mode.AVOID_OBSTACLES;
         else if (message.equals("move forward"))
@@ -106,6 +109,7 @@ public class Slave extends Robot {
 
   public static void main(String[] args) {
     Slave controller = new Slave();
+    controller.initialize();
     controller.run();
   }
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 1996-2018 Cyberbotics Ltd.
+ * Copyright 1996-2024 Cyberbotics Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@
 #include <webots/distance_sensor.h>
 #include <webots/motor.h>
 #include <webots/robot.h>
+#include <webots/utils/ansi_codes.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -122,11 +123,17 @@ int main(int argc, char **argv) {
     }
 
     // print results
+    ANSI_CLEAR_CONSOLE();
     for (i = 0; i < 3; i++)
-      printf("last %s blob seen at (%d,%d) with an angle of %f\n", (i == GREEN) ? "Green" : (i == RED) ? "Red" : "Blue",
+      // clang-format off
+      // clang-format 11.0.0 is not compatible with previous versions with respect to nested conditional operators
+      printf("last %s blob seen at (%d,%d) with an angle of %f\n",
+             (i == GREEN) ? "Green" :
+             (i == RED)   ? "Red" :
+                            "Blue",
              color_index[i][X], color_index[i][Y],
              coord2D_to_angle((double)(color_index[i][X] + width / 2), (double)(color_index[i][Y] + height / 2)));
-    printf("\n");
+    // clang-format on
 
     // set actuators
     wb_motor_set_velocity(left_motor, 3.0 + speed[LEFT]);

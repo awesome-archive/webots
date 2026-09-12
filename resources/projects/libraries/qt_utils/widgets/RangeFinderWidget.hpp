@@ -15,16 +15,16 @@ namespace webotsQtUtils {
     Q_OBJECT
 
   public:
-    RangeFinderWidget(Device *device, QWidget *parent = NULL);
-    virtual ~RangeFinderWidget() {}
+    explicit RangeFinderWidget(Device *device, QWidget *parent = NULL);
+    virtual ~RangeFinderWidget() override {}
 
-    virtual void readSensors();
+    void readSensors() override;
 
   protected slots:
-    virtual void enable(bool enable);
+    void enable(bool enable) override;
 
   protected:
-    bool isEnabled() const;
+    bool isEnabled() const override;
 
     QLabel *mLabel;
     QHBoxLayout *mHBox;

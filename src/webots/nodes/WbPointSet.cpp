@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -79,9 +79,7 @@ void WbPointSet::createWrenObjects() {
   WbGeometry::createWrenObjects();
   wr_config_enable_point_size(true);
   updateCoord();
-
   buildWrenMesh();
-
   emit wrenObjectsCreated();
 }
 
@@ -98,17 +96,17 @@ void WbPointSet::setWrenMaterial(WrMaterial *material, bool castShadows) {
 
 bool WbPointSet::sanitizeFields() {
   if (!coord() || coord()->point().isEmpty()) {
-    warn(tr("A non-empty 'Coordinate' node should be present in the 'coord' field."));
+    parsingWarn(tr("A non-empty 'Coordinate' node should be present in the 'coord' field."));
     return false;
   }
 
   if (color() && color()->color().size() != coord()->pointSize()) {
-    warn(tr("If a 'Color' node is present in the 'color' field, it should have the same number of component as the "
-            "'Coordinate' node in the 'coord' field."));
+    parsingWarn(tr("If a 'Color' node is present in the 'color' field, it should have the same number of component as the "
+                   "'Coordinate' node in the 'coord' field."));
     if (color()->color().isEmpty())
       return false;
     else
-      warn(tr("Only the %1 first points will be drawn.").arg(qMin(color()->color().size(), coord()->point().size())));
+      parsingWarn(tr("Only the %1 first points will be drawn.").arg(qMin(color()->color().size(), coord()->point().size())));
   }
 
   return true;
@@ -120,10 +118,10 @@ void WbPointSet::buildWrenMesh() {
   wr_static_mesh_delete(mWrenMesh);
   mWrenMesh = NULL;
 
-  WbGeometry::computeWrenRenderable();
-
-  if (!sanitizeFields())
+  if (!coord() || coord()->pointSize() == 0)
     return;
+
+  WbGeometry::computeWrenRenderable();
 
   float *coordsData = new float[coord()->pointSize() * 3];
   float *colorData = NULL;
@@ -151,22 +149,22 @@ int WbPointSet::computeCoordsAndColorData(float *coordsData, float *colorData) {
   if (colorData) {
     WbMFColor::Iterator colorIt(color()->color());
     while (coordsIt.hasNext() && colorIt.hasNext()) {
-      WbVector3 coord = coordsIt.next();
-      WbRgb color = colorIt.next();
-      coordsData[3 * count] = coord.x();
-      coordsData[3 * count + 1] = coord.y();
-      coordsData[3 * count + 2] = coord.z();
-      colorData[3 * count] = color.red();
-      colorData[3 * count + 1] = color.green();
-      colorData[3 * count + 2] = color.blue();
+      WbVector3 v = coordsIt.next();
+      WbRgb c = colorIt.next();
+      coordsData[3 * count] = v.x();
+      coordsData[3 * count + 1] = v.y();
+      coordsData[3 * count + 2] = v.z();
+      colorData[3 * count] = c.red();
+      colorData[3 * count + 1] = c.green();
+      colorData[3 * count + 2] = c.blue();
       count++;
     }
   } else {
     while (coordsIt.hasNext()) {
-      WbVector3 coord = coordsIt.next();
-      coordsData[3 * count] = coord.x();
-      coordsData[3 * count + 1] = coord.y();
-      coordsData[3 * count + 2] = coord.z();
+      WbVector3 v = coordsIt.next();
+      coordsData[3 * count] = v.x();
+      coordsData[3 * count + 1] = v.y();
+      coordsData[3 * count + 2] = v.z();
       count++;
     }
   }
@@ -176,6 +174,9 @@ int WbPointSet::computeCoordsAndColorData(float *coordsData, float *colorData) {
 void WbPointSet::updateCoord() {
   if (coord())
     connect(coord(), &WbCoordinate::fieldChanged, this, &WbPointSet::updateCoord, Qt::UniqueConnection);
+
+  if (!sanitizeFields())
+    return;
 
   if (areWrenObjectsInitialized())
     buildWrenMesh();
@@ -189,6 +190,9 @@ void WbPointSet::updateCoord() {
 void WbPointSet::updateColor() {
   if (color())
     connect(color(), &WbCoordinate::fieldChanged, this, &WbPointSet::updateColor, Qt::UniqueConnection);
+
+  if (!sanitizeFields())
+    return;
 
   if (areWrenObjectsInitialized())
     buildWrenMesh();
@@ -216,7 +220,7 @@ void WbPointSet::recomputeBoundingSphere() const {
     maxDistance = 0.0;
     p1 = p2;
     while (it.hasNext()) {
-      const WbVector3 point = it.next();
+      const WbVector3 &point = it.next();
       const double d = p1.distance2(point);
       if (d > maxDistance) {
         maxDistance = d;

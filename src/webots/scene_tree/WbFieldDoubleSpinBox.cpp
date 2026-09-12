@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -49,6 +49,14 @@ void WbFieldDoubleSpinBox::setValueNoSignals(double value) {
   blockSignals(false);
 }
 
+void WbFieldDoubleSpinBox::setMode(int mode) {
+  mDecimals = 0;
+  mMode = mode;
+  if (mMode == RGB)
+    setRange(0.0, 1.0);
+  findDecimals(text());
+}
+
 void WbFieldDoubleSpinBox::stepBy(int steps) {
   double value = text().toDouble();
 
@@ -58,17 +66,16 @@ void WbFieldDoubleSpinBox::stepBy(int steps) {
       value += pow(10, -mDecimals) * steps;
       break;
     case RADIANS: {
-      // angle in radians: change by pi/24 and snap to pi/24 if close by 1%
+      // angle in radians: change by pi/24 and snap to the nearest multiple of PI
       value += M_PI * steps / 24.0;
-      double intpart;
-      double decpart = modf(fabs(value) / M_PI, &intpart);
+      double decpart = fmod(fabs(value) / M_PI, 1.0);
       if (decpart < 0.01 || decpart > 0.99)
-        value = M_PI * intpart * (value >= 0 ? 1.0 : -1.0);
+        value = M_PI * round(value / M_PI);
       break;
     }
     case AXIS:
-      // rotation axis: change between -1, 0, 1
-      value += steps;
+      // rotation axis: change the last decimal and bound between -1, 0, 1
+      value += pow(10, -mDecimals) * steps;
       value = qBound(-1.0, value, 1.0);
       break;
     case RGB:
@@ -85,7 +92,7 @@ void WbFieldDoubleSpinBox::stepBy(int steps) {
 }
 
 void WbFieldDoubleSpinBox::findDecimals(const QString &text) {
-  if (mMode != NORMAL && mMode != RGB)
+  if (mMode == RADIANS)
     return;
 
   // find current decimal position
@@ -107,7 +114,7 @@ void WbFieldDoubleSpinBox::keyPressEvent(QKeyEvent *event) {
     WbUndoStack::instance()->redo();
   else
     WbDoubleSpinBox::keyPressEvent(event);
-};
+}
 
 void WbFieldDoubleSpinBox::keyReleaseEvent(QKeyEvent *event) {
   QDoubleSpinBox::keyReleaseEvent(event);

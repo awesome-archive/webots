@@ -1,8 +1,14 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://tests/default/protos/TestSuiteEmitter.proto"
+EXTERNPROTO "webots://projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "webots://tests/default/protos/TestSuiteSupervisor.proto"
+
 WorldInfo {
+  coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation 0.588686 0.799884 0.116762 5.72617
+  orientation 0.5886862988478528 0.7998844060630216 0.11676205927450796 5.72617
   position -1.07024 1.46083 2.18653
 }
 Background {
@@ -11,7 +17,7 @@ Background {
   ]
 }
 PointLight {
-  ambientIntensity 1
+  attenuation 0 0 1
   intensity 0
 }
 Robot {
@@ -34,8 +40,10 @@ Robot {
       jointParameters JointParameters {
         axis 0 1 0
       }
-      device LinearMotor {
-      }
+      device [
+        LinearMotor {
+        }
+      ]
       endPoint Solid {
         translation 0 0.6 0
         children [
@@ -56,6 +64,7 @@ Robot {
   selfCollision TRUE
 }
 Floor {
+  rotation 1 0 0 -1.5708
 }
 TestSuiteSupervisor {
 }

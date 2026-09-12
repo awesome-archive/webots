@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -47,13 +47,14 @@ public:
   explicit WbSolid(WbTokenizer *tokenizer = NULL);
   WbSolid(const WbSolid &other);
   explicit WbSolid(const WbNode &other);
-  virtual ~WbSolid();
+  virtual ~WbSolid() override;
 
   // list of finalized solids
   static const QList<const WbSolid *> &solids() { return cSolids; }
 
   // reimplemented public functions
   int nodeType() const override { return WB_NODE_SOLID; }
+  void downloadAssets() override;
   void createWrenObjects() override;
   void preFinalize() override;
   void validateProtoNode() override;
@@ -61,15 +62,18 @@ public:
   void propagateSelection(bool selected) override;
   void saveHiddenFieldValues() const;
   void setMatrixNeedUpdate() override;
-  void reset() override;
-  void save() override;
+  void reset(const QString &id) override;
+  void save(const QString &id) override;
+  void updateSegmentationColor(const WbRgb &color) override;
 
   // processing before / after ODE world step
   virtual void prePhysicsStep(double ms);
   virtual void postPhysicsStep();
 
-  void setScaleNeedUpdate() override;
   void createOdeObjects() override;
+
+  // remove and delete all solid children
+  void deleteAllSolids() override;
 
   // field accessors
   const QString &contactMaterial() const { return mContactMaterial->value(); }
@@ -104,7 +108,6 @@ public:
   }
   void updateCenterOfMass();  // update the center of mass according to the Physics node specification
   const WbVector3 &centerOfMass() const { return mCenterOfMass; }
-  const WbVector3 &scaledCenterOfMass() const { return mScaledCenterOfMass; }
   dMass *referenceMass() const { return mReferenceMass; }
   // returns inertia and CoM relative to solid center in the local frame coordinates
   dMass *odeMass() const { return mOdeMass; }
@@ -115,15 +118,7 @@ public:
     return includeDescendants ? mGlobalListOfContactPoints : mListOfContactPoints;
   }
   const QVector<WbVector3> &computedContactPoints(bool includeDescendants = false);
-
-  // accessors to stored fields
-  const WbVector3 &translationFromFile() const { return mTranslationLoadedFromFile; }
-  const WbRotation &rotationFromFile() const { return mRotationLoadedFromFile; }
-  void setTranslationFromFile(const WbVector3 &translation) { mTranslationLoadedFromFile = translation; }
-  void setRotationFromFile(const WbRotation &rotation) { mRotationLoadedFromFile = rotation; }
-  // only used by WbDifferentialWheels
-  const WbVector3 &physicsResetTranslation() const { return mPhysicsResetTranslation; }
-  const WbRotation &physicsResetRotation() const { return mPhysicsResetRotation; }
+  const QVector<const WbSolid *> &computedSolidPerContactPoints();
 
   // Solid merger
   QPointer<WbSolidMerger> solidMerger() const { return mSolidMerger; }
@@ -138,7 +133,6 @@ public:
   void removeJointParent(WbBasicJoint *joint);
 
   // set up joints for special nodes:
-  // - hinge joint between Solid wheel and DifferentialWheels
   // - fixed joint between TouchSensor and parent body
   // - fixed joint between dynamic solid child and kinematic parent body (static environment)
   void setOdeJointToUpperSolid();
@@ -154,14 +148,14 @@ public:
   void awake();
   static void awakeSolids(WbGroup *group);
 
-  void resetPhysics() override;
+  void resetPhysics(bool recursive = true) override;
   // pause/resume physics computation on the current solid and its descandants
-  void pausePhysics() override;
+  void pausePhysics(bool resumeAutomatically = false) override;
   void resumePhysics() override;
 
   // handle artifical moves triggered by the user or a Supervisor
   void jerk(bool resetVelocities = true, bool rootJerk = true) override;
-  void notifyChildJerk(WbTransform *childNode);
+  void notifyChildJerk(WbPose *childNode);
 
   // physics setters
   void addForceAtPosition(const WbVector3 &force, const WbVector3 &position);
@@ -198,9 +192,9 @@ public:
   // ODE positioning
   void resetJointsToLinkedSolids();  // reset joint to any linked solid to this one
 
-  // update the node tranform matrix based on the newly computed ODE transform matrix
+  // update the node transform matrix based on the newly computed ODE transform matrix
   // it loops through all the ancestor Solid nodes with a body and updates them
-  void updateTransformAfterPhysicsStep();
+  void updateTransformForPhysicsStep();
 
   // Density
   double volume() const;
@@ -220,7 +214,7 @@ public:
   void collectHiddenKinematicParameters(WbHiddenKinematicParameters::HiddenKinematicParametersMap &map,
                                         int &counter) const override;
 
-  // Threshold to handle mass round off errors after resize / rescale events
+  // Threshold to handle mass round off errors after resize events
   static const double MASS_ZERO_THRESHOLD;
 
   WbBasicJoint *jointParent() const;
@@ -235,8 +229,8 @@ public:
   // Functions to compute unique name, find a Solid based on the unique name and resolve name clashes
   QString computeUniqueName() const;
   WbSolid *findDescendantSolidFromUniqueName(QStringList &names) const;
-  void resolveNameClashIfNeeded(bool automaticallyChange, bool recursive, const QList<WbSolid *> siblings,
-                                QSet<const QString> *topSolidNameSet) const;
+  void resolveNameClashIfNeeded(bool automaticallyChange, bool recursive, const QList<WbSolid *> &siblings,
+                                QSet<const QString> *topSolidNameSet);
   static WbSolid *findSolidFromUniqueName(const QString &name);
   static QStringList splitUniqueNamesByEscapedPattern(const QString &text, const QString &pattern);
 
@@ -252,6 +246,8 @@ public slots:
   void updateGlobalCenterOfMass();
   void updateGraphicalGlobalCenterOfMass();
   void resetPhysicsIfRequired(bool changedFromSupervisor);
+  virtual void updateChildren();
+  void updateBoundingObject() override;
 
 protected:
   // this constructor is reserved for derived classes only
@@ -262,16 +258,11 @@ protected:
   const QList<WbBasicJoint *> &jointParents() const { return mJointParents; }
   void setJointParents();
 
-  // store translation and rotation after resetting the physics
-  // used only by WbDifferentialWheels
-  WbVector3 mPhysicsResetTranslation;
-  WbRotation mPhysicsResetRotation;
-
   // to-be-reimplemented in derived classes
   void updateName() override;
   virtual dJointID createJoint(dBodyID body, dBodyID parentBody, dWorldID world) const;
   // check if a ODE joint is needed between current and upper solid
-  // special cases for: TouchSensor and DifferentialWheels
+  // special cases for: TouchSensor
   virtual bool needJointToUpperSolid(const WbSolid *upperSolid) const;
 
   // Avoids joint destruction, which is safer with respect to physics plugins
@@ -282,9 +273,6 @@ protected:
   void applyChangesToWren() override;
   void applyMassCenterToWren();
 
-  // Scale
-  void propagateScale() override;  // overriden in WbDistanceSensor
-
   // Solid merger, i.e. solid ancestor (possibly the solid itself) that owns the mass, body and dGeoms of this solid..
   virtual void setSolidMerger();
   // Non NULL only if this solid is dynamic and is not related to its dynamic parent by a joint
@@ -293,21 +281,21 @@ protected:
   bool isInsertedOdeGeomPositionUpdateRequired() const override { return mIsKinematic; }
 
   // export
-  void exportNodeFields(WbVrmlWriter &writer) const override;
-  void exportNodeFooter(WbVrmlWriter &writer) const override;
+  bool exportNodeHeader(WbWriter &writer) const override;
+  void exportNodeFooter(WbWriter &writer) const override;
 
 protected slots:
   void updateTranslation() override;
   void updateRotation() override;
-  void updateScale(bool warning = false) override;
   void updateLineScale() override;
-  virtual void updateChildren();
   virtual void updateIsLinearVelocityNull();
   virtual void updateIsAngularVelocityNull();
 
 private:
   WbSolid &operator=(const WbSolid &);  // non copyable
   void init();
+
+  void exportUrdfShape(WbWriter &writer, const QString &geometry, const WbPose *pose, const WbVector3 &offset) const;
 
   // list of finalized solids
   static QList<const WbSolid *> cSolids;
@@ -334,19 +322,18 @@ private:
 
   // ODE
   dJointID mJoint;
-  bool mUpdatedAfterStep;
+  bool mUpdatedInStep;       // used to update Transform coordinated to setup ray collisions (based on pre-physics step values)
+  bool mResetPhysicsInStep;  // used to completely reset physics when the solid is also moved in the same step
   void setGeomAndBodyPositions();
   void applyPhysicsTransform();
-  void computePlaneParams(WbTransform *transform, WbVector3 &n, double &d) const;
   void resetJoints();  // reset joint to any linked solid to this one or to one of its descendants
   void setBodiesAndJointsToParents();
   void setJointChildrenWithReferencedEndpoint();
   void updateKinematicPlaceableGeomPosition(dGeomID g);
-  virtual bool updateJointChildren();  // overriden in WbDifferentialWheels
   bool resetJointPositions(bool allParents = false);
   void handleJerk() override;
 
-  QVector<WbTransform *> mMovedChildren;
+  QVector<WbPose *> mMovedChildren;
   void childrenJerk();
 
   void resetSingleSolidPhysics();
@@ -363,7 +350,6 @@ private:
   dMass *mReferenceMass;   // the mass of the solid when the density is uniformly set to 1000 kg/m^3
   bool mUseInertiaMatrix;  // indicates that the WbSolid uses the latest valid inertia matrix field for ODE physics computation
   WbVector3 mCenterOfMass;
-  WbVector3 mScaledCenterOfMass;
 
   // ODE mass adjustments
   void createOdeMass(bool reset = true);
@@ -404,7 +390,9 @@ private:
 
   // Contact points
   QVector<WbVector3> mListOfContactPoints;
-  QVector<WbVector3> mGlobalListOfContactPoints;  // includes contacts of Solid descendants needed for the support polygon
+  QVector<WbVector3> mGlobalListOfContactPoints;  // includes contacts of Solid descendants
+  // defines the colliding Solid for each for the contact point in mGlobalListOfContactPoints
+  QVector<const WbSolid *> mSolidPerContactPoints;
   bool mHasExtractedContactPoints;
   void extractContactPoints();  // populates both local and global lists
 
@@ -435,8 +423,6 @@ private:
 
   void setOdeInertiaMatrix();
   void createOdeGeoms() override;
-  // rescale all the ODE dGeoms lying inside the Bounding Object when the WbSolid's scale field has changed
-  void applyToOdeScale() override;
 
   // WREN objects
   WrTransform *mCenterOfMassTransform;
@@ -453,10 +439,6 @@ private:
   WrRenderable *mCenterOfBuoyancyRenderable;
   WrMaterial *mCenterOfBuoyancyMaterial;
 
-  // Positions and orientations storage
-  WbRotation mPreviousRotation;  // used only by WbDifferentialWheels
-  WbVector3 mTranslationLoadedFromFile;
-  WbRotation mRotationLoadedFromFile;
   WbHiddenKinematicParameters::HiddenKinematicParameters *mOriginalHiddenKinematicParameters;
   bool applyHiddenKinematicParameters(const WbHiddenKinematicParameters::HiddenKinematicParameters *hkp, bool backupPrevious);
   bool restoreHiddenKinematicParameters(const WbHiddenKinematicParameters::HiddenKinematicParametersMap &map,
@@ -465,11 +447,13 @@ private:
 
   void setGeomMatter(dGeomID g, WbBaseNode *node = NULL) override;
 
+  bool mNameClashResolved;
+
 private slots:
+  void updateChildrenAfterJointEndPointChange(WbBaseNode *node);
   void updatePhysics();
   void updateRadarCrossSection();
   void updateRecognitionColors();
-  void updateBoundingObject() override;
   void updateOdeMass();
   void applyToOdeMass();
   void updateOdeInertiaMatrix();
@@ -491,8 +475,8 @@ private slots:
 };
 
 void inline WbSolid::setTransformFromOde(double tx, double ty, double tz, double rx, double ry, double rz, double angle) {
-  WbTransform::setTranslationAndRotationFromOde(tx, ty, tz, rx, ry, rz, angle);
-  WbTransform::updateTranslationAndRotation();
+  WbPose::setTranslationAndRotationFromOde(tx, ty, tz, rx, ry, rz, angle);
+  WbPose::updateTranslationAndRotation();
 }
 
 #endif

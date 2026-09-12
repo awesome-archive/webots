@@ -1,4 +1,9 @@
-#VRML_SIM R2019a utf8
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "webots://projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "webots://projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "webots://projects/objects/floors/protos/RectangleArena.proto"
+
 WorldInfo {
   info [
     "Example use of a LED device."
@@ -6,19 +11,20 @@ WorldInfo {
   title "LED"
 }
 Viewpoint {
-  orientation 0.8289903167727999 0.5454557477491351 0.12350336814987996 5.646092614053312
-  position -0.4457169967452991 0.7463318878452632 1.2828577010646867
+  orientation 0.33632960868888634 -0.22674598560996537 -0.9140397432983679 4.30236051631329
+  position 0.4104122453712875 -1.3085310780103285 1.0854287628762127
 }
 TexturedBackground {
-  texture "dawn_cloudy_empty"
+  texture "dusk"
 }
 TexturedBackgroundLight {
-  texture "dawn_cloudy_empty"
+  texture "dusk"
 }
 RectangleArena {
 }
 DEF GREEN_BOX Solid {
-  translation -0.05 0.05 -0.25
+  translation -0.05 0.25 0.05
+  rotation 1 0 0 1.570796
   children [
     Shape {
       appearance PBRAppearance {
@@ -41,8 +47,8 @@ DEF GREEN_BOX Solid {
   }
 }
 DEF BLUE_BOX Solid {
-  translation 0.2 0.05 0.27
-  rotation 0 1 0 0.31
+  translation 0.2 -0.27 0.05
+  rotation 0.9764440362290037 0.1525730056609163 0.1525730056609163 1.594632
   children [
     Shape {
       appearance PBRAppearance {
@@ -65,8 +71,8 @@ DEF BLUE_BOX Solid {
   }
 }
 DEF YELLOW_BOX Solid {
-  translation -0.2 0.05 0.15
-  rotation 0 1 0 0.4
+  translation -0.2 -0.15 0.05
+  rotation 0.9612795880715977 0.19486091649802306 0.19486091649802306 1.610276
   children [
     Shape {
       appearance PBRAppearance {
@@ -89,7 +95,8 @@ DEF YELLOW_BOX Solid {
   }
 }
 DEF PINK_BOX Solid {
-  translation 0.413794 0.05 -0.106373
+  translation 0.413794 0.106373 0.05
+  rotation 1 0 0 1.570796
   children [
     Shape {
       appearance PBRAppearance {
@@ -113,10 +120,11 @@ DEF PINK_BOX Solid {
 }
 Robot {
   translation 0.15 0 0
-  rotation 0 1 0 1
+  rotation 0 0 1 2.5708
   children [
-    Transform {
-      translation 0 0.0415 0
+    Pose {
+      translation 0 0 0.0415
+      rotation 0 0 1 -1.570796
       children [
         Shape {
           appearance PBRAppearance {
@@ -133,8 +141,8 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        axis -1 0 0
-        anchor 0 0.025 0
+        axis 0 1 0
+        anchor 0 0 0.025
       }
       device [
         RotationalMotor {
@@ -146,11 +154,11 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.045 0.025 0
-        rotation 1 0 0 4.98467
+        translation 0 0.045 0.025
+        rotation 0.13448695438559669 -0.13448695438559669 -0.9817466670176033 1.589217
         children [
-          DEF WHEEL Transform {
-            rotation 0 0 1 1.57
+          DEF WHEEL Pose {
+            rotation 0.577656895078166 0.5771968951617173 -0.5771968951617173 -2.093935
             children [
               Shape {
                 appearance PBRAppearance {
@@ -176,8 +184,8 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        axis -1 0 0
-        anchor 0 0.025 0
+        axis 0 1 0
+        anchor 0 0 0.025
       }
       device [
         RotationalMotor {
@@ -189,8 +197,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.045 0.025 0
-        rotation 1 0 0 4.58735
+        translation 0 -0.045 0.025
+        rotation -0.06235700094427207 0.06235700094427207 -0.9961040150840031 1.5747
         children [
           USE WHEEL
         ]
@@ -200,11 +208,11 @@ Robot {
       }
     }
     DistanceSensor {
-      translation -0.02 0.063 -0.042
-      rotation 0 1 0 2.07
+      translation 0.042 0.02 0.063
+      rotation 0 0 -1 -0.499205
       children [
-        DEF SENSOR Transform {
-          rotation 0 0 1 1.57
+        DEF SENSOR Pose {
+          rotation 0.577656895078166 0.5771968951617173 -0.5771968951617173 -2.093935
           children [
             Shape {
               appearance PBRAppearance {
@@ -230,8 +238,8 @@ Robot {
       aperture 1
     }
     DistanceSensor {
-      translation 0.02 0.063 -0.042
-      rotation 0 1 0 1.07
+      translation 0.042 -0.02 0.063
+      rotation 0 0 1 -0.500795
       children [
         USE SENSOR
       ]
@@ -244,9 +252,9 @@ Robot {
       numberOfRays 2
       aperture 1
     }
-    DEF SMILE Transform {
-      translation 0 0.025 -0.036
-      rotation 0.7745972408364944 0.44721228048294853 0.4472139204829502 1.8234794
+    DEF SMILE Pose {
+      translation 0.036 0 0.025
+      rotation 0.25056300542381216 -0.9351130202419243 -0.25056300542381216 1.637834
       children [
         Shape {
           appearance PBRAppearance {
@@ -263,7 +271,7 @@ Robot {
       ]
     }
     LED {
-      translation 0.015 0.08 0
+      translation 0 -0.015 0.08
       children [
         Group {
           children [
@@ -278,8 +286,10 @@ Robot {
               }
             }
             PointLight {
+              attenuation 0 0 1
               color 0 0 0
-              location 0 0.03 0
+              intensity 0.5
+              location 0 0 0.03
               on FALSE
               castShadows TRUE
             }
@@ -300,7 +310,7 @@ Robot {
       ]
     }
     LED {
-      translation -0.015 0.08 0
+      translation 0 0.015 0.08
       children [
         Group {
           children [
@@ -313,8 +323,10 @@ Robot {
               geometry USE LED_SHAPE
             }
             PointLight {
+              attenuation 0 0 1
               color 0 0 0
-              location 0 0.03 0
+              intensity 0.5
+              location 0 0 0.03
               on FALSE
               castShadows TRUE
             }
@@ -325,7 +337,7 @@ Robot {
       gradual TRUE
     }
     LED {
-      translation 0 0.08 0.02
+      translation -0.02 0 0.08
       children [
         Group {
           children [
@@ -338,8 +350,10 @@ Robot {
               geometry USE LED_SHAPE
             }
             PointLight {
+              attenuation 0 0 1
               color 0 0 0
-              location 0 0.03 0
+              intensity 0.5
+              location 0 0 0.03
               on FALSE
               castShadows TRUE
             }
@@ -352,8 +366,9 @@ Robot {
     }
   ]
   name "MyBot"
-  boundingObject Transform {
-    translation 0 0.0415 0
+  boundingObject Pose {
+    translation 0 0 0.0415
+    rotation 0 0 1 -1.570796
     children [
       USE BODY
     ]

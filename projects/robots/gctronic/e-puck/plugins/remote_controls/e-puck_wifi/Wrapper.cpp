@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,6 +32,11 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+
+// Uncomment these line to save camera images and/or log communication times
+// #define SAVE_CAMERA_IMAGES
+// #define LOG_COMMUNICATION_TIME
 
 using namespace std;
 
@@ -52,11 +57,10 @@ void Wrapper::cleanup() {
   DeviceManager::cleanup();
 }
 
-bool Wrapper::start(void *arg) {
-  if (!arg)
+bool Wrapper::start(const char *args) {
+  if (!args)
     return false;
-  string port((const char *)arg);
-  cCommunication->initialize(port);
+  cCommunication->initialize(std::string(args));
   cTime = new Time();
   cSuccess = cCommunication->isInitialized();
   return cSuccess;
@@ -71,10 +75,7 @@ void Wrapper::stop() {
   }
 }
 
-#ifdef NDEBUG
-#define log(...) \
-  {}
-#else
+#ifdef LOG_COMMUNICATION_TIME
 #define log(...)                           \
   {                                        \
     FILE *_logfd = fopen("log.txt", "a+"); \
@@ -82,7 +83,12 @@ void Wrapper::stop() {
     fflush(_logfd);                        \
     fclose(_logfd);                        \
   }
+#else
+#define log(...) \
+  {}
+#endif
 
+#ifdef SAVE_CAMERA_IMAGES
 static void rgb565_to_brg888(const unsigned char *rgb565, unsigned char *brg888, int width, int height) {
   int rgb565_index = 0;
   int brg888_index = 0;
@@ -130,6 +136,11 @@ static void save_bmp_image(const char *filename, const unsigned char *image, int
 #endif
 
 int Wrapper::robotStep(int step) {
+#ifdef LOG_COMMUNICATION_TIME
+  static clock_t startTime = 0, endTime = 0;
+  int cpu_time_used;
+#endif
+
   if (step == 0)
     return 0;
   // get simulation time at the beginning of this step
@@ -139,32 +150,45 @@ int Wrapper::robotStep(int step) {
   // setup the command packet
   EPuckCommandPacket commandPacket;
   int command = commandPacket.apply(beginStepTime);
-  log("Command = 0x%02x\n", command);
+#ifdef LOG_COMMUNICATION_TIME
+  startTime = clock();
+#endif
   cSuccess = cCommunication->send(commandPacket.data(), EPUCK_COMMAND_PACKET_SIZE);
+#ifdef LOG_COMMUNICATION_TIME
+  endTime = clock();
+  cpu_time_used = (endTime - startTime) * 1000 / CLOCKS_PER_SEC;
+  log("Took %d ms to send 0x%02x command (%d bytes) \n", cpu_time_used, command, EPUCK_COMMAND_PACKET_SIZE);
+#endif
   if (!cSuccess) {
     log("Failed to send packet to the e-puck.\n");
     return 0;
   }
-  unsigned char *image = (unsigned char *)malloc(IMAGE_SIZE);
-  unsigned char *sensor_data = (unsigned char *)malloc(SENSOR_DATA_SIZE);
-  log("image buffer at 0x%p (%d bytes) - data buffer at 0x%p (%d bytes)\n", image, IMAGE_SIZE, sensor_data, SENSOR_DATA_SIZE);
+  unsigned char *image = static_cast<unsigned char *>(malloc(IMAGE_SIZE));
+  unsigned char *sensor_data = static_cast<unsigned char *>(malloc(SENSOR_DATA_SIZE));
   int got_camera_image = 0;
   int got_sensor_data = 0;
   bool all_read = false;
   do {
     // log("waiting for header\n");
     unsigned char header = 0;
-    bool block = false;
-    if (command == 3 && (got_camera_image == 0 || got_sensor_data == 0))
-      block = true;
-    if (command == 2 && got_sensor_data == 0)
-      block = true;
-    if (command == 1 && got_camera_image == 0)
-      block = true;
-    if (command == 0 && header != 3)
-      block = true;
+    if (command == 3 && got_camera_image && got_sensor_data)
+      break;
+    if (command == 2 && got_sensor_data)
+      break;
+    if (command == 1 && got_camera_image)
+      break;
+    if (command == 0)
+      break;
 
-    int n = cCommunication->receive((char *)&header, 1, block);
+#ifdef LOG_COMMUNICATION_TIME
+    startTime = clock();
+#endif
+    int n = cCommunication->receive(reinterpret_cast<char *>(&header), 1, true);
+#ifdef LOG_COMMUNICATION_TIME
+    endTime = clock();
+    cpu_time_used = (endTime - startTime) * 1000 / CLOCKS_PER_SEC;
+    log("Took %d ms to receive 0x%02x header (%d byte)\n", cpu_time_used, header, n);
+#endif
     if (n == 0)
       all_read = true;
     if (command == 3 && got_camera_image > 0 && got_sensor_data > 0 && all_read)
@@ -175,8 +199,6 @@ int Wrapper::robotStep(int step) {
       break;
     if (command == 0 && header == 3 && all_read)
       break;
-
-    log("received %d bytes\n", n);
     if (n == -1) {
       log("failed to received header\n");
       exit(1);
@@ -184,29 +206,45 @@ int Wrapper::robotStep(int step) {
     if (n > 0) {
       // log("received %d header\n", header);
       if (header == 0x01) {  // camera image
-        if (cCommunication->receive((char *)image, IMAGE_SIZE, true) == -1) {
+#ifdef LOG_COMMUNICATION_TIME
+        startTime = clock();
+#endif
+        n = cCommunication->receive(reinterpret_cast<char *>(image), IMAGE_SIZE, true);
+        if (n == -1) {
           log("Failed to receive camera image.\n");
           exit(1);
         }
-        log("Got image (location = %p size = %d)\n", image, IMAGE_SIZE);
-#ifndef NDEBUG
+#ifdef LOG_COMMUNICATION_TIME
+        endTime = clock();
+        cpu_time_used = (endTime - startTime) * 1000 / CLOCKS_PER_SEC;
+        log("Took %d ms to receive image (%d bytes)\n", cpu_time_used, n);
+#endif
+#ifdef SAVE_CAMERA_IMAGES
         // save the image as BMP file to debug
-        static int i = 0;
+        static int image_counter = 0;
         char filename[32];
-        sprintf(filename, "image%03d.png", i);
-        unsigned char *rgb888 = (unsigned char *)malloc(160 * 120 * 3);
+        sprintf(filename, "image%03d.png", image_counter);
+        unsigned char *rgb888 = static_cast<unsigned char *>(malloc(160 * 120 * 3));
         rgb565_to_brg888(image, rgb888, 160, 120);
         save_bmp_image(filename, rgb888, 160, 120);
         free(rgb888);
-        i++;
+        image_counter++;
 #endif
         got_camera_image++;
       } else if (header == 0x02) {  // sensor data
-        if (cCommunication->receive((char *)sensor_data, SENSOR_DATA_SIZE, true) == -1) {
+#ifdef LOG_COMMUNICATION_TIME
+        startTime = clock();
+#endif
+        n = cCommunication->receive(reinterpret_cast<char *>(sensor_data), SENSOR_DATA_SIZE, true);
+        if (n == -1) {
           log("Failed to receive sensor data,\n");
           exit(1);
         }
-        log("Got sensor data (location = %p size = %d)\n", sensor_data, SENSOR_DATA_SIZE);
+#ifdef LOG_COMMUNICATION_TIME
+        endTime = clock();
+        cpu_time_used = (endTime - startTime) * 1000 / CLOCKS_PER_SEC;
+        log("Took %d ms to receive sensor data (%d bytes)\n", cpu_time_used, n);
+#endif
         got_sensor_data++;
       } else if (header == 0x03) {
         log("Got empty packet\n");
@@ -218,18 +256,17 @@ int Wrapper::robotStep(int step) {
       }
     }
   } while (true);
-  log("Read %d camera_image and %d sensor_data\n", got_camera_image, got_sensor_data);
-  Camera *camera = DeviceManager::instance()->camera();
+  const Camera *camera = DeviceManager::instance()->camera();
   if (camera->isEnabled()) {
-    unsigned char *bgraImage = (unsigned char *)malloc(160 * 120 * 4);
-    if (camera->rawToBgraImage(bgraImage, (const unsigned char *)image)) {
-      wbr_camera_set_image(camera->tag(), (const unsigned char *)bgraImage);
+    unsigned char *bgraImage = static_cast<unsigned char *>(malloc(160 * 120 * 4));
+    if (camera->rawToBgraImage(bgraImage, static_cast<const unsigned char *>(image))) {
+      wbr_camera_set_image(camera->tag(), static_cast<const unsigned char *>(bgraImage));
       // log("Got camera image (size = %d)\n", IMAGE_SIZE);
     } else
       log("Cannot rawToBgraImage\n");
     free(bgraImage);
   }
-  TripleValuesSensor *accelerometer = DeviceManager::instance()->accelerometer();
+  const TripleValuesSensor *accelerometer = DeviceManager::instance()->accelerometer();
   if (accelerometer->isEnabled()) {
     const double calibration_k[3] = {-9.81 / 800.0, 9.81 / 800.0, 9.81 / 800.0};
     const double calibration_offset = -2000.0;
@@ -258,6 +295,13 @@ int Wrapper::robotStep(int step) {
       ds->setLastRefreshTime(beginStepTime);
     }
   }
+  SingleValueSensor *tof = DeviceManager::instance()->tofSensor();
+  if (tof && tof->isSensorRequested()) {
+    const double value = sensor_data[69] + 256 * sensor_data[70];
+    wbr_distance_sensor_set_value(tof->tag(), value);
+    tof->resetSensorRequested();
+    tof->setLastRefreshTime(beginStepTime);
+  }
   for (int i = 0; i < 8; i++) {
     SingleValueSensor *ls = DeviceManager::instance()->lightSensor(i);
     if (ls && ls->isSensorRequested()) {
@@ -285,8 +329,10 @@ int Wrapper::robotStep(int step) {
   // according to the step duration, either wait
   // or returns the delay
   int deltaStepTime = endStepTime - beginStepTime;
-  if (deltaStepTime <= step) {  // the packet is sent at time
-    Time::wait(step - deltaStepTime);
+  int dt = step - deltaStepTime - 10;  // these 10 milliseconds were determinted empirically to get closer to real time
+  log("Waiting %d ms to be in sync with the %d ms time step...\n", (dt > 0) ? dt : 0, step);
+  if (dt > 0) {  // the packet is sent at time
+    Time::wait(dt);
     return 0;
   } else  // the delay asked is not fulfilled
     return deltaStepTime - step;
@@ -296,20 +342,20 @@ void Wrapper::stopActuators() {
   unsigned char command[21] = {0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x20};
   do {
     unsigned char header;
-    cCommunication->send((const char *)command, sizeof(command));
-    cCommunication->receive((char *)&header, 1, true);
+    cCommunication->send(reinterpret_cast<const char *>(command), sizeof(command));
+    cCommunication->receive(reinterpret_cast<char *>(&header), 1, true);
     if (header == 0x01) {
-      char *image = (char *)malloc(IMAGE_SIZE);
+      char *image = static_cast<char *>(malloc(IMAGE_SIZE));
       cCommunication->receive(image, IMAGE_SIZE, true);
       free(image);
     } else if (header == 0x02) {
-      char *sensor_data = (char *)malloc(SENSOR_DATA_SIZE);
+      char *sensor_data = static_cast<char *>(malloc(SENSOR_DATA_SIZE));
       cCommunication->receive(sensor_data, SENSOR_DATA_SIZE, true);
       free(sensor_data);
     } else if (header == 0x03)
       break;
     else
-      fprintf(stderr, "Wrong header\n");
+      log("Wrong header\n");
   } while (true);
 }
 
@@ -320,7 +366,7 @@ void Wrapper::setSamplingPeriod(WbDeviceTag tag, int samplingPeriod) {
     sensor->setLastRefreshTime(0);
     sensor->setSamplingPeriod(samplingPeriod);
   } else
-    fprintf(stderr, "Wrapper::setSamplingPeriod: unknown device.\n");
+    log("Wrapper::setSamplingPeriod: unknown device.\n");
 }
 
 void Wrapper::motorSetVelocity(WbDeviceTag tag, double velocity) {
@@ -337,6 +383,7 @@ void Wrapper::ledSet(WbDeviceTag tag, int state) {
     led->setState(state);
 }
 
+// cppcheck-suppress constParameterPointer
 void *Wrapper::callCustomFunction(void *args) {
   return NULL;
 }

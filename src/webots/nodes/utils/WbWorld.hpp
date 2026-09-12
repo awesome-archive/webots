@@ -1,10 +1,10 @@
-// Copyright 1996-2018 Cyberbotics Ltd.
+// Copyright 1996-2024 Cyberbotics Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,10 +19,11 @@
 // Description: Webots world
 //
 
+#include "WbWorldInfo.hpp"
+
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
 #include <QtCore/QString>
-#include "WbWorldInfo.hpp"
 
 class WbGroup;
 class WbNode;
@@ -31,7 +32,6 @@ class WbRobot;
 class WbSolid;
 class WbTokenizer;
 class WbViewpoint;
-class WbProtoList;
 
 struct dImmersionGeom;
 class WbOdeContact;
@@ -46,7 +46,7 @@ public:
   // constructor
   // the world is read using 'tokenizer': the file syntax must have been checked with WbParser
   // if 'tokenizer' is not specified, the world is created with default WorldInfo and Viewpoint nodes
-  WbWorld(WbProtoList *protos = NULL, WbTokenizer *tokenizer = NULL);
+  explicit WbWorld(WbTokenizer *tokenizer = NULL);
 
   // destructor
   virtual ~WbWorld();
@@ -55,7 +55,6 @@ public:
 
   // current file name
   const QString &fileName() const { return mFileName; }
-  bool isUnnamed() const;
   bool needSaving() const;
   bool isModifiedFromSceneTree() const { return mIsModifiedFromSceneTree; }
   bool isModified() const { return mIsModified; }
@@ -69,17 +68,21 @@ public:
   void setIsCleaning(bool cleaning) { mIsCleaning = cleaning; }
   bool wasWorldLoadingCanceled() { return mWorldLoadingCanceled; }
 
-  static QString defaultX3dFrustumCullingParameter() { return "true"; }
-  static void enableX3DMetaFileExport() { cX3DMetaFileExport = true; }
+  bool isVideoRecording() const { return mIsVideoRecording; }
+
+  static bool isW3dStreaming() { return cW3dStreaming; }
+  static void enableW3dStreaming() { cW3dStreaming = true; }
+  static bool printExternUrls() { return cPrintExternUrls; }
+  static void setPrintExternUrls() { cPrintExternUrls = true; }
 
   // save
   bool save();
   virtual bool saveAs(const QString &fileName);
 
-  // save and replace Webots specific nodes by VRML/X3D nodes
+  // save and replace Webots specific nodes by VRML/W3D nodes
   bool exportAsHtml(const QString &fileName, bool animation) const;
-  bool exportAsVrml(const QString &fileName) const;
-  void write(WbVrmlWriter &writer) const;
+  bool exportAsW3d(const QString &fileName) const;
+  void write(WbWriter &writer) const;
 
   // nodes that do always exist
   WbGroup *root() const { return mRoot; }
@@ -103,18 +106,18 @@ public:
   QList<WbSolid *> findSolids(bool visibleNodes = false) const;
 
   // return the list of all robots
-  QList<WbRobot *> robots() const { return mRobots; }
+  const QList<WbRobot *> &robots() const { return mRobots; }
 
   // return the list of all top solids (not looking recursively)
-  QList<WbSolid *> topSolids() const { return mTopSolids; }
+  const QList<WbSolid *> &topSolids() const { return mTopSolids; }
 
   // return the list of all solids that have a positive radar cross-section (radar target)
-  QList<WbSolid *> radarTargetSolids() const { return mRadarTargets; }
+  const QList<WbSolid *> &radarTargetSolids() const { return mRadarTargets; }
   void addRadarTarget(WbSolid *target) { mRadarTargets.append(target); }
   void removeRadarTarget(WbSolid *target) { mRadarTargets.removeAll(target); }
 
   // return the list of all solids that have a non-empty 'recognitionColors' field
-  QList<WbSolid *> cameraRecognitionObjects() const { return mCameraRecognitionObjects; }
+  const QList<WbSolid *> &cameraRecognitionObjects() const { return mCameraRecognitionObjects; }
   void addCameraRecognitionObject(WbSolid *object) { mCameraRecognitionObjects.append(object); }
   void removeCameraRecognitionObject(WbSolid *object) { mCameraRecognitionObjects.removeAll(object); }
 
@@ -123,7 +126,7 @@ public:
   void addRobotIfNotAlreadyPresent(WbRobot *robot);
 
   // return the list of texture files used in this world (no duplicates)
-  QStringList listTextureFiles() const;
+  QList<std::pair<QString, WbMFString *>> listTextureFiles() const;
 
   // shortcut
   double basicTimeStep() const { return mWorldInfo->basicTimeStep(); }
@@ -137,30 +140,44 @@ public:
   void retrieveNodeNamesWithOptionalRendering(QStringList &centerOfMassNodeNames, QStringList &centerOfBuoyancyNodeNames,
                                               QStringList &supportPolygonNodeNames) const;
 
-  virtual void reset() {}
+  void setResetRequested(bool restartControllers) {
+    mResetRequested = true;
+    if (!mRestartControllers)
+      mRestartControllers = restartControllers;
+  }
+  virtual void reset(bool restartControllers) {
+    mResetRequested = false;
+    mRestartControllers = false;
+  }
 
 signals:
   void modificationChanged(bool modified);
   void worldLoadingStatusHasChanged(QString status);
+  void worldLoadingHasProgressed(int percent);
   void viewpointChanged();
   void robotAdded(WbRobot *robot);
+  void robotRemoved(WbRobot *robot);
+  void resetRequested(bool restartControllers);
 
 public slots:
   void awake();
+  void updateVideoRecordingStatus(int status) {
+    mIsVideoRecording = (status == WB_SUPERVISOR_MOVIE_RECORDING || status == WB_SUPERVISOR_MOVIE_SAVING);
+  }
 
 protected:
   // collecting contact and immersion geometries
   QList<WbOdeContact> mOdeContacts;
   QList<dImmersionGeom> mImmersionGeoms;
+  bool mWorldLoadingCanceled;
+  bool mResetRequested;
+  bool mRestartControllers;
 
   QString logWorldMetrics() const;
 
   // called when a node is added to the children of a group which checks if a
   // controller needs starting, should the added node be a Robot
   virtual void setUpControllerForNewRobot(WbRobot *robot) {}
-
-protected:
-  bool mWorldLoadingCanceled;
 
 protected slots:
   virtual void storeAddedNodeIfNeeded(WbNode *node) {}
@@ -177,19 +194,19 @@ private:
   QList<WbSolid *> mTopSolids;
   QList<WbSolid *> mRadarTargets;
   QList<WbSolid *> mCameraRecognitionObjects;
-  WbProtoList *mProtos;
   QMutex mOdeContactsMutex;
   double mLastAwakeningTime;
   bool mIsLoading;
   bool mIsCleaning;
+  bool mIsVideoRecording;
 
   void checkPresenceOfMandatoryNodes();
   WbNode *findTopLevelNode(const QString &modelName, int preferredPosition) const;
 
   virtual void storeLastSaveTime(){};
-  void createX3DMetaFile(const QString &filename) const;
 
-  static bool cX3DMetaFileExport;
+  static bool cW3dStreaming;
+  static bool cPrintExternUrls;
 
 private slots:
   void updateProjectPath(const QString &oldPath, const QString &newPath);
